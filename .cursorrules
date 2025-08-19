@@ -1,0 +1,37 @@
+# Cursor IDE 规则配置
+
+## 项目信息
+这是一个全栈项目，包含：
+- 前端：React/Vue.js 应用
+- 后端：Node.js/Express API
+- 数据库：PostgreSQL/MongoDB
+- 文档：API 文档和用户指南
+
+## 代码规范
+1. 使用 TypeScript
+2. 遵循 ESLint 规则
+3. 使用 Prettier 格式化代码
+4. 组件命名使用 PascalCase
+5. 文件命名使用 kebab-case
+6. 变量和函数使用 camelCase
+
+## 目录结构
+- `/frontend` - 前端应用代码
+- `/backend` - 后端 API 代码
+- `/docs` - 项目文档
+- `/tests` - 测试文件
+- `/scripts` - 构建和部署脚本
+- `/config` - 配置文件
+
+## 开发指南
+1. 新功能需要编写测试
+2. 提交前运行 lint 检查
+3. API 更改需要更新文档
+4. 使用语义化版本控制
+
+## 最佳实践
+- 保持函数简短和单一职责
+- 使用有意义的变量名
+- 添加适当的注释
+- 处理错误情况
+- 避免代码重复
