@@ -1,19 +1,98 @@
-# README
+# 🍅 Pomodoro Timer
 
-## About
+A cross-platform desktop productivity timer based on the Pomodoro Technique, built with Wails (Go + Vue 3).
 
-This is the official Wails Vue-TS template.
+## Features
 
-You can configure the project by editing `wails.json`. More information about the project settings can be found
-here: https://wails.io/docs/reference/project-config
+- ✅ **Timer Functionality**: 25-minute work sessions with 5-minute breaks
+- ✅ **State Management**: Visual indicators for work/break/paused states
+- ✅ **Progress Tracking**: Dots showing completed pomodoros
+- ✅ **Automatic Transitions**: Seamless switching between work and break modes
+- ✅ **Modern UI**: Clean, minimalist design with gradient background
 
-## Live Development
+## Quick Start
 
-To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
-server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
-and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
-to this in your browser, and you can call your Go code from devtools.
+### Prerequisites
 
-## Building
+- [Go](https://golang.org/dl/) 1.21+
+- [Node.js](https://nodejs.org/) 18+
+- [Wails v2](https://wails.io/docs/gettingstarted/installation)
 
-To build a redistributable, production mode package, use `wails build`.
+### Development
+
+```bash
+# Start development server
+./scripts/dev.sh
+
+# Or manually:
+cd frontend && npm install && cd ..
+wails dev
+```
+
+### Building
+
+```bash
+# Build for production
+./scripts/build.sh
+
+# Or manually:
+wails build
+```
+
+### Updating Dependencies
+
+```bash
+# Update all dependencies
+./scripts/update.sh
+```
+
+## Project Structure
+
+```
+├── app.go              # Main application logic (Go)
+├── main.go             # Entry point
+├── frontend/           # Vue 3 frontend
+│   ├── src/
+│   │   ├── App.vue     # Main Vue component
+│   │   └── main.ts     # Frontend entry point
+│   └── package.json
+├── scripts/            # Development scripts
+├── docs/              # Documentation
+└── wails.json         # Wails configuration
+```
+
+## Architecture
+
+- **Backend**: Go with Wails framework for desktop integration
+- **Frontend**: Vue 3 + TypeScript + Vite for modern web UI
+- **Communication**: Wails bindings for Go ↔ Vue communication
+
+## Configuration
+
+Project settings can be configured in `wails.json`. See the [Wails documentation](https://wails.io/docs/reference/project-config) for details.
+
+## Development Status
+
+Current implementation: ~30% complete
+
+✅ **Implemented:**
+- Basic timer functionality
+- Vue 3 frontend with controls
+- State management and visual indicators
+- Automatic work/break progression
+
+🚧 **In Progress:**
+- Settings customization UI
+- Audio notifications
+- System tray integration
+- Analytics and statistics
+
+📋 **Planned:**
+- Desktop notifications
+- Global keyboard shortcuts
+- Data persistence
+- Multi-language support
+
+## Contributing
+
+See [requirements document](docs/requirements/pomodoro-requirements.md) for detailed feature specifications.
