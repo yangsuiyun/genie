@@ -1,37 +1,247 @@
-# Cursor IDE 规则配置
+# 🧞 Genie 项目开发规则
 
-## 项目信息
-这是一个全栈项目，包含：
-- 前端：React/Vue.js 应用
-- 后端：Node.js/Express API
-- 数据库：PostgreSQL/MongoDB
-- 文档：API 文档和用户指南
+## 项目概述
+Genie 是一个智能效能提升工具，采用现代化全栈技术构建：
+- **前端**：Vue 3 + TypeScript + Vite + Element Plus
+- **后端**：Go + Gin + GORM + PostgreSQL + Redis
+- **核心功能**：番茄钟、项目管理、多终端同步
+- **目标**：跨平台桌面应用 + Web应用
 
-## 代码规范
-1. 使用 TypeScript
-2. 遵循 ESLint 规则
-3. 使用 Prettier 格式化代码
-4. 组件命名使用 PascalCase
-5. 文件命名使用 kebab-case
-6. 变量和函数使用 camelCase
+## 🛠 技术栈规范
 
-## 目录结构
-- `/frontend` - 前端应用代码
-- `/backend` - 后端 API 代码
-- `/docs` - 项目文档
-- `/tests` - 测试文件
-- `/scripts` - 构建和部署脚本
-- `/config` - 配置文件
+### 后端 (Go)
+- **框架**：Gin web框架
+- **ORM**：GORM v2
+- **数据库**：PostgreSQL (主) + Redis (缓存)
+- **认证**：JWT + bcrypt
+- **配置**：Viper配置管理
+- **日志**：logrus结构化日志
+- **测试**：Go标准testing + testify
 
-## 开发指南
-1. 新功能需要编写测试
-2. 提交前运行 lint 检查
-3. API 更改需要更新文档
-4. 使用语义化版本控制
+#### Go代码规范
+```go
+// 包命名：全小写，简短有意义
+package pomodoro
 
-## 最佳实践
-- 保持函数简短和单一职责
-- 使用有意义的变量名
-- 添加适当的注释
-- 处理错误情况
-- 避免代码重复
+// 结构体：PascalCase
+type PomodoroSession struct {
+    ID        uint      `json:"id" gorm:"primaryKey"`
+    Duration  int       `json:"duration"`
+    CreatedAt time.Time `json:"createdAt"`
+}
+
+// 接口：以er结尾或描述性名称
+type SessionManager interface {
+    CreateSession(duration int) (*PomodoroSession, error)
+}
+
+// 函数/方法：PascalCase（导出）camelCase（私有）
+func (s *SessionService) CreateSession(ctx context.Context, req *CreateSessionRequest) error {
+    // 实现...
+}
+
+// 常量：全大写下划线分隔
+const (
+    DEFAULT_POMODORO_DURATION = 25 * 60 // 25分钟
+    SHORT_BREAK_DURATION      = 5 * 60  // 5分钟
+)
+
+// 错误处理：使用error包装
+if err != nil {
+    return fmt.Errorf("failed to create session: %w", err)
+}
+```
+
+### 前端 (Vue 3)
+- **框架**：Vue 3 Composition API
+- **语言**：TypeScript 严格模式
+- **构建**：Vite
+- **UI库**：Element Plus + Tailwind CSS
+- **状态管理**：Pinia
+- **路由**：Vue Router 4
+- **HTTP客户端**：Axios
+- **测试**：Vitest + Vue Test Utils
+
+#### Vue代码规范
+```typescript
+// 组件命名：PascalCase
+<template>
+  <div class="pomodoro-timer">
+    <!-- 使用kebab-case属性 -->
+    <el-button :disabled="is-running" @click="startTimer">
+      {{ buttonText }}
+    </el-button>
+  </div>
+</template>
+
+<script setup lang="ts">
+// 接口定义：PascalCase
+interface PomodoroState {
+  duration: number
+  isRunning: boolean
+  currentTime: number
+}
+
+// 组合式函数：use开头，camelCase
+const { startTimer, stopTimer, isRunning } = usePomodoro()
+
+// 响应式变量：camelCase
+const buttonText = computed(() => 
+  isRunning.value ? '暂停' : '开始'
+)
+</script>
+
+<style scoped>
+/* CSS类：kebab-case */
+.pomodoro-timer {
+  @apply flex flex-col items-center space-y-4;
+}
+</style>
+```
+
+## 📁 项目结构规范
+
+```
+genie/
+├── backend/                 # Go后端
+│   ├── cmd/                # 可执行文件
+│   │   ├── server/         # Web服务器
+│   │   └── migrate/        # 数据库迁移工具
+│   ├── internal/           # 私有包
+│   │   ├── api/           # API路由和处理器
+│   │   ├── auth/          # 认证授权
+│   │   ├── config/        # 配置管理
+│   │   ├── database/      # 数据库连接
+│   │   ├── models/        # 数据模型
+│   │   └── services/      # 业务逻辑
+│   ├── pkg/               # 公共包
+│   │   ├── logger/        # 日志工具
+│   │   ├── middleware/    # 中间件
+│   │   └── utils/         # 工具函数
+│   ├── migrations/        # SQL迁移文件
+│   └── configs/           # 配置文件
+├── frontend/              # Vue前端
+│   ├── src/
+│   │   ├── components/    # 组件
+│   │   │   ├── common/    # 通用组件
+│   │   │   ├── pomodoro/  # 番茄钟组件
+│   │   │   └── project/   # 项目管理组件
+│   │   ├── views/         # 页面组件
+│   │   ├── stores/        # Pinia状态管理
+│   │   ├── utils/         # 工具函数
+│   │   ├── assets/        # 静态资源
+│   │   └── router/        # 路由配置
+│   ├── public/            # 公共静态文件
+│   └── tests/             # 测试文件
+├── docs/                  # 项目文档
+│   ├── requirements/      # 需求文档
+│   ├── design/           # 设计文档
+│   ├── api/              # API文档
+│   └── user-guide/       # 用户指南
+├── scripts/              # 构建部署脚本
+└── docker/               # Docker配置
+```
+
+## 🎯 开发工作流
+
+### 功能开发流程
+1. **需求分析** → 在 `docs/requirements/` 创建需求文档
+2. **设计阶段** → 在 `docs/design/` 创建设计文档
+3. **API设计** → 在 `docs/api/` 定义接口规范
+4. **后端开发** → 先写模型和服务，再写API
+5. **前端开发** → 先写类型定义，再写组件
+6. **测试编写** → 单元测试 + 集成测试
+7. **文档更新** → 更新用户指南和API文档
+
+### Git提交规范
+```bash
+# 提交格式：type(scope): description
+feat(pomodoro): 添加番茄钟核心计时功能
+fix(api): 修复用户认证token过期问题
+docs(requirements): 更新Pomodoro需求文档
+style(frontend): 统一组件样式规范
+refactor(backend): 重构数据库连接层
+test(pomodoro): 添加计时器单元测试
+```
+
+### 分支管理
+- `main` - 主分支，始终保持可部署状态
+- `develop` - 开发分支，功能集成
+- `feature/xxx` - 功能分支
+- `hotfix/xxx` - 紧急修复分支
+
+## 📋 代码质量标准
+
+### 必须遵循
+- [ ] 所有导出函数/方法必须有注释
+- [ ] 错误处理不能忽略（Go）
+- [ ] 组件必须有PropTypes/类型定义（Vue）
+- [ ] 数据库操作必须处理事务
+- [ ] API响应必须包含错误码和消息
+- [ ] 敏感信息不能硬编码
+
+### 推荐实践
+- 使用dependency injection模式
+- 实现graceful shutdown
+- 添加健康检查端点
+- 使用结构化日志
+- 实现请求链路追踪
+- 添加性能监控
+
+## 🧪 测试策略
+
+### 后端测试
+```go
+// 单元测试文件：*_test.go
+func TestPomodoroService_CreateSession(t *testing.T) {
+    // Given
+    service := NewPomodoroService()
+    
+    // When
+    session, err := service.CreateSession(context.Background(), 25*60)
+    
+    // Then
+    assert.NoError(t, err)
+    assert.Equal(t, 25*60, session.Duration)
+}
+```
+
+### 前端测试
+```typescript
+// 组件测试：*.spec.ts
+describe('PomodoroTimer', () => {
+  it('should start timer when button clicked', async () => {
+    const wrapper = mount(PomodoroTimer)
+    await wrapper.find('.start-button').trigger('click')
+    expect(wrapper.vm.isRunning).toBe(true)
+  })
+})
+```
+
+## 🔒 安全规范
+- 使用HTTPS进行通信
+- JWT token定期刷新
+- 输入数据验证和清理
+- SQL注入防护（GORM参数化查询）
+- XSS防护（前端输出转义）
+- CORS正确配置
+- 敏感操作增加二次验证
+
+## 📖 文档规范
+- **需求文档**：使用用户故事格式
+- **API文档**：使用OpenAPI 3.0规范
+- **代码注释**：中文说明，关键逻辑详细注释
+- **README**：保持更新，包含快速开始指南
+- **CHANGELOG**：记录每个版本的变更
+
+## 🚀 部署规范
+- 使用Docker容器化部署
+- 环境变量管理配置
+- 数据库迁移自动化
+- 健康检查和监控
+- 日志收集和分析
+- 备份策略制定
+
+---
+
+**记住**：代码是写给人看的，只是顺便能在机器上运行。保持代码简洁、可读、可维护。
