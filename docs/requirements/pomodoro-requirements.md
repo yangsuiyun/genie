@@ -67,7 +67,7 @@ Develop a desktop productivity timer based on the Pomodoro Technique to help use
 - ✅ Tray icon reflects current session status
 - ✅ Desktop notification sent when timer expires
 - ✅ Multiple notification sound options
-- ✅ Audio can be disabled while keeping visual alerts
+- ✅ Audio can be disabled while keeping visual alertsg
 
 ### 4. Analytics & Statistics
 **User Story**: As a user, I want to view my focus history and statistics to understand my productivity patterns.
