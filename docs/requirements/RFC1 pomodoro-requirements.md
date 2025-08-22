@@ -1,4 +1,4 @@
-# 🍅 Pomodoro Timer Requirements
+# RFC 1 🍅 Pomodoro Timer Requirements
 
 ## Document Info
 - **Created**: December 2024
@@ -43,14 +43,18 @@ Develop a desktop productivity timer based on the Pomodoro Technique to help use
 - Custom short break duration (5-15 minutes)
 - Custom long break duration (15-30 minutes)
 - Configurable long break interval (2-8 pomodoros)
+- Auto-start options for next pomodoro and breaks
 - Audio notification options and mute setting
 - Desktop notification preferences
+- White noise options for focus enhancement
 
 **Acceptance Criteria**:
 - ✅ Settings panel allows time parameter modification
 - ✅ Settings apply immediately without affecting current timer
 - ✅ Settings persist across app restarts
 - ✅ Preset templates available (Classic, Short, Extended)
+- ✅ Auto-start settings for seamless session flow
+- ✅ Multiple white noise options available
 
 ### 3. Status & Notifications
 **User Story**: As a user, I want clear indication of my current session state and when to switch between work and rest.
@@ -75,15 +79,20 @@ Develop a desktop productivity timer based on the Pomodoro Technique to help use
 **Requirements**:
 - Track daily completed pomodoro sessions
 - Show today/week/month summaries
-- Total focus time calculations
+- Total focus time calculations with time distribution analysis
 - Completion rate metrics (completed vs interrupted)
-- Simple trend visualization
+- Gantt chart visualization of focus time
+- Calendar view for historical tracking
+- Export functionality for time tracking data
 
 **Acceptance Criteria**:
 - ✅ Accurately record each completed pomodoro
 - ✅ Distinguish between completed and interrupted sessions
 - ✅ Calendar view for historical data
 - ✅ Display key statistics and trends
+- ✅ Gantt chart shows focus sessions timeline
+- ✅ Detailed time distribution reports
+- ✅ Data export in common formats (CSV, JSON)
 - ✅ Local data storage with persistence
 
 ## User Interface Requirements
@@ -123,11 +132,14 @@ Develop a desktop productivity timer based on the Pomodoro Technique to help use
 ## Scope & Constraints
 
 ### Excluded Features (v1.0)
-- Task management capabilities
+- Task management capabilities (moved to RFC2)
 - Cloud synchronization
 - Advanced reporting dashboards
 - Social sharing features
 - Team collaboration tools
+- App blocking/whitelist functionality
+- Gamification features (Forest mode)
+- Cross-platform synchronization
 
 ### Design Constraints
 - Minimal animations to maintain performance
