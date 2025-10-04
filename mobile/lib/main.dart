@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'settings.dart';
 
 void main() {
   runApp(const PomodoroApp());
@@ -31,7 +32,8 @@ class PomodoroState {
   Timer? _timer;
   bool _isRunning = false;
   int _remainingSeconds = 25 * 60; // 25分钟 = 1500秒
-  final int _totalSeconds = 25 * 60;
+  int _totalSeconds = 25 * 60;
+  final AppSettings _settings = AppSettings();
 
   // 状态变化监听器
   final List<VoidCallback> _listeners = [];
@@ -88,8 +90,17 @@ class PomodoroState {
     _isRunning = false;
     _timer?.cancel();
     _timer = null;
+    _totalSeconds = _settings.workDuration * 60;
     _remainingSeconds = _totalSeconds;
     _notifyListeners();
+  }
+
+  void updateFromSettings() {
+    if (!_isRunning) {
+      _totalSeconds = _settings.workDuration * 60;
+      _remainingSeconds = _totalSeconds;
+      _notifyListeners();
+    }
   }
 
   void _complete() {
@@ -173,6 +184,7 @@ class PomodoroTimerScreen extends StatefulWidget {
 class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
     with TickerProviderStateMixin {
   final PomodoroState _pomodoroState = PomodoroState();
+  final AppSettings _settings = AppSettings();
   late AnimationController _controller;
 
   @override
@@ -185,6 +197,7 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
 
     // 监听状态变化
     _pomodoroState.addListener(_onStateChanged);
+    _settings.addListener(_onSettingsChanged);
 
     // 初始化动画状态
     _updateAnimationProgress();
@@ -193,6 +206,7 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
   @override
   void dispose() {
     _pomodoroState.removeListener(_onStateChanged);
+    _settings.removeListener(_onSettingsChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -201,6 +215,13 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
     if (mounted) {
       setState(() {});
       _updateAnimationProgress();
+    }
+  }
+
+  void _onSettingsChanged() {
+    _pomodoroState.updateFromSettings();
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -225,7 +246,7 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('🍅 Pomodoro Genie'),
-        backgroundColor: Colors.red.shade400,
+        backgroundColor: _settings.themeColor.shade400,
         foregroundColor: Colors.white,
       ),
       body: Center(
@@ -493,42 +514,3 @@ class ReportsScreen extends StatelessWidget {
   }
 }
 
-// 设置界面
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('⚙️ 设置'),
-        backgroundColor: Colors.grey.shade600,
-        foregroundColor: Colors.white,
-      ),
-      body: ListView(
-        children: [
-          _buildSettingItem('工作时长', '25 分钟', Icons.timer, context),
-          _buildSettingItem('短休息', '5 分钟', Icons.coffee, context),
-          _buildSettingItem('长休息', '15 分钟', Icons.hotel, context),
-          _buildSettingItem('提醒声音', '开启', Icons.volume_up, context),
-          _buildSettingItem('主题颜色', '红色', Icons.palette, context),
-          _buildSettingItem('关于应用', 'v1.0.0', Icons.info, context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingItem(String title, String value, IconData icon, BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.grey.shade600),
-      title: Text(title),
-      subtitle: Text(value),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$title 设置功能开发中...')),
-        );
-      },
-    );
-  }
-}
