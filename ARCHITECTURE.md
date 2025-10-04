@@ -64,16 +64,29 @@ Pomodoro Genie 采用现代化的多层架构，支持跨平台开发和实时�
 ```
 mobile/
 ├── lib/
-│   ├── providers/          # Riverpod状态管理
-│   ├── screens/           # UI界面
-│   ├── services/          # 业务逻辑服务
-│   └── utils/             # 工具类和验证
+│   ├── main.dart          # 应用入口和核心状态管理
+│   ├── settings.dart      # 全面设置系统
+│   ├── providers/         # Riverpod状态管理（规划中）
+│   ├── screens/          # UI界面组件
+│   ├── services/         # 业务逻辑服务
+│   └── utils/            # 工具类和验证
+├── web/
+│   ├── index.html        # Web入口（已优化）
+│   └── flutter_bootstrap.js  # 现代化启动脚本
 ├── test/
-│   ├── widget/            # Widget测试
-│   ├── e2e/              # 端到端测试
-│   └── timer/            # 计时器精度测试
-└── pubspec.yaml          # 依赖配置
+│   ├── widget/           # Widget测试
+│   ├── e2e/             # 端到端测试
+│   └── timer/           # 计时器精度测试
+└── pubspec.yaml         # 依赖配置
 ```
+
+**当前实现状态**:
+- ✅ **实时计时器**: Timer.periodic精确倒计时
+- ✅ **状态管理**: PomodoroState单例模式
+- ✅ **设置系统**: AppSettings全功能配置
+- ✅ **主题支持**: 5种颜色主题动态切换
+- ✅ **状态持久化**: IndexedStack页面状态保持
+- ✅ **Web优化**: flutter_bootstrap.js现代化启动
 
 #### 🖥️ 桌面应用 (Tauri)
 **框架**: Tauri 2.0 with Rust 1.75+
@@ -282,9 +295,86 @@ Unit Tests (单元测试)
 
 ## 🚀 部署架构
 
+## ⚙️ 设置系统架构
+
+### 设置数据模型
+```dart
+class AppSettings {
+  // 时间配置
+  int workDuration = 25;      // 工作时长（分钟）
+  int shortBreak = 5;         // 短休息（分钟）
+  int longBreak = 15;         // 长休息（分钟）
+  int longBreakInterval = 4;  // 长休息间隔
+
+  // 自动化设置
+  bool autoStartBreaks = false;     // 自动开始休息
+  bool autoStartPomodoros = false;  // 自动开始番茄钟
+
+  // 通知设置
+  bool soundEnabled = true;         // 提醒声音
+  bool notificationsEnabled = true; // 推送通知
+
+  // 外观设置
+  String theme = 'red';            // 主题颜色
+}
+```
+
+### 设置界面架构
+```
+SettingsScreen (设置主界面)
+├── 番茄钟设置
+│   ├── DurationPicker (时长选择器)
+│   │   └── ListWheelScrollView (滚轮选择)
+│   └── NumberPicker (数字选择器)
+├── 自动化设置
+│   └── SwitchListTile (开关组件)
+├── 通知与声音
+│   └── SwitchListTile (开关组件)
+├── 外观设置
+│   └── ThemePicker (主题选择器)
+│       └── ColorTheme (颜色主题卡片)
+└── 关于与帮助
+    ├── AboutDialog (关于对话框)
+    ├── UserGuide (用户指南)
+    └── FeedbackDialog (反馈对话框)
+```
+
+### 状态同步机制
+```dart
+// 设置变更流程
+AppSettings.saveSettings()
+    → _notifyListeners()
+    → PomodoroState.updateFromSettings()
+    → UI重新渲染
+
+// 监听器模式
+SettingsScreen → AppSettings.addListener()
+TimerScreen → AppSettings.addListener()
+```
+
+### 主题系统架构
+```dart
+// 主题枚举
+enum ThemeColors {
+  red: Colors.red,         // 番茄红（默认）
+  blue: Colors.blue,       // 天空蓝
+  green: Colors.green,     // 森林绿
+  purple: Colors.purple,   // 薰衣草紫
+  orange: Colors.orange    // 活力橙
+}
+
+// 主题应用
+AppBar.backgroundColor → _settings.themeColor.shade400
+Button.color → _settings.themeColor
+Icon.color → _settings.themeColor
+```
+
 ### 开发环境
 ```bash
 # 本地开发栈
+bash start-pomodoro.sh     # 一键启动（推荐）
+
+# 手动启动
 docker-compose up -d        # 数据库和服务
 go run main.go             # 后端API
 flutter run                # 移动应用

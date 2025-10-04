@@ -7,15 +7,24 @@
 ## Prerequisites
 
 1. **Development Environment**:
-   - Flutter SDK 3.5+ installed
-   - Node.js 20+ for backend
-   - Tauri CLI for desktop builds
-   - Docker for local Supabase instance
+   - Flutter SDK 3.24.3+ installed ✅
+   - Go 1.21+ for backend ✅
+   - Docker for PostgreSQL database ✅
+   - Modern web browser for testing ✅
 
-2. **Test Data Setup**:
-   - User account: `test@example.com` / `password123`
-   - Sample tasks with due dates
-   - Active Pomodoro session for testing
+2. **Quick Start**:
+   ```bash
+   # 一键启动完整服务
+   bash start-pomodoro.sh
+   ```
+
+3. **Current Implementation Status**:
+   - ✅ **Flutter Web App**: 完全就绪，运行在端口3001
+   - ✅ **Go Backend API**: 基础结构就绪，运行在端口8081
+   - ✅ **Settings System**: 全功能设置系统已实现
+   - ✅ **Timer Functionality**: 实时计时器和状态管理
+   - ✅ **Theme Support**: 5种主题颜色动态切换
+   - ⚠️ **Database Integration**: 规划中，当前使用内存状态
 
 ## Core User Flow Integration Tests
 
