@@ -4,7 +4,7 @@ services:
   # Supabase Studio
   studio:
     container_name: pomodoro_supabase_studio
-    image: supabase/studio:20231123-b86e84e
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/supabase/studio:20250331-156e8fd
     restart: unless-stopped
     ports:
       - "3000:3000/tcp"
@@ -21,7 +21,7 @@ services:
   # PostgreSQL Database
   db:
     container_name: pomodoro_supabase_db
-    image: supabase/postgres:15.1.0.147
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/supabase/postgres:15.1.0.147
     restart: unless-stopped
     ports:
       - "5432:5432"
@@ -48,7 +48,7 @@ services:
   # PostgREST API
   rest:
     container_name: pomodoro_supabase_rest
-    image: postgrest/postgrest:v11.2.0
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/postgrest/postgrest:v12.2.8
     depends_on:
       - db
     restart: unless-stopped
@@ -67,7 +67,7 @@ services:
   # Realtime Server
   realtime:
     container_name: pomodoro_supabase_realtime
-    image: supabase/realtime:v2.25.66
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/supabase/realtime:v2.34.47
     depends_on:
       - db
     restart: unless-stopped
@@ -93,7 +93,7 @@ services:
   # Supabase Meta API
   meta:
     container_name: pomodoro_supabase_meta
-    image: supabase/postgres-meta:v0.68.0
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/supabase/postgres-meta:v0.91.0
     depends_on:
       - db
     restart: unless-stopped

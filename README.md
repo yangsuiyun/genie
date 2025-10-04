@@ -1,473 +1,180 @@
 # 🍅 Pomodoro Genie
 
-A comprehensive task and time management application built with the Pomodoro Technique at its core. Boost your productivity with focused work sessions, intelligent task management, and detailed analytics across all your devices.
+一个基于番茄工作法的任务与时间管理应用，支持Web、移动端和桌面平台。
 
-## ✨ Features
+## ✨ 功能特性
 
-### 🎯 Core Functionality
-- **Pomodoro Timer**: Customizable work and break intervals with precision timing (±1s accuracy)
-- **Task Management**: Full CRUD operations with subtasks, priorities, and due dates
-- **Cross-Device Sync**: Real-time synchronization across mobile, web, and desktop
-- **Smart Notifications**: Contextual reminders and session alerts
-- **Analytics & Reports**: Detailed productivity insights and custom reports
+- 🍅 **番茄计时器** - 25分钟专注工作计时
+- 📋 **任务管理** - 创建、管理和跟踪任务
+- 📊 **数据统计** - 工作效率分析和报告
+- 🔔 **智能提醒** - 休息和工作提醒
+- 🌐 **多平台支持** - Web、iOS、Android、macOS、Windows
+- 🔄 **数据同步** - 跨设备数据同步
 
-### 🏗️ Technical Highlights
-- **High Performance**: Sub-150ms API response times, <100MB memory usage
-- **Scalable Architecture**: Microservices with Go backend, Flutter frontend
-- **Real-time Updates**: WebSocket connections and push notifications
-- **Offline Support**: Local storage with intelligent sync resolution
-- **Comprehensive Testing**: Unit, integration, E2E, and performance tests
+## 🏗️ 技术架构
 
-## 🚀 Quick Start
+### 前端
+- **Flutter** - 跨平台移动应用开发
+- **Dart** - 主要编程语言
+- **Riverpod** - 状态管理
+- **Hive** - 本地数据存储
 
-### Prerequisites
+### 后端
+- **Go** - 高性能API服务
+- **Gin** - Web框架
+- **PostgreSQL** - 主数据库
+- **Redis** - 缓存服务
 
-- **Go**: 1.21+ ([Download](https://golang.org/dl/))
-- **Flutter**: 3.16+ ([Install Guide](https://docs.flutter.dev/get-started/install))
-- **Node.js**: 18+ ([Download](https://nodejs.org/))
-- **Docker**: Latest ([Install Guide](https://docs.docker.com/get-docker/))
+### 部署
+- **Docker** - 容器化部署
+- **Nginx** - 反向代理和静态文件服务
+- **Let's Encrypt** - SSL证书
 
-### 🏃‍♂️ 5-Minute Setup
+## 🚀 快速开始
 
+### 开发环境
+
+1. **启动后端服务**
 ```bash
-# 1. Clone the repository
-git clone https://github.com/pomodoro-genie/pomodoro-genie.git
-cd pomodoro-genie
-
-# 2. Start the database
+# 启动数据库和缓存
 docker-compose up -d
 
-# 3. Start the backend
+# 启动Go API服务
 cd backend
-go mod download
-go run main.go
-
-# 4. Start the mobile app (in a new terminal)
-cd mobile
-flutter pub get
-flutter run
-
-# 🎉 You're ready to go! The app should open automatically.
-```
-
-### 🔧 Detailed Setup
-
-#### Backend (Go)
-
-```bash
-# Navigate to backend directory
-cd backend
-
-# Install dependencies
-go mod download
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your configuration
-
-# Run database migrations
-go run cmd/migrate/main.go
-
-# Start the server
 go run main.go
 ```
 
-The backend will be available at `http://localhost:3000`
-
-#### Mobile App (Flutter)
-
+2. **启动Flutter应用**
 ```bash
-# Navigate to mobile directory
 cd mobile
-
-# Install dependencies
 flutter pub get
-
-# Generate code (if needed)
-flutter packages pub run build_runner build
-
-# Run on connected device/emulator
-flutter run
-
-# Or build for specific platform
-flutter build apk        # Android
-flutter build ios        # iOS
-flutter build web        # Web
+flutter run -d chrome  # Web版本
+flutter run             # 移动端
 ```
 
-#### Desktop App (Tauri)
+### 生产部署
 
+1. **配置环境变量**
 ```bash
-# Navigate to desktop directory
-cd desktop
-
-# Install Rust dependencies
-cargo build
-
-# Install npm dependencies
-npm install
-
-# Start development server
-npm run tauri dev
-
-# Build for production
-npm run tauri build
+cp .env.production .env
+# 编辑.env文件，设置数据库密码、JWT密钥等
 ```
 
-#### Database (Supabase)
-
+2. **设置SSL证书**
 ```bash
-# Start local Supabase instance
-docker-compose up -d
-
-# Access Supabase Studio at http://localhost:54323
-# Default credentials are in docker-compose.yml
+bash ssl-setup.sh your-domain.com
 ```
 
-## 📁 Project Structure
+3. **一键部署**
+```bash
+bash deploy-production.sh
+```
+
+## 📁 项目结构
 
 ```
 pomodoro-genie/
-├── backend/                 # Go API server
-│   ├── cmd/                # CLI tools and utilities
-│   ├── internal/           # Private application code
-│   │   ├── handlers/       # HTTP request handlers
-│   │   ├── services/       # Business logic layer
-│   │   ├── models/         # Data models
-│   │   ├── middleware/     # HTTP middleware
-│   │   └── config/         # Configuration management
-│   ├── tests/              # Test suites
-│   │   ├── unit/          # Unit tests
-│   │   ├── integration/   # Integration tests
-│   │   └── performance/   # Performance tests
-│   ├── docs/              # API documentation
-│   └── migrations/        # Database migrations
-├── mobile/                 # Flutter app (iOS/Android/Web)
-│   ├── lib/               # Dart source code
-│   │   ├── screens/       # UI screens
-│   │   ├── providers/     # State management (Riverpod)
-│   │   ├── services/      # Business logic
-│   │   ├── models/        # Data models
-│   │   └── widgets/       # Reusable UI components
-│   └── test/              # Flutter tests
-│       ├── widget/        # Widget tests
-│       ├── e2e/          # End-to-end tests
-│       └── timer/        # Timer precision tests
-├── desktop/               # Tauri desktop app
-│   ├── src-tauri/        # Rust backend
-│   ├── src/              # Web frontend
-│   └── dist/             # Built assets
-├── shared/               # Shared code and specifications
-│   ├── proto/           # Protocol buffers
-│   └── types/           # Shared type definitions
-├── specs/               # Project specifications
-└── docker-compose.yml  # Local development stack
+├── backend/                 # Go后端API
+│   ├── main.go             # API入口文件
+│   ├── go.mod              # Go依赖管理
+│   └── docs/               # API文档
+├── mobile/                 # Flutter应用
+│   ├── lib/                # Dart源代码
+│   ├── pubspec.yaml        # Flutter依赖
+│   └── test/               # 测试文件
+├── docker-compose.yml      # 开发环境容器配置
+├── docker-compose.production.yml  # 生产环境配置
+├── nginx.production.conf   # Nginx生产配置
+├── Dockerfile.api          # API服务镜像
+├── build-production.sh     # 生产构建脚本
+├── deploy-production.sh    # 部署脚本
+├── ssl-setup.sh           # SSL配置脚本
+├── start-all-services.sh  # 服务启动脚本
+├── stop-all-services.sh   # 服务停止脚本
+└── README.md              # 项目说明
 ```
 
-## 🏃‍♂️ Development Workflow
+## 📱 应用界面
 
-### Running Tests
+- **🍅 番茄计时器** - 圆形进度显示，开始/暂停/重置功能
+- **📋 任务列表** - 任务管理，优先级设置，完成状态跟踪
+- **📊 统计报告** - 今日完成情况，专注时间，效率评分
+- **⚙️ 应用设置** - 时间配置，提醒设置，主题选择
 
+## 🔧 开发工具
+
+### 构建命令
 ```bash
-# Backend tests
-cd backend
-go test ./...                    # All tests
-go test ./tests/unit/...         # Unit tests
-go test ./tests/integration/...  # Integration tests
-go test ./tests/performance/...  # Performance tests
+# 构建Flutter Web版本
+cd mobile && flutter build web --release
 
-# Mobile tests
-cd mobile
-flutter test                     # All tests
-flutter test test/widget/        # Widget tests
-flutter test test/timer/         # Timer precision tests
+# 构建Go API
+cd backend && go build -o pomodoro-api main.go
 
-# E2E tests
-cd mobile/test/e2e
-./run_tests.sh                  # Maestro E2E tests
+# 构建Docker镜像
+docker-compose -f docker-compose.production.yml build
 ```
 
-### API Documentation
-
+### 测试命令
 ```bash
-# Generate and serve API docs
-cd backend/docs
-./generate-docs.sh --serve --open
+# Flutter测试
+cd mobile && flutter test
 
-# Or view online at: http://localhost:8080
+# Go测试
+cd backend && go test ./...
+
+# E2E测试
+cd mobile/test/e2e && bash run_tests.sh
 ```
 
-### Performance Monitoring
+## 🌐 API接口
 
-```bash
-# Run performance tests
-cd backend/tests/performance
-./run_performance_tests.sh
+基础URL: `http://localhost:8081/v1`
 
-# Monitor API performance
-cd backend
-go run cmd/monitor/main.go
-```
+### 主要端点
+- `GET /health` - 健康检查
+- `GET /v1/tasks/` - 获取任务列表
+- `POST /v1/tasks/` - 创建任务
+- `POST /v1/pomodoro/sessions/` - 开始番茄钟会话
+- `GET /v1/reports/analytics` - 获取分析数据
 
-### Code Quality
+完整API文档: [backend/docs/swagger.yaml](backend/docs/swagger.yaml)
 
-```bash
-# Backend linting and formatting
-cd backend
-golangci-lint run
-go fmt ./...
+## 🔐 安全特性
 
-# Mobile linting and formatting
-cd mobile
-flutter analyze
-dart format .
+- JWT身份认证
+- HTTPS强制加密
+- CORS跨域保护
+- XSS/CSRF防护
+- API限流保护
+- 数据库查询参数化
 
-# Desktop linting
-cd desktop
-cargo clippy
-npm run lint
-```
+## 📊 监控指标
 
-## 🚀 Deployment
+生产环境提供以下监控端点：
+- `/health` - 应用健康状态
+- `/metrics` - Prometheus指标
+- Prometheus监控: `http://localhost:9090`
 
-### Production Deployment
+## 🤝 贡献指南
 
-```bash
-# Build all components
-make build-all
+1. Fork项目
+2. 创建功能分支: `git checkout -b feature/AmazingFeature`
+3. 提交更改: `git commit -m 'Add some AmazingFeature'`
+4. 推送到分支: `git push origin feature/AmazingFeature`
+5. 提交Pull Request
 
-# Deploy with Docker
-docker-compose -f docker-compose.prod.yml up -d
+## 📄 许可证
 
-# Or deploy individually
-make deploy-backend
-make deploy-mobile
-make deploy-desktop
-```
+本项目采用MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情
 
-### Environment Configuration
+## 🙏 致谢
 
-Create environment files for each component:
-
-**Backend (.env)**:
-```env
-PORT=3000
-DATABASE_URL=postgresql://user:pass@localhost:5432/pomodoro
-JWT_SECRET=your-secret-key
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-anon-key
-```
-
-**Mobile (lib/config/env.dart)**:
-```dart
-class Environment {
-  static const String apiBaseUrl = 'https://api.yourapp.com';
-  static const String supabaseUrl = 'https://your-project.supabase.co';
-  static const String supabaseAnonKey = 'your-anon-key';
-}
-```
-
-## 📊 Performance Benchmarks
-
-### API Performance
-- **Average Response Time**: <150ms
-- **95th Percentile**: <300ms
-- **Throughput**: >500 requests/second
-- **Memory Usage**: <100MB under load
-
-### Mobile Performance
-- **App Launch Time**: <3 seconds
-- **Timer Precision**: ±1 second accuracy
-- **Sync Speed**: <2 seconds for typical datasets
-- **Offline Capability**: Full functionality without network
-
-### Database Performance
-- **Query Response**: <50ms for simple queries
-- **Complex Analytics**: <200ms
-- **Concurrent Users**: 1000+ supported
-- **Data Sync**: Real-time with <500ms latency
-
-## 🧪 Testing Strategy
-
-### Test Coverage
-- **Backend**: >90% line coverage
-- **Mobile**: >85% widget coverage
-- **E2E**: Critical user journeys covered
-- **Performance**: All endpoints under load
-
-### Test Types
-- **Unit Tests**: Individual function/component testing
-- **Integration Tests**: API endpoint and database testing
-- **Widget Tests**: Flutter UI component testing
-- **E2E Tests**: Full user workflow testing with Maestro
-- **Performance Tests**: Load testing and benchmarking
-- **Timer Precision Tests**: Accuracy validation (±1s requirement)
-
-## 📱 Platform Support
-
-### Mobile
-- **iOS**: 13.0+
-- **Android**: API 21+ (Android 5.0)
-- **Web**: Modern browsers (Chrome 89+, Safari 14+, Firefox 88+)
-
-### Desktop
-- **Windows**: 10+
-- **macOS**: 10.15+
-- **Linux**: Ubuntu 18.04+
-
-### API Clients
-- **REST API**: Full OpenAPI 3.0 specification
-- **WebSocket**: Real-time updates
-- **SDKs**: JavaScript, Python, Go, Swift, Dart
-
-## 🔧 Configuration
-
-### Pomodoro Settings
-```yaml
-default_work_duration: 1500      # 25 minutes
-default_short_break: 300         # 5 minutes
-default_long_break: 1200         # 20 minutes
-sessions_until_long_break: 4
-auto_start_breaks: true
-timer_precision_tolerance: 1     # ±1 second
-```
-
-### Sync Configuration
-```yaml
-sync_interval: 300               # 5 minutes
-conflict_resolution: "last_write_wins"
-offline_queue_size: 1000
-retry_attempts: 3
-```
-
-### Notification Settings
-```yaml
-session_complete: true
-break_reminders: true
-task_due_alerts: true
-daily_summary: true
-quiet_hours:
-  start: "22:00"
-  end: "08:00"
-```
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-**Backend won't start**:
-```bash
-# Check Go version
-go version  # Should be 1.21+
-
-# Verify environment variables
-cat .env
-
-# Check database connection
-go run cmd/health/main.go
-```
-
-**Mobile app build fails**:
-```bash
-# Clean Flutter cache
-flutter clean
-flutter pub get
-
-# Check Flutter doctor
-flutter doctor
-
-# Update dependencies
-flutter pub upgrade
-```
-
-**Timer precision issues**:
-```bash
-# Run timer precision tests
-cd mobile/test/timer
-./run_timer_tests.sh
-
-# Check system performance
-flutter run --profile
-```
-
-**Sync not working**:
-```bash
-# Check network connectivity
-curl -I https://api.yourapp.com/health
-
-# Verify authentication
-curl -H "Authorization: Bearer $TOKEN" https://api.yourapp.com/sync/status
-
-# Check local storage
-flutter logs | grep sync
-```
-
-### Getting Help
-
-- **Documentation**: [docs.pomodoro-genie.com](https://docs.pomodoro-genie.com)
-- **API Reference**: [api.pomodoro-genie.com/docs](https://api.pomodoro-genie.com/docs)
-- **GitHub Issues**: [github.com/pomodoro-genie/issues](https://github.com/pomodoro-genie/pomodoro-genie/issues)
-- **Discord Community**: [discord.gg/pomodoro-genie](https://discord.gg/pomodoro-genie)
-- **Stack Overflow**: Tag questions with `pomodoro-genie`
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Process
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and add tests
-4. Run the test suite: `make test-all`
-5. Commit with conventional commits: `git commit -m "feat: add amazing feature"`
-6. Push to your fork: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-### Code Standards
-- **Go**: Follow standard Go conventions, use `golangci-lint`
-- **Dart**: Follow Effective Dart guidelines, use `dart format`
-- **Rust**: Follow Rust conventions, use `cargo clippy`
-- **Testing**: Maintain >90% coverage for new code
-- **Documentation**: Update docs for API changes
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Pomodoro Technique**: Created by Francesco Cirillo
-- **Flutter Team**: For the amazing cross-platform framework
-- **Go Team**: For the efficient backend language
-- **Supabase**: For the excellent database and real-time features
-- **Contributors**: All the amazing people who help improve this project
-
-## 📈 Roadmap
-
-### Version 2.0 (Q2 2024)
-- [ ] AI-powered task prioritization
-- [ ] Team collaboration features
-- [ ] Advanced analytics dashboard
-- [ ] Third-party app integrations
-
-### Version 2.1 (Q3 2024)
-- [ ] Voice commands and control
-- [ ] Habit tracking integration
-- [ ] Custom productivity methods
-- [ ] Enhanced reporting features
-
-### Long-term Vision
-- [ ] Machine learning productivity insights
-- [ ] IoT device integration
-- [ ] Enterprise features
-- [ ] Open API ecosystem
+- [Flutter](https://flutter.dev/) - 跨平台UI框架
+- [Go](https://golang.org/) - 高效的后端开发语言
+- [PostgreSQL](https://www.postgresql.org/) - 强大的关系型数据库
+- [Docker](https://www.docker.com/) - 容器化平台
 
 ---
 
-<div align="center">
-
-**Built with ❤️ using Go, Flutter, and the Pomodoro Technique**
-
-[🏠 Homepage](https://pomodoro-genie.com) • [📖 Documentation](https://docs.pomodoro-genie.com) • [🐛 Report Bug](https://github.com/pomodoro-genie/pomodoro-genie/issues) • [💡 Request Feature](https://github.com/pomodoro-genie/pomodoro-genie/discussions)
-
-</div>
+**开始你的高效工作之旅！** 🚀
