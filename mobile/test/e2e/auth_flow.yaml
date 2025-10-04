@@ -1,0 +1,186 @@
+---
+appId: com.pomodoro.genie
+name: Authentication Flow E2E Tests
+tags:
+  - authentication
+  - registration
+  - login
+
+---
+# Test: User Registration Flow
+- runFlow:
+    file: shared/setup_app.yaml
+
+- assertVisible: "Welcome Back"
+
+# Navigate to registration
+- tapOn: "Don't have an account? Sign Up"
+- assertVisible: "Create Account"
+- assertVisible: "Join us today"
+
+# Test empty form validation
+- tapOn: "Sign Up"
+- assertVisible: "Please enter your name"
+- assertVisible: "Please enter your email"
+- assertVisible: "Please enter your password"
+- assertVisible: "Please enter password confirmation"
+
+# Test invalid email validation
+- tapOn:
+    id: "name_field"
+- inputText: "Test User"
+- tapOn:
+    id: "email_field"
+- inputText: "invalid-email"
+- tapOn:
+    id: "password_field"
+- inputText: "password123"
+- tapOn:
+    id: "confirm_password_field"
+- inputText: "password123"
+- tapOn: "Sign Up"
+- assertVisible: "Please enter a valid email"
+
+# Test password mismatch validation
+- clearText:
+    id: "email_field"
+- inputText: "test@example.com"
+- clearText:
+    id: "confirm_password_field"
+- inputText: "different123"
+- tapOn: "Sign Up"
+- assertVisible: "Passwords do not match"
+
+# Test weak password validation
+- clearText:
+    id: "password_field"
+- inputText: "weak"
+- clearText:
+    id: "confirm_password_field"
+- inputText: "weak"
+- tapOn: "Sign Up"
+- assertVisible: "Password must be at least 8 characters"
+
+# Test terms acceptance requirement
+- clearText:
+    id: "password_field"
+- inputText: "StrongPassword123!"
+- clearText:
+    id: "confirm_password_field"
+- inputText: "StrongPassword123!"
+- tapOn: "Sign Up"
+- assertVisible: "Please accept the terms of service"
+
+# Successful registration
+- tapOn:
+    id: "terms_checkbox"
+- tapOn: "Sign Up"
+- assertVisible: "Signing Up..."
+
+# Mock successful registration (would need backend integration)
+- wait: 2000
+- assertVisible: "Registration successful"
+
+---
+# Test: User Login Flow
+- runFlow:
+    file: shared/setup_app.yaml
+
+- assertVisible: "Welcome Back"
+
+# Test empty form validation
+- tapOn: "Sign In"
+- assertVisible: "Please enter your email"
+- assertVisible: "Please enter your password"
+
+# Test invalid email validation
+- tapOn:
+    id: "email_field"
+- inputText: "invalid-email"
+- tapOn:
+    id: "password_field"
+- inputText: "password123"
+- tapOn: "Sign In"
+- assertVisible: "Please enter a valid email"
+
+# Test wrong credentials
+- clearText:
+    id: "email_field"
+- inputText: "test@example.com"
+- clearText:
+    id: "password_field"
+- inputText: "wrongpassword"
+- tapOn: "Sign In"
+- assertVisible: "Signing In..."
+- wait: 2000
+- assertVisible: "Invalid credentials"
+
+# Test successful login
+- clearText:
+    id: "password_field"
+- inputText: "correctpassword"
+- tapOn: "Sign In"
+- assertVisible: "Signing In..."
+- wait: 2000
+
+# Should navigate to main app
+- assertVisible: "Tasks"
+- assertVisible: "Timer"
+- assertVisible: "Reports"
+- assertVisible: "Settings"
+
+---
+# Test: Password Visibility Toggle
+- runFlow:
+    file: shared/setup_app.yaml
+
+- assertVisible: "Welcome Back"
+- tapOn:
+    id: "password_field"
+- inputText: "testpassword"
+
+# Password should be hidden initially
+- assertNotVisible: "testpassword"
+
+# Toggle visibility
+- tapOn:
+    id: "password_visibility_toggle"
+- assertVisible: "testpassword"
+
+# Toggle back to hidden
+- tapOn:
+    id: "password_visibility_toggle"
+- assertNotVisible: "testpassword"
+
+---
+# Test: Forgot Password Flow
+- runFlow:
+    file: shared/setup_app.yaml
+
+- assertVisible: "Welcome Back"
+- tapOn: "Forgot Password?"
+- assertVisible: "Forgot Password"
+- assertVisible: "Enter your email to reset password"
+
+# Test empty email validation
+- tapOn: "Send Reset Link"
+- assertVisible: "Please enter your email"
+
+# Test invalid email validation
+- tapOn:
+    id: "email_field"
+- inputText: "invalid-email"
+- tapOn: "Send Reset Link"
+- assertVisible: "Please enter a valid email"
+
+# Test successful forgot password request
+- clearText:
+    id: "email_field"
+- inputText: "test@example.com"
+- tapOn: "Send Reset Link"
+- wait: 2000
+- assertVisible: "Reset link sent to your email"
+
+# Test back to login navigation
+- tapOn: "Back to Login"
+- assertVisible: "Welcome Back"

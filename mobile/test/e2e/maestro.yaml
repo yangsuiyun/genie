@@ -1,0 +1,145 @@
+---
+# Main Maestro test configuration
+name: Pomodoro Genie E2E Test Suite
+description: Comprehensive end-to-end testing for Pomodoro time management app
+
+# Global configuration
+config:
+  timeout: 30000
+  retries: 2
+
+# Test environment setup
+env:
+  APP_ID: com.pomodoro.genie
+  TEST_EMAIL: test@example.com
+  TEST_PASSWORD: testpassword123
+  API_BASE_URL: http://localhost:3000
+
+# Test suites to run
+suites:
+  - name: "Authentication Flow"
+    file: auth_flow.yaml
+    tags: [authentication, critical]
+
+  - name: "Task Management Flow"
+    file: task_management_flow.yaml
+    tags: [tasks, core_functionality]
+
+  - name: "Pomodoro Timer Flow"
+    file: pomodoro_flow.yaml
+    tags: [timer, core_functionality]
+
+  - name: "Reports and Analytics Flow"
+    file: reports_and_analytics_flow.yaml
+    tags: [reports, analytics]
+
+  - name: "Settings and Sync Flow"
+    file: settings_and_sync_flow.yaml
+    tags: [settings, sync]
+
+# Custom commands for reusable actions
+commands:
+  - name: "login"
+    steps:
+      - tapOn:
+          id: "email_field"
+      - inputText: "${TEST_EMAIL}"
+      - tapOn:
+          id: "password_field"
+      - inputText: "${TEST_PASSWORD}"
+      - tapOn: "Sign In"
+      - wait: 3000
+
+  - name: "logout"
+    steps:
+      - tapOn: "Settings"
+      - tapOn: "Logout"
+      - tapOn: "Logout"
+
+  - name: "create_test_task"
+    parameters:
+      - title
+      - description
+    steps:
+      - tapOn:
+          id: "add_task_fab"
+      - tapOn:
+          id: "title_field"
+      - inputText: "${title}"
+      - tapOn:
+          id: "description_field"
+      - inputText: "${description}"
+      - tapOn: "Create Task"
+
+  - name: "start_pomodoro"
+    parameters:
+      - task_name
+    steps:
+      - tapOn: "Timer"
+      - tapOn: "Select Task"
+      - tapOn: "${task_name}"
+      - tapOn: "Start"
+
+# Test data setup
+test_data:
+  users:
+    - email: "test@example.com"
+      password: "testpassword123"
+      name: "Test User"
+    - email: "user2@example.com"
+      password: "password456"
+      name: "Second User"
+
+  tasks:
+    - title: "Complete project documentation"
+      description: "Write comprehensive documentation for the project"
+      priority: "High"
+      estimated_pomodoros: 5
+      tags: ["documentation", "urgent"]
+    - title: "Review code changes"
+      description: "Review pull requests and provide feedback"
+      priority: "Medium"
+      estimated_pomodoros: 3
+      tags: ["review", "development"]
+    - title: "Prepare presentation"
+      description: "Create slides for upcoming meeting"
+      priority: "High"
+      estimated_pomodoros: 4
+      tags: ["presentation", "meeting"]
+
+# Performance thresholds
+performance:
+  app_launch_time: 3000 # 3 seconds
+  screen_transition_time: 1000 # 1 second
+  api_response_time: 2000 # 2 seconds
+  sync_time: 5000 # 5 seconds
+
+# Accessibility testing
+accessibility:
+  check_labels: true
+  check_contrast: true
+  check_focus: true
+  check_navigation: true
+
+# Device configurations
+devices:
+  - name: "Pixel 6"
+    platform: "android"
+    os_version: "12"
+    screen_size: "1080x2400"
+  - name: "iPhone 13"
+    platform: "ios"
+    os_version: "15"
+    screen_size: "1170x2532"
+
+# Reporting configuration
+reporting:
+  format: ["html", "json", "junit"]
+  screenshots: true
+  video_recording: true
+  performance_metrics: true
+
+  failure_handling:
+    take_screenshot: true
+    save_logs: true
+    continue_on_failure: false

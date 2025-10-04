@@ -1,0 +1,473 @@
+syntax = "proto3";
+
+package pomodoro.api.v1;
+
+option go_package = "github.com/pomodoro-team/pomodoro-app/shared/proto/api/v1;apiv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// ===== Authentication =====
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  bool remember_me = 3;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+  bool accept_terms = 4;
+  bool subscribe_newsletter = 5;
+}
+
+message AuthResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  User user = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+// ===== User Management =====
+
+message User {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string avatar_url = 4;
+  UserPreferences preferences = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message UserPreferences {
+  PomodoroSettings pomodoro = 1;
+  NotificationSettings notifications = 2;
+  AppearanceSettings appearance = 3;
+  ProductivitySettings productivity = 4;
+  SyncSettings sync = 5;
+}
+
+message PomodoroSettings {
+  int32 work_duration_minutes = 1;
+  int32 short_break_duration_minutes = 2;
+  int32 long_break_duration_minutes = 3;
+  int32 long_break_interval = 4;
+  bool auto_start_breaks = 5;
+  bool auto_start_pomodoros = 6;
+  string work_end_sound = 7;
+  string break_end_sound = 8;
+  float sound_volume = 9;
+  bool enable_ticking_sound = 10;
+}
+
+message NotificationSettings {
+  bool enable_pomodoro_notifications = 1;
+  bool enable_task_reminders = 2;
+  bool enable_reports = 3;
+  bool enable_sound = 4;
+  bool enable_vibration = 5;
+  string daily_report_time = 6;
+  string weekly_report_day = 7;
+}
+
+message AppearanceSettings {
+  string theme = 1; // "light", "dark", "system"
+  string language = 2;
+  bool enable_animations = 3;
+  float ui_scale = 4;
+  string date_format = 5;
+  string time_format = 6;
+}
+
+message ProductivitySettings {
+  bool enable_focus_mode = 1;
+  repeated string focus_mode_blocked_apps = 2;
+  bool show_productivity_tips = 3;
+  bool enable_break_reminders = 4;
+  int32 break_reminder_interval_minutes = 5;
+  bool enable_goal_tracking = 6;
+  int32 daily_pomodoro_goal = 7;
+  int32 daily_task_goal = 8;
+  bool enable_weekly_review = 9;
+  string weekly_review_day = 10;
+}
+
+message SyncSettings {
+  bool auto_sync_enabled = 1;
+  int32 sync_interval_minutes = 2;
+  string default_conflict_resolution = 3; // "local_wins", "remote_wins", "merge"
+}
+
+// ===== Task Management =====
+
+message Task {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  TaskStatus status = 4;
+  TaskPriority priority = 5;
+  google.protobuf.Timestamp due_date = 6;
+  repeated string tags = 7;
+  string parent_task_id = 8;
+  int32 estimated_pomodoros = 9;
+  int32 completed_pomodoros = 10;
+  bool is_recurring = 11;
+  RecurrenceRule recurrence_rule = 12;
+  repeated Subtask subtasks = 13;
+  repeated Note notes = 14;
+  repeated Reminder reminders = 15;
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_PENDING = 1;
+  TASK_STATUS_IN_PROGRESS = 2;
+  TASK_STATUS_COMPLETED = 3;
+  TASK_STATUS_CANCELLED = 4;
+}
+
+enum TaskPriority {
+  TASK_PRIORITY_UNSPECIFIED = 0;
+  TASK_PRIORITY_LOW = 1;
+  TASK_PRIORITY_MEDIUM = 2;
+  TASK_PRIORITY_HIGH = 3;
+  TASK_PRIORITY_URGENT = 4;
+}
+
+message CreateTaskRequest {
+  string title = 1;
+  string description = 2;
+  TaskPriority priority = 3;
+  google.protobuf.Timestamp due_date = 4;
+  repeated string tags = 5;
+  string parent_task_id = 6;
+  int32 estimated_pomodoros = 7;
+  bool is_recurring = 8;
+  RecurrenceRule recurrence_rule = 9;
+}
+
+message UpdateTaskRequest {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  TaskStatus status = 4;
+  TaskPriority priority = 5;
+  google.protobuf.Timestamp due_date = 6;
+  repeated string tags = 7;
+  int32 estimated_pomodoros = 8;
+  int32 completed_pomodoros = 9;
+}
+
+message ListTasksRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  TaskStatus status = 3;
+  TaskPriority priority = 4;
+  repeated string tags = 5;
+  string search = 6;
+  google.protobuf.Timestamp due_before = 7;
+  google.protobuf.Timestamp due_after = 8;
+  string sort_by = 9; // "title", "priority", "due_date", "created_at", "updated_at"
+  string sort_order = 10; // "asc", "desc"
+}
+
+message ListTasksResponse {
+  repeated Task tasks = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  bool has_next_page = 5;
+}
+
+// ===== Recurrence Rules =====
+
+message RecurrenceRule {
+  RecurrenceType type = 1;
+  int32 interval = 2;
+  repeated int32 days_of_week = 3; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  repeated int32 days_of_month = 4; // 1-31
+  repeated int32 months = 5; // 1-12
+  google.protobuf.Timestamp end_date = 6;
+  int32 max_occurrences = 7;
+}
+
+enum RecurrenceType {
+  RECURRENCE_TYPE_UNSPECIFIED = 0;
+  RECURRENCE_TYPE_DAILY = 1;
+  RECURRENCE_TYPE_WEEKLY = 2;
+  RECURRENCE_TYPE_MONTHLY = 3;
+  RECURRENCE_TYPE_YEARLY = 4;
+}
+
+// ===== Subtasks =====
+
+message Subtask {
+  string id = 1;
+  string task_id = 2;
+  string title = 3;
+  bool is_completed = 4;
+  int32 order = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateSubtaskRequest {
+  string task_id = 1;
+  string title = 2;
+  int32 order = 3;
+}
+
+message UpdateSubtaskRequest {
+  string id = 1;
+  string title = 2;
+  bool is_completed = 3;
+  int32 order = 4;
+}
+
+// ===== Notes =====
+
+message Note {
+  string id = 1;
+  string task_id = 2;
+  string content = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message CreateNoteRequest {
+  string task_id = 1;
+  string content = 2;
+}
+
+message UpdateNoteRequest {
+  string id = 1;
+  string content = 2;
+}
+
+// ===== Reminders =====
+
+message Reminder {
+  string id = 1;
+  string task_id = 2;
+  google.protobuf.Timestamp scheduled_at = 3;
+  string message = 4;
+  bool is_completed = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateReminderRequest {
+  string task_id = 1;
+  google.protobuf.Timestamp scheduled_at = 2;
+  string message = 3;
+}
+
+message UpdateReminderRequest {
+  string id = 1;
+  google.protobuf.Timestamp scheduled_at = 2;
+  string message = 3;
+  bool is_completed = 4;
+}
+
+// ===== Pomodoro Sessions =====
+
+message PomodoroSession {
+  string id = 1;
+  string task_id = 2;
+  SessionType type = 3;
+  SessionState state = 4;
+  int32 duration_seconds = 5;
+  int32 remaining_seconds = 6;
+  google.protobuf.Timestamp started_at = 7;
+  google.protobuf.Timestamp paused_at = 8;
+  google.protobuf.Timestamp completed_at = 9;
+  int32 rating = 10; // 1-5 stars
+  string notes = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+enum SessionType {
+  SESSION_TYPE_UNSPECIFIED = 0;
+  SESSION_TYPE_WORK = 1;
+  SESSION_TYPE_SHORT_BREAK = 2;
+  SESSION_TYPE_LONG_BREAK = 3;
+}
+
+enum SessionState {
+  SESSION_STATE_UNSPECIFIED = 0;
+  SESSION_STATE_READY = 1;
+  SESSION_STATE_RUNNING = 2;
+  SESSION_STATE_PAUSED = 3;
+  SESSION_STATE_COMPLETED = 4;
+}
+
+message CreateSessionRequest {
+  string task_id = 1;
+  SessionType type = 2;
+  int32 duration_seconds = 3;
+}
+
+message UpdateSessionRequest {
+  string id = 1;
+  SessionState state = 2;
+  int32 remaining_seconds = 3;
+  google.protobuf.Timestamp started_at = 4;
+  google.protobuf.Timestamp paused_at = 5;
+  google.protobuf.Timestamp completed_at = 6;
+  int32 rating = 7;
+  string notes = 8;
+}
+
+// ===== Reports & Analytics =====
+
+message Report {
+  string id = 1;
+  ReportType type = 2;
+  google.protobuf.Timestamp start_date = 3;
+  google.protobuf.Timestamp end_date = 4;
+  ReportData data = 5;
+  google.protobuf.Timestamp generated_at = 6;
+}
+
+enum ReportType {
+  REPORT_TYPE_UNSPECIFIED = 0;
+  REPORT_TYPE_DAILY = 1;
+  REPORT_TYPE_WEEKLY = 2;
+  REPORT_TYPE_MONTHLY = 3;
+  REPORT_TYPE_CUSTOM = 4;
+}
+
+message ReportData {
+  ProductivityMetrics productivity = 1;
+  TaskMetrics tasks = 2;
+  PomodoroMetrics pomodoro = 3;
+  TimeMetrics time = 4;
+}
+
+message ProductivityMetrics {
+  float productivity_score = 1;
+  int32 focus_time_minutes = 2;
+  int32 break_time_minutes = 3;
+  float efficiency_ratio = 4;
+  int32 goals_achieved = 5;
+  int32 goals_total = 6;
+}
+
+message TaskMetrics {
+  int32 completed_tasks = 1;
+  int32 created_tasks = 2;
+  int32 overdue_tasks = 3;
+  float completion_rate = 4;
+}
+
+message PomodoroMetrics {
+  int32 completed_pomodoros = 1;
+  int32 total_sessions = 2;
+  float average_session_rating = 3;
+  int32 longest_streak = 4;
+  int32 current_streak = 5;
+}
+
+message TimeMetrics {
+  int32 total_work_time_minutes = 1;
+  int32 total_break_time_minutes = 2;
+  float average_daily_work_time = 3;
+}
+
+message GenerateReportRequest {
+  ReportType type = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+  repeated string include_metrics = 4;
+  string format = 5; // "json", "pdf", "csv"
+}
+
+// ===== Synchronization =====
+
+message SyncRequest {
+  google.protobuf.Timestamp last_sync = 1;
+  repeated SyncEntity entities = 2;
+}
+
+message SyncResponse {
+  bool success = 1;
+  google.protobuf.Timestamp sync_time = 2;
+  repeated SyncEntity entities = 3;
+  repeated SyncConflict conflicts = 4;
+  string error = 5;
+}
+
+message SyncEntity {
+  string entity_type = 1;
+  string entity_id = 2;
+  string action = 3; // "create", "update", "delete"
+  bytes data = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message SyncConflict {
+  string entity_type = 1;
+  string entity_id = 2;
+  bytes local_data = 3;
+  bytes remote_data = 4;
+  google.protobuf.Timestamp local_updated_at = 5;
+  google.protobuf.Timestamp remote_updated_at = 6;
+  string resolution = 7;
+}
+
+// ===== API Service Definitions =====
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (AuthResponse);
+  rpc Login(LoginRequest) returns (AuthResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (AuthResponse);
+  rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc VerifyToken(google.protobuf.Empty) returns (User);
+}
+
+service TaskService {
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc GetTask(google.protobuf.Empty) returns (Task);
+  rpc CreateTask(CreateTaskRequest) returns (Task);
+  rpc UpdateTask(UpdateTaskRequest) returns (Task);
+  rpc DeleteTask(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  rpc CreateSubtask(CreateSubtaskRequest) returns (Subtask);
+  rpc UpdateSubtask(UpdateSubtaskRequest) returns (Subtask);
+  rpc DeleteSubtask(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  rpc CreateNote(CreateNoteRequest) returns (Note);
+  rpc UpdateNote(UpdateNoteRequest) returns (Note);
+  rpc DeleteNote(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  rpc CreateReminder(CreateReminderRequest) returns (Reminder);
+  rpc UpdateReminder(UpdateReminderRequest) returns (Reminder);
+  rpc DeleteReminder(google.protobuf.Empty) returns (google.protobuf.Empty);
+}
+
+service PomodoroService {
+  rpc CreateSession(CreateSessionRequest) returns (PomodoroSession);
+  rpc UpdateSession(UpdateSessionRequest) returns (PomodoroSession);
+  rpc GetActiveSession(google.protobuf.Empty) returns (PomodoroSession);
+  rpc DeleteSession(google.protobuf.Empty) returns (google.protobuf.Empty);
+}
+
+service ReportService {
+  rpc GenerateReport(GenerateReportRequest) returns (Report);
+  rpc GetReport(google.protobuf.Empty) returns (Report);
+}
+
+service SyncService {
+  rpc Sync(SyncRequest) returns (SyncResponse);
+  rpc GetSyncStatus(google.protobuf.Empty) returns (google.protobuf.Empty);
+}

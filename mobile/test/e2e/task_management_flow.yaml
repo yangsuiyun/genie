@@ -1,0 +1,284 @@
+---
+appId: com.pomodoro.genie
+name: Task Management Flow E2E Tests
+tags:
+  - tasks
+  - crud
+  - subtasks
+
+---
+# Test: Task Creation Flow
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to tasks screen
+- tapOn: "Tasks"
+- assertVisible: "My Tasks"
+
+# Open task creation form
+- tapOn:
+    id: "add_task_fab"
+- assertVisible: "Create New Task"
+
+# Test empty form validation
+- tapOn: "Create Task"
+- assertVisible: "Please enter a task title"
+
+# Test task creation with basic info
+- tapOn:
+    id: "title_field"
+- inputText: "Complete project documentation"
+- tapOn:
+    id: "description_field"
+- inputText: "Write comprehensive documentation for the project"
+
+# Set priority
+- tapOn:
+    id: "priority_dropdown"
+- tapOn: "High"
+
+# Set estimated pomodoros
+- tapOn:
+    id: "pomodoros_field"
+- inputText: "5"
+
+# Add tags
+- tapOn:
+    id: "tags_field"
+- inputText: "documentation, urgent"
+
+# Set due date
+- tapOn:
+    id: "due_date_picker"
+- tapOn: "15" # Select 15th of current month
+- tapOn: "OK"
+
+# Create the task
+- tapOn: "Create Task"
+- assertVisible: "Task created successfully"
+
+# Verify task appears in list
+- assertVisible: "Complete project documentation"
+- assertVisible: "High"
+- assertVisible: "5 pomodoros"
+
+---
+# Test: Task Detail and Editing
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to tasks and select a task
+- tapOn: "Tasks"
+- tapOn: "Complete project documentation"
+- assertVisible: "Task Details"
+
+# Verify task information is displayed
+- assertVisible: "Complete project documentation"
+- assertVisible: "Write comprehensive documentation"
+- assertVisible: "High Priority"
+- assertVisible: "5 / 5 pomodoros"
+
+# Test editing task
+- tapOn:
+    id: "edit_task_button"
+- assertVisible: "Edit Task"
+
+# Modify title
+- clearText:
+    id: "title_field"
+- inputText: "Complete project documentation - Updated"
+
+# Change priority
+- tapOn:
+    id: "priority_dropdown"
+- tapOn: "Medium"
+
+# Save changes
+- tapOn: "Save Changes"
+- assertVisible: "Task updated successfully"
+
+# Verify changes
+- assertVisible: "Complete project documentation - Updated"
+- assertVisible: "Medium Priority"
+
+---
+# Test: Subtask Management
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to task detail
+- tapOn: "Tasks"
+- tapOn: "Complete project documentation - Updated"
+
+# Add subtask
+- swipeUp # Scroll to subtasks section
+- tapOn: "Add Subtask"
+- assertVisible: "Add Subtask"
+
+- tapOn:
+    id: "subtask_title_field"
+- inputText: "Research existing documentation"
+- tapOn: "Add"
+- assertVisible: "Subtask added successfully"
+
+# Add another subtask
+- tapOn: "Add Subtask"
+- tapOn:
+    id: "subtask_title_field"
+- inputText: "Write API documentation"
+- tapOn: "Add"
+
+# Add third subtask
+- tapOn: "Add Subtask"
+- tapOn:
+    id: "subtask_title_field"
+- inputText: "Review and publish"
+- tapOn: "Add"
+
+# Verify subtasks are listed
+- assertVisible: "Research existing documentation"
+- assertVisible: "Write API documentation"
+- assertVisible: "Review and publish"
+
+# Mark first subtask as complete
+- tapOn:
+    id: "subtask_checkbox_0"
+- assertVisible: "1/3 completed"
+
+# Mark second subtask as complete
+- tapOn:
+    id: "subtask_checkbox_1"
+- assertVisible: "2/3 completed"
+
+# Edit a subtask
+- longPressOn: "Review and publish"
+- tapOn: "Edit"
+- clearText:
+    id: "subtask_title_field"
+- inputText: "Review, test and publish"
+- tapOn: "Save"
+- assertVisible: "Review, test and publish"
+
+# Delete a subtask
+- longPressOn: "Research existing documentation"
+- tapOn: "Delete"
+- tapOn: "Confirm"
+- assertNotVisible: "Research existing documentation"
+- assertVisible: "1/2 completed"
+
+---
+# Test: Task Filtering and Search
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to tasks screen
+- tapOn: "Tasks"
+
+# Test search functionality
+- tapOn:
+    id: "search_field"
+- inputText: "documentation"
+- assertVisible: "Complete project documentation - Updated"
+
+# Clear search
+- clearText:
+    id: "search_field"
+
+# Test priority filter
+- tapOn:
+    id: "filter_button"
+- tapOn: "Priority"
+- tapOn: "High"
+- tapOn: "Apply"
+
+# Should show only high priority tasks
+- assertVisible: "High priority tasks"
+
+# Test status filter
+- tapOn:
+    id: "filter_button"
+- tapOn: "Status"
+- tapOn: "In Progress"
+- tapOn: "Apply"
+
+# Test date range filter
+- tapOn:
+    id: "filter_button"
+- tapOn: "Due Date"
+- tapOn: "This Week"
+- tapOn: "Apply"
+
+# Clear all filters
+- tapOn:
+    id: "filter_button"
+- tapOn: "Clear All"
+- tapOn: "Apply"
+
+---
+# Test: Task Completion Flow
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to task detail
+- tapOn: "Tasks"
+- tapOn: "Complete project documentation - Updated"
+
+# Complete all remaining subtasks
+- tapOn:
+    id: "subtask_checkbox_1" # Complete second subtask
+- assertVisible: "2/2 completed"
+
+# Mark main task as complete
+- tapOn:
+    id: "complete_task_button"
+- assertVisible: "Mark as Complete"
+- tapOn: "Confirm"
+- assertVisible: "Task completed successfully"
+
+# Verify task is marked as completed
+- assertVisible: "Completed"
+- assertVisible: "✓"
+
+# Go back to task list and verify
+- tapOn:
+    id: "back_button"
+- assertVisible: "My Tasks"
+
+# Task should be in completed section or filtered
+- tapOn:
+    id: "filter_button"
+- tapOn: "Status"
+- tapOn: "Completed"
+- tapOn: "Apply"
+- assertVisible: "Complete project documentation - Updated"
+
+---
+# Test: Task Deletion
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Create a test task to delete
+- tapOn: "Tasks"
+- tapOn:
+    id: "add_task_fab"
+- tapOn:
+    id: "title_field"
+- inputText: "Task to be deleted"
+- tapOn: "Create Task"
+
+# Long press to show context menu
+- longPressOn: "Task to be deleted"
+- tapOn: "Delete"
+- assertVisible: "Delete Task"
+- assertVisible: "Are you sure you want to delete this task?"
+
+# Cancel deletion
+- tapOn: "Cancel"
+- assertVisible: "Task to be deleted"
+
+# Actually delete the task
+- longPressOn: "Task to be deleted"
+- tapOn: "Delete"
+- tapOn: "Confirm"
+- assertVisible: "Task deleted successfully"
+- assertNotVisible: "Task to be deleted"

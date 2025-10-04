@@ -1,0 +1,285 @@
+---
+appId: com.pomodoro.genie
+name: Reports and Analytics Flow E2E Tests
+tags:
+  - reports
+  - analytics
+  - statistics
+
+---
+# Test: Daily Reports
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to reports screen
+- tapOn: "Reports"
+- assertVisible: "Your Progress"
+
+# Check daily report
+- assertVisible: "Today"
+- assertVisible: "Tasks Completed"
+- assertVisible: "Pomodoros Completed"
+- assertVisible: "Focus Time"
+- assertVisible: "Productivity Score"
+
+# Verify chart is displayed
+- assertVisible:
+    id: "daily_chart"
+
+# Check specific metrics
+- assertVisible: "0 tasks"
+- assertVisible: "0 pomodoros"
+- assertVisible: "0h 0m"
+
+---
+# Test: Weekly Reports
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to reports and select weekly view
+- tapOn: "Reports"
+- tapOn: "Weekly"
+- assertVisible: "This Week"
+
+# Verify weekly metrics
+- assertVisible: "Total Tasks:"
+- assertVisible: "Total Pomodoros:"
+- assertVisible: "Total Focus Time:"
+- assertVisible: "Average per Day:"
+
+# Check weekly chart
+- assertVisible:
+    id: "weekly_chart"
+
+# Navigate through weeks
+- swipeLeft # Previous week
+- assertVisible: "Previous Week"
+- swipeRight # Next week
+- swipeRight # Current week
+- assertVisible: "This Week"
+
+---
+# Test: Monthly Reports
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to reports and select monthly view
+- tapOn: "Reports"
+- tapOn: "Monthly"
+- assertVisible: "This Month"
+
+# Verify monthly metrics
+- assertVisible: "Monthly Overview"
+- assertVisible: "Tasks Completed:"
+- assertVisible: "Pomodoros Completed:"
+- assertVisible: "Total Focus Time:"
+- assertVisible: "Most Productive Day:"
+
+# Check monthly chart
+- assertVisible:
+    id: "monthly_chart"
+
+# Check calendar view if available
+- tapOn:
+    id: "calendar_view"
+  optional: true
+- assertVisible: "Calendar"
+  optional: true
+
+---
+# Test: Productivity Analytics
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to analytics section
+- tapOn: "Reports"
+- tapOn: "Analytics"
+- assertVisible: "Productivity Analytics"
+
+# Check productivity score
+- assertVisible: "Productivity Score"
+- assertVisible: "Based on completed tasks and focus time"
+
+# Check focus patterns
+- assertVisible: "Focus Patterns"
+- assertVisible: "Best Focus Times"
+- assertVisible: "Peak Productivity Hours"
+
+# Check task completion trends
+- assertVisible: "Task Completion"
+- assertVisible: "Completion Rate"
+- assertVisible: "Average Time per Task"
+
+# Check interruption analysis
+- assertVisible: "Session Analysis"
+- assertVisible: "Completed Sessions"
+- assertVisible: "Interrupted Sessions"
+
+---
+# Test: Category Breakdown
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to category analysis
+- tapOn: "Reports"
+- tapOn: "Categories"
+- assertVisible: "Time by Category"
+
+# Should show breakdown by task tags/categories
+- assertVisible: "Work"
+- assertVisible: "Personal"
+- assertVisible: "Learning"
+
+# Check pie chart
+- assertVisible:
+    id: "category_pie_chart"
+
+# Filter by time period
+- tapOn:
+    id: "time_filter"
+- tapOn: "Last 7 Days"
+- assertVisible: "Last 7 Days"
+
+- tapOn:
+    id: "time_filter"
+- tapOn: "Last 30 Days"
+- assertVisible: "Last 30 Days"
+
+---
+# Test: Goal Tracking
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to goals section
+- tapOn: "Reports"
+- tapOn: "Goals"
+- assertVisible: "Your Goals"
+
+# Set daily goal
+- tapOn: "Set Daily Goal"
+- assertVisible: "Daily Pomodoro Goal"
+- tapOn:
+    id: "goal_input"
+- inputText: "8"
+- tapOn: "Save"
+- assertVisible: "Goal set successfully"
+
+# Check goal progress
+- assertVisible: "0 / 8 pomodoros"
+- assertVisible: "0% complete"
+
+# Set weekly goal
+- tapOn: "Set Weekly Goal"
+- tapOn:
+    id: "goal_input"
+- inputText: "40"
+- tapOn: "Save"
+
+# Check weekly progress
+- assertVisible: "0 / 40 pomodoros"
+
+---
+# Test: Export Reports
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to reports
+- tapOn: "Reports"
+
+# Test PDF export
+- tapOn:
+    id: "export_button"
+- assertVisible: "Export Options"
+- tapOn: "Export as PDF"
+- assertVisible: "Generating report..."
+- wait: 3000
+- assertVisible: "Report exported successfully"
+
+# Test CSV export
+- tapOn:
+    id: "export_button"
+- tapOn: "Export as CSV"
+- assertVisible: "Exporting data..."
+- wait: 2000
+- assertVisible: "Data exported successfully"
+
+# Test email report
+- tapOn:
+    id: "export_button"
+- tapOn: "Email Report"
+- assertVisible: "Send Report"
+- tapOn:
+    id: "email_field"
+- inputText: "user@example.com"
+- tapOn: "Send"
+- assertVisible: "Report sent successfully"
+
+---
+# Test: Report Customization
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to reports
+- tapOn: "Reports"
+
+# Access customization options
+- tapOn:
+    id: "customize_button"
+- assertVisible: "Customize Report"
+
+# Select metrics to include
+- tapOn:
+    id: "include_tasks_checkbox"
+- tapOn:
+    id: "include_pomodoros_checkbox"
+- tapOn:
+    id: "include_focus_time_checkbox"
+
+# Select date range
+- tapOn:
+    id: "date_range_dropdown"
+- tapOn: "Custom Range"
+- tapOn:
+    id: "start_date_picker"
+- tapOn: "1" # First of month
+- tapOn: "OK"
+- tapOn:
+    id: "end_date_picker"
+- tapOn: "15" # Fifteenth of month
+- tapOn: "OK"
+
+# Apply customization
+- tapOn: "Apply"
+- assertVisible: "Custom date range"
+- assertVisible: "1st - 15th"
+
+---
+# Test: Comparison Reports
+- runFlow:
+    file: shared/setup_authenticated.yaml
+
+# Navigate to comparison view
+- tapOn: "Reports"
+- tapOn: "Compare"
+- assertVisible: "Compare Periods"
+
+# Compare this week vs last week
+- tapOn: "This Week vs Last Week"
+- assertVisible: "Week Comparison"
+- assertVisible: "This Week"
+- assertVisible: "Last Week"
+- assertVisible: "Change"
+
+# Check improvement indicators
+- assertVisible: "↑" # Improvement arrow
+  optional: true
+- assertVisible: "↓" # Decline arrow
+  optional: true
+- assertVisible: "→" # No change arrow
+  optional: true
+
+# Compare this month vs last month
+- tapOn: "This Month vs Last Month"
+- assertVisible: "Month Comparison"
+- assertVisible: "This Month"
+- assertVisible: "Last Month"
