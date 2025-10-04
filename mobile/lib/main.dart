@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 void main() {
   runApp(const PomodoroApp());
@@ -15,33 +16,125 @@ class PomodoroApp extends StatelessWidget {
         primarySwatch: Colors.red,
         useMaterial3: true,
       ),
-      home: const MainScreen(),
+      home: MainScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+// 全局状态管理
+class PomodoroState {
+  static final PomodoroState _instance = PomodoroState._internal();
+  factory PomodoroState() => _instance;
+  PomodoroState._internal();
 
+  Timer? _timer;
+  bool _isRunning = false;
+  int _remainingSeconds = 25 * 60; // 25分钟 = 1500秒
+  final int _totalSeconds = 25 * 60;
+
+  // 状态变化监听器
+  final List<VoidCallback> _listeners = [];
+
+  bool get isRunning => _isRunning;
+  int get remainingSeconds => _remainingSeconds;
+  int get totalSeconds => _totalSeconds;
+  double get progress => 1.0 - (_remainingSeconds / _totalSeconds);
+
+  String get timeDisplay {
+    int minutes = _remainingSeconds ~/ 60;
+    int seconds = _remainingSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  void addListener(VoidCallback listener) {
+    _listeners.add(listener);
+  }
+
+  void removeListener(VoidCallback listener) {
+    _listeners.remove(listener);
+  }
+
+  void _notifyListeners() {
+    for (var listener in _listeners) {
+      listener();
+    }
+  }
+
+  void start() {
+    if (_isRunning) return;
+
+    _isRunning = true;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        _remainingSeconds--;
+        _notifyListeners();
+      } else {
+        // 番茄钟结束
+        _complete();
+      }
+    });
+    _notifyListeners();
+  }
+
+  void pause() {
+    _isRunning = false;
+    _timer?.cancel();
+    _timer = null;
+    _notifyListeners();
+  }
+
+  void reset() {
+    _isRunning = false;
+    _timer?.cancel();
+    _timer = null;
+    _remainingSeconds = _totalSeconds;
+    _notifyListeners();
+  }
+
+  void _complete() {
+    _isRunning = false;
+    _timer?.cancel();
+    _timer = null;
+    _remainingSeconds = 0;
+    _notifyListeners();
+    // 这里可以触发通知或其他完成逻辑
+  }
+
+  void dispose() {
+    _timer?.cancel();
+    _listeners.clear();
+  }
+}
+
+class MainScreen extends StatefulWidget {
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  late List<Widget> _screens;
 
-  final List<Widget> _screens = [
-    const PomodoroTimerScreen(),
-    const TaskListScreen(),
-    const ReportsScreen(),
-    const SettingsScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // 使用同一个PomodoroTimerScreen实例来保持状态
+    _screens = [
+      const PomodoroTimerScreen(),
+      const TaskListScreen(),
+      const ReportsScreen(),
+      const SettingsScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
@@ -79,9 +172,7 @@ class PomodoroTimerScreen extends StatefulWidget {
 
 class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
     with TickerProviderStateMixin {
-  bool _isRunning = false;
-  int _minutes = 25;
-  int _seconds = 0;
+  final PomodoroState _pomodoroState = PomodoroState();
   late AnimationController _controller;
 
   @override
@@ -91,31 +182,42 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
       vsync: this,
       duration: const Duration(minutes: 25),
     );
+
+    // 监听状态变化
+    _pomodoroState.addListener(_onStateChanged);
+
+    // 初始化动画状态
+    _updateAnimationProgress();
   }
 
   @override
   void dispose() {
+    _pomodoroState.removeListener(_onStateChanged);
     _controller.dispose();
     super.dispose();
   }
 
+  void _onStateChanged() {
+    if (mounted) {
+      setState(() {});
+      _updateAnimationProgress();
+    }
+  }
+
+  void _updateAnimationProgress() {
+    _controller.animateTo(_pomodoroState.progress);
+  }
+
   void _startTimer() {
-    setState(() => _isRunning = true);
-    _controller.forward();
+    _pomodoroState.start();
   }
 
   void _pauseTimer() {
-    setState(() => _isRunning = false);
-    _controller.stop();
+    _pomodoroState.pause();
   }
 
   void _resetTimer() {
-    setState(() {
-      _isRunning = false;
-      _minutes = 25;
-      _seconds = 0;
-    });
-    _controller.reset();
+    _pomodoroState.reset();
   }
 
   @override
@@ -148,14 +250,14 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
                           strokeWidth: 8,
                           backgroundColor: Colors.grey.shade300,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            _isRunning ? Colors.red : Colors.grey,
+                            _pomodoroState.isRunning ? Colors.red : Colors.grey,
                           ),
                         );
                       },
                     ),
                   ),
                   Text(
-                    '${_minutes.toString().padLeft(2, '0')}:${_seconds.toString().padLeft(2, '0')}',
+                    _pomodoroState.timeDisplay,
                     style: const TextStyle(
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
@@ -172,11 +274,11 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton.icon(
-                  onPressed: _isRunning ? _pauseTimer : _startTimer,
-                  icon: Icon(_isRunning ? Icons.pause : Icons.play_arrow),
-                  label: Text(_isRunning ? '暂停' : '开始'),
+                  onPressed: _pomodoroState.isRunning ? _pauseTimer : _startTimer,
+                  icon: Icon(_pomodoroState.isRunning ? Icons.pause : Icons.play_arrow),
+                  label: Text(_pomodoroState.isRunning ? '暂停' : '开始'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isRunning ? Colors.orange : Colors.green,
+                    backgroundColor: _pomodoroState.isRunning ? Colors.orange : Colors.green,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -210,14 +312,17 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.red.shade200),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.info_outline, color: Colors.red),
-                  SizedBox(width: 8),
+                  Icon(
+                    _pomodoroState.isRunning ? Icons.timer : Icons.info_outline,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    '专注工作，保持高效！',
-                    style: TextStyle(
+                    _pomodoroState.isRunning ? '专注中，保持高效！' : '点击开始，专注工作！',
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Colors.red,
                       fontWeight: FontWeight.w500,
