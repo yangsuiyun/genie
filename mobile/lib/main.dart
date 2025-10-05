@@ -514,6 +514,106 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
     _pomodoroState.start(task);
   }
 
+  String _formatTaskDueDate(DateTime dueDate) {
+    final now = DateTime.now();
+    final difference = dueDate.difference(now).inDays;
+
+    if (difference < 0) {
+      return '已过期 ${-difference} 天';
+    } else if (difference == 0) {
+      return '今天到期';
+    } else if (difference == 1) {
+      return '明天到期';
+    } else {
+      return '$difference 天后到期';
+    }
+  }
+
+  void _markTaskCompleted() {
+    if (_pomodoroState.currentTask != null) {
+      final updatedTask = _pomodoroState.currentTask!.copyWith(
+        status: TaskStatus.completed,
+      );
+      _taskService.updateTask(updatedTask);
+      _pomodoroState.reset(); // 重置计时器状态
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('任务"${updatedTask.title}"已标记为完成！'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+          action: SnackBarAction(
+            label: '撤销',
+            textColor: Colors.white,
+            onPressed: () {
+              // 撤销完成状态
+              _taskService.updateTask(updatedTask.copyWith(status: TaskStatus.inProgress));
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showTaskQuickNotes() {
+    final TextEditingController notesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('添加任务备注'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('为任务"${_pomodoroState.currentTask!.title}"添加备注'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(
+                hintText: '输入备注内容...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final notes = notesController.text.trim();
+              if (notes.isNotEmpty) {
+                // 这里可以扩展Task模型来支持备注，目前添加到描述中
+                final currentDescription = _pomodoroState.currentTask!.description;
+                final newDescription = currentDescription.isEmpty
+                    ? '备注: $notes'
+                    : '$currentDescription\n\n备注: $notes';
+
+                final updatedTask = _pomodoroState.currentTask!.copyWith(
+                  description: newDescription,
+                );
+                _taskService.updateTask(updatedTask);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('备注已添加'),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -567,30 +667,117 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
             if (_pomodoroState.currentTask != null)
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: _settings.themeColor.shade50,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _settings.themeColor.shade200),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.task_alt, color: _settings.themeColor, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '正在处理: ${_pomodoroState.currentTask!.title}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: _settings.themeColor.shade700,
+                    Row(
+                      children: [
+                        Icon(Icons.task_alt, color: _settings.themeColor, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '正在处理',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _settings.themeColor.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
+                        Text(
+                          _pomodoroState.currentTask!.priorityEmoji,
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          _pomodoroState.currentTask!.statusEmoji,
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                        if (!_pomodoroState.isRunning)
+                          IconButton(
+                            icon: const Icon(Icons.swap_horiz, size: 18),
+                            onPressed: _showTaskSelectionDialog,
+                            tooltip: '切换任务',
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            padding: const EdgeInsets.all(4),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _pomodoroState.currentTask!.title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: _settings.themeColor.shade800,
                       ),
                     ),
-                    Text(
-                      _pomodoroState.currentTask!.priorityEmoji,
-                      style: const TextStyle(fontSize: 16),
-                    ),
+                    if (_pomodoroState.currentTask!.description.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _pomodoroState.currentTask!.description,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _settings.themeColor.shade600,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (_pomodoroState.currentTask!.subtasks.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.checklist,
+                            size: 14,
+                            color: _settings.themeColor.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${_pomodoroState.currentTask!.completedSubtasks}/${_pomodoroState.currentTask!.subtasks.length} 子任务完成',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: _settings.themeColor.shade600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: LinearProgressIndicator(
+                              value: _pomodoroState.currentTask!.progress,
+                              backgroundColor: _settings.themeColor.shade200,
+                              valueColor: AlwaysStoppedAnimation(_settings.themeColor),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (_pomodoroState.currentTask!.dueDate != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.schedule,
+                            size: 12,
+                            color: _pomodoroState.currentTask!.isOverdue ? Colors.red : Colors.blue,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatTaskDueDate(_pomodoroState.currentTask!.dueDate!),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: _pomodoroState.currentTask!.isOverdue ? Colors.red : Colors.blue,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -647,14 +834,16 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
             ),
             const SizedBox(height: 30),
 
-            // 状态信息
+            // 状态信息和会话信息
             Container(
               padding: const EdgeInsets.all(16),
               margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: _pomodoroState.isRunning ? Colors.red.shade50 : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.shade200),
+                border: Border.all(
+                  color: _pomodoroState.isRunning ? Colors.red.shade200 : Colors.grey.shade200
+                ),
               ),
               child: Column(
                 children: [
@@ -663,63 +852,161 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
                     children: [
                       Icon(
                         _pomodoroState.isRunning ? Icons.timer : Icons.info_outline,
-                        color: Colors.red,
+                        color: _pomodoroState.isRunning ? Colors.red : Colors.grey.shade600,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         _pomodoroState.isRunning ? '专注中，保持高效！' : '点击开始，专注工作！',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
-                          color: Colors.red,
+                          color: _pomodoroState.isRunning ? Colors.red : Colors.grey.shade600,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
+
+                  // 当前会话信息
+                  if (_pomodoroState.currentSession != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '当前会话',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red.shade700,
+                                ),
+                              ),
+                              Text(
+                                _pomodoroState.currentSession!.typeEmoji,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '计划时长',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              Text(
+                                _pomodoroState.currentSession!.plannedDurationDisplay,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '已进行',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              Text(
+                                '${(_pomodoroState.totalSeconds - _pomodoroState.remainingSeconds) ~/ 60}:${((_pomodoroState.totalSeconds - _pomodoroState.remainingSeconds) % 60).toString().padLeft(2, '0')}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 8),
-                  // 通知测试按钮
-                  if (!_pomodoroState.isRunning)
-                    TextButton.icon(
-                      onPressed: () async {
-                        if (_notificationService.hasPermission) {
-                          await _notificationService.showNotification(
-                            title: '🔔 测试通知',
-                            body: '通知功能正常工作！',
-                            duration: 3000,
-                          );
-                        } else {
-                          final granted = await _notificationService.requestPermission();
-                          if (granted) {
+                  // 通知测试按钮或快速任务操作
+                  if (!_pomodoroState.isRunning) ...[
+                    if (_pomodoroState.currentTask != null)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () => _markTaskCompleted(),
+                            icon: const Icon(Icons.check_circle, size: 16),
+                            label: const Text('完成任务', style: TextStyle(fontSize: 12)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.green.shade600,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () => _showTaskQuickNotes(),
+                            icon: const Icon(Icons.note_add, size: 16),
+                            label: const Text('添加备注', style: TextStyle(fontSize: 12)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.blue.shade600,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      TextButton.icon(
+                        onPressed: () async {
+                          if (_notificationService.hasPermission) {
                             await _notificationService.showNotification(
-                              title: '🔔 通知权限已获取',
-                              body: '现在可以接收番茄钟通知了！',
+                              title: '🔔 测试通知',
+                              body: '通知功能正常工作！',
                               duration: 3000,
                             );
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('通知权限被拒绝，无法发送通知'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
+                            final granted = await _notificationService.requestPermission();
+                            if (granted) {
+                              await _notificationService.showNotification(
+                                title: '🔔 通知权限已获取',
+                                body: '现在可以接收番茄钟通知了！',
+                                duration: 3000,
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('通知权限被拒绝，无法发送通知'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
                           }
-                        }
-                      },
-                      icon: Icon(
-                        _notificationService.hasPermission
-                            ? Icons.notifications
-                            : Icons.notifications_off,
-                        size: 16,
-                        color: Colors.red.shade600,
-                      ),
-                      label: Text(
-                        _notificationService.hasPermission ? '测试通知' : '开启通知',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.red.shade600,
+                        },
+                        icon: Icon(
+                          _notificationService.hasPermission
+                              ? Icons.notifications
+                              : Icons.notifications_off,
+                          size: 16,
+                          color: Colors.grey.shade600,
+                        ),
+                        label: Text(
+                          _notificationService.hasPermission ? '测试通知' : '开启通知',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
                         ),
                       ),
-                    ),
+                  ],
                 ],
               ),
             ),

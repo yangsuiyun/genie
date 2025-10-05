@@ -412,7 +412,7 @@ class _TaskScreenState extends State<TaskScreen> with TickerProviderStateMixin {
   void _showTaskDetailDialog(Task task) {
     showDialog(
       context: context,
-      builder: (context) => TaskDetailDialog(
+      builder: (context) => EditTaskDialog(
         task: task,
         onTaskUpdated: (updatedTask) {
           _taskService.updateTask(updatedTask);
@@ -470,57 +470,167 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   TaskPriority _priority = TaskPriority.medium;
   DateTime? _dueDate;
   final List<String> _tags = [];
+  final List<Subtask> _subtasks = [];
+  final TextEditingController _tagController = TextEditingController();
+  final TextEditingController _subtaskController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('添加新任务'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: '任务标题 *',
-                border: OutlineInputBorder(),
+      content: Container(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: '任务标题 *',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) => setState(() {}),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: '任务描述',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: '任务描述',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
               ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<TaskPriority>(
-              value: _priority,
-              decoration: const InputDecoration(
-                labelText: '优先级',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<TaskPriority>(
+                value: _priority,
+                decoration: const InputDecoration(
+                  labelText: '优先级',
+                  border: OutlineInputBorder(),
+                ),
+                items: TaskPriority.values.map((priority) {
+                  return DropdownMenuItem(
+                    value: priority,
+                    child: Text(priority.displayName),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _priority = value!;
+                  });
+                },
               ),
-              items: TaskPriority.values.map((priority) {
-                return DropdownMenuItem(
-                  value: priority,
-                  child: Text(priority.displayName),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _priority = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: Text(_dueDate == null ? '设置到期日期' : '到期日期: ${_formatDate(_dueDate!)}'),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: _selectDueDate,
-            ),
-          ],
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(_dueDate == null ? '设置到期日期' : '到期日期: ${_formatDate(_dueDate!)}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_dueDate != null)
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            _dueDate = null;
+                          });
+                        },
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: _selectDueDate,
+                    ),
+                  ],
+                ),
+              ),
+
+              // 标签管理
+              const Divider(),
+              const Text('标签', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              if (_tags.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  children: _tags.map((tag) => Chip(
+                    label: Text(tag),
+                    onDeleted: () {
+                      setState(() {
+                        _tags.remove(tag);
+                      });
+                    },
+                  )).toList(),
+                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _tagController,
+                      decoration: const InputDecoration(
+                        hintText: '添加标签',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: _addTag,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => _addTag(_tagController.text),
+                  ),
+                ],
+              ),
+
+              // 子任务管理
+              const SizedBox(height: 16),
+              const Divider(),
+              const Text('子任务', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              if (_subtasks.isNotEmpty)
+                ..._subtasks.map((subtask) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Checkbox(
+                    value: subtask.isCompleted,
+                    onChanged: (value) {
+                      setState(() {
+                        final index = _subtasks.indexOf(subtask);
+                        _subtasks[index] = subtask.copyWith(isCompleted: value);
+                      });
+                    },
+                  ),
+                  title: Text(
+                    subtask.title,
+                    style: TextStyle(
+                      decoration: subtask.isCompleted ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      setState(() {
+                        _subtasks.remove(subtask);
+                      });
+                    },
+                  ),
+                )),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _subtaskController,
+                      decoration: const InputDecoration(
+                        hintText: '添加子任务',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: _addSubtask,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => _addSubtask(_subtaskController.text),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -555,6 +665,26 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     }
   }
 
+  void _addTag(String tag) {
+    final trimmedTag = tag.trim();
+    if (trimmedTag.isNotEmpty && !_tags.contains(trimmedTag)) {
+      setState(() {
+        _tags.add(trimmedTag);
+        _tagController.clear();
+      });
+    }
+  }
+
+  void _addSubtask(String title) {
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isNotEmpty) {
+      setState(() {
+        _subtasks.add(Subtask.create(trimmedTitle));
+        _subtaskController.clear();
+      });
+    }
+  }
+
   void _addTask() {
     final task = Task.create(
       title: _titleController.text.trim(),
@@ -562,20 +692,29 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       priority: _priority,
       dueDate: _dueDate,
       tags: _tags,
-    );
+    ).copyWith(subtasks: _subtasks);
 
     widget.onTaskAdded(task);
     Navigator.pop(context);
   }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _tagController.dispose();
+    _subtaskController.dispose();
+    super.dispose();
+  }
 }
 
-// 任务详情对话框
-class TaskDetailDialog extends StatelessWidget {
+// 任务编辑对话框
+class EditTaskDialog extends StatefulWidget {
   final Task task;
   final Function(Task) onTaskUpdated;
   final VoidCallback onTaskDeleted;
 
-  const TaskDetailDialog({
+  const EditTaskDialog({
     super.key,
     required this.task,
     required this.onTaskUpdated,
@@ -583,72 +722,323 @@ class TaskDetailDialog extends StatelessWidget {
   });
 
   @override
+  State<EditTaskDialog> createState() => _EditTaskDialogState();
+}
+
+class _EditTaskDialogState extends State<EditTaskDialog> {
+  late TextEditingController _titleController;
+  late TextEditingController _descriptionController;
+  late TaskPriority _priority;
+  late TaskStatus _status;
+  DateTime? _dueDate;
+  late List<String> _tags;
+  late List<Subtask> _subtasks;
+  final TextEditingController _tagController = TextEditingController();
+  final TextEditingController _subtaskController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.task.title);
+    _descriptionController = TextEditingController(text: widget.task.description);
+    _priority = widget.task.priority;
+    _status = widget.task.status;
+    _dueDate = widget.task.dueDate;
+    _tags = List.from(widget.task.tags);
+    _subtasks = List.from(widget.task.subtasks);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _tagController.dispose();
+    _subtaskController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(task.title),
-      content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (task.description.isNotEmpty) ...[
-              const Text('描述:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(task.description),
+      title: const Text('编辑任务'),
+      content: Container(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 任务标题
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: '任务标题 *',
+                  border: OutlineInputBorder(),
+                ),
+              ),
               const SizedBox(height: 16),
-            ],
 
-            Text('优先级: ${task.priority.displayName}'),
-            Text('状态: ${task.status.displayName}'),
-
-            if (task.dueDate != null) ...[
-              const SizedBox(height: 8),
-              Text('到期日期: ${_formatDate(task.dueDate!)}'),
-            ],
-
-            if (task.tags.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text('标签: ${task.tags.join(', ')}'),
-            ],
-
-            if (task.subtasks.isNotEmpty) ...[
+              // 任务描述
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: '任务描述',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
               const SizedBox(height: 16),
-              const Text('子任务:', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...task.subtasks.map((subtask) => CheckboxListTile(
-                title: Text(subtask.title),
-                value: subtask.isCompleted,
-                onChanged: (value) {
-                  // 这里可以添加子任务状态切换功能
-                },
+
+              // 优先级和状态
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<TaskPriority>(
+                      value: _priority,
+                      decoration: const InputDecoration(
+                        labelText: '优先级',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: TaskPriority.values.map((priority) {
+                        return DropdownMenuItem(
+                          value: priority,
+                          child: Text(priority.displayName),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _priority = value!;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<TaskStatus>(
+                      value: _status,
+                      decoration: const InputDecoration(
+                        labelText: '状态',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: TaskStatus.values.map((status) {
+                        return DropdownMenuItem(
+                          value: status,
+                          child: Text(status.displayName),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _status = value!;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 到期日期
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(_dueDate == null ? '设置到期日期' : '到期日期: ${_formatDate(_dueDate!)}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_dueDate != null)
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            _dueDate = null;
+                          });
+                        },
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: _selectDueDate,
+                    ),
+                  ],
+                ),
+              ),
+
+              // 标签管理
+              const Divider(),
+              const Text('标签', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ..._tags.map((tag) => Chip(
+                    label: Text(tag),
+                    onDeleted: () {
+                      setState(() {
+                        _tags.remove(tag);
+                      });
+                    },
+                  )),
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _tagController,
+                      decoration: const InputDecoration(
+                        hintText: '添加标签',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: _addTag,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => _addTag(_tagController.text),
+                  ),
+                ],
+              ),
+
+              // 子任务管理
+              const SizedBox(height: 16),
+              const Divider(),
+              const Text('子任务', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              ..._subtasks.map((subtask) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Checkbox(
+                  value: subtask.isCompleted,
+                  onChanged: (value) {
+                    setState(() {
+                      final index = _subtasks.indexOf(subtask);
+                      _subtasks[index] = subtask.copyWith(isCompleted: value);
+                    });
+                  },
+                ),
+                title: Text(
+                  subtask.title,
+                  style: TextStyle(
+                    decoration: subtask.isCompleted ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () {
+                    setState(() {
+                      _subtasks.remove(subtask);
+                    });
+                  },
+                ),
               )),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _subtaskController,
+                      decoration: const InputDecoration(
+                        hintText: '添加子任务',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: _addSubtask,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => _addSubtask(_subtaskController.text),
+                  ),
+                ],
+              ),
             ],
-          ],
+          ),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('关闭'),
+          child: const Text('取消'),
         ),
         TextButton(
-          onPressed: () {
-            onTaskDeleted();
-            Navigator.pop(context);
-          },
+          onPressed: _showDeleteConfirmation,
           child: const Text('删除', style: TextStyle(color: Colors.red)),
         ),
         ElevatedButton(
-          onPressed: () {
-            // 切换完成状态
-            final updatedTask = task.copyWith(
-              status: task.isCompleted ? TaskStatus.pending : TaskStatus.completed,
-            );
-            onTaskUpdated(updatedTask);
-            Navigator.pop(context);
-          },
-          child: Text(task.isCompleted ? '标记未完成' : '标记完成'),
+          onPressed: _titleController.text.trim().isEmpty ? null : _saveTask,
+          child: const Text('保存'),
         ),
       ],
     );
+  }
+
+  void _addTag(String tag) {
+    final trimmedTag = tag.trim();
+    if (trimmedTag.isNotEmpty && !_tags.contains(trimmedTag)) {
+      setState(() {
+        _tags.add(trimmedTag);
+        _tagController.clear();
+      });
+    }
+  }
+
+  void _addSubtask(String title) {
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isNotEmpty) {
+      setState(() {
+        _subtasks.add(Subtask.create(trimmedTitle));
+        _subtaskController.clear();
+      });
+    }
+  }
+
+  Future<void> _selectDueDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _dueDate ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (date != null) {
+      setState(() {
+        _dueDate = date;
+      });
+    }
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除任务"${widget.task.title}"吗？此操作不可撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // 关闭确认对话框
+              Navigator.pop(context); // 关闭编辑对话框
+              widget.onTaskDeleted();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('删除', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveTask() {
+    final updatedTask = widget.task.copyWith(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      priority: _priority,
+      status: _status,
+      dueDate: _dueDate,
+      tags: _tags,
+      subtasks: _subtasks,
+    );
+
+    widget.onTaskUpdated(updatedTask);
+    Navigator.pop(context);
   }
 
   String _formatDate(DateTime date) {
