@@ -898,6 +898,58 @@
         text-align: left;
       }
     }
+
+    /* 音量滑块样式 */
+    input[type="range"] {
+      appearance: none;
+      height: 6px;
+      background: var(--border-color);
+      border-radius: 3px;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--primary-color);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: var(--shadow-light);
+      transition: var(--transition);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: var(--shadow-medium);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--primary-color);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: var(--shadow-light);
+    }
+
+    /* 已完成任务样式 */
+    .completed-task {
+      opacity: 0.8;
+      background: linear-gradient(135deg, #f0f9f0 0%, #e8f5e8 100%);
+      border-color: #4caf50 !important;
+    }
+
+    .completed-task .task-title {
+      text-decoration: line-through;
+      color: var(--text-secondary);
+    }
+
+    .completed-task .task-meta {
+      color: var(--text-secondary);
+    }
   </style>
 </head>
 <body>
@@ -1035,6 +1087,19 @@
                 <input type="checkbox" id="sound-notifications" checked onchange="updateSoundNotifications(this.checked)">
                 <span class="slider"></span>
               </label>
+              <button class="btn btn-small btn-secondary" onclick="testSound()" style="margin-left: 12px;">测试声音</button>
+            </div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">声音音量</div>
+              <div class="setting-description">调节提示音的音量大小</div>
+            </div>
+            <div class="setting-control">
+              <input type="range" id="volume-slider" min="0" max="100" value="50"
+                     onchange="updateSoundVolume(this.value)"
+                     style="width: 120px; margin-right: 8px;">
+              <span id="volume-display">50%</span>
             </div>
           </div>
           <div class="setting-item">
@@ -1047,6 +1112,7 @@
                 <input type="checkbox" id="desktop-notifications" checked onchange="updateDesktopNotifications(this.checked)">
                 <span class="slider"></span>
               </label>
+              <button class="btn btn-small btn-secondary" onclick="testNotification()" style="margin-left: 12px;">测试通知</button>
             </div>
           </div>
         </div>
@@ -1089,12 +1155,28 @@
       <div id="reports-screen" class="hidden">
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-number">12</div>
-            <div class="stat-label">今日番茄钟</div>
+            <div class="stat-number" id="total-tasks">0</div>
+            <div class="stat-label">总任务数</div>
           </div>
           <div class="stat-card">
-            <div class="stat-number">5.2</div>
-            <div class="stat-label">平均专注时长(小时)</div>
+            <div class="stat-number" id="completed-tasks">0</div>
+            <div class="stat-label">已完成任务</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="total-pomodoros">0</div>
+            <div class="stat-label">总番茄钟数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="total-time">0</div>
+            <div class="stat-label">总投入时间(小时)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="completion-rate">0%</div>
+            <div class="stat-label">任务完成率</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="avg-pomodoros">0</div>
+            <div class="stat-label">平均番茄钟/任务</div>
           </div>
         </div>
       </div>
@@ -1178,6 +1260,7 @@
       longBreakInterval: 4,
       soundNotifications: true,
       desktopNotifications: true,
+      soundVolume: 0.5, // 音量控制 (0.0 - 1.0)
       autoTheme: false,
       theme: 'red'
     };
@@ -1332,6 +1415,16 @@
       }
 
       updatePomodoroIndicator();
+
+      // 播放声音提醒
+      if (settings.soundNotifications) {
+        playNotificationSound();
+      }
+
+      // 显示桌面通知
+      if (settings.desktopNotifications) {
+        showDesktopNotification();
+      }
     }
 
     function updateTimerDisplay() {
@@ -1539,6 +1632,38 @@
       saveSettingsToStorage(); // 保存设置
       showToast(enabled ? '桌面通知已开启' : '桌面通知已关闭');
     }
+
+    // 更新声音音量
+    function updateSoundVolume(value) {
+      settings.soundVolume = value / 100; // 转换为0.0-1.0范围
+      document.getElementById('volume-display').textContent = value + '%';
+      saveSettingsToStorage();
+
+      // 播放测试音效
+      if (settings.soundNotifications) {
+        playNotificationSound();
+      }
+    }
+
+    // 测试声音通知
+    function testSound() {
+      if (settings.soundNotifications) {
+        playNotificationSound();
+        showToast('🔊 测试声音播放中...');
+      } else {
+        showToast('⚠️ 声音提醒已关闭，请先开启');
+      }
+    }
+
+    // 测试桌面通知
+    function testNotification() {
+      if (settings.desktopNotifications) {
+        showDesktopNotification();
+        showToast('🔔 测试通知发送中...');
+      } else {
+        showToast('⚠️ 桌面通知已关闭，请先开启');
+      }
+    }
     function updateAutoTheme(enabled) {
       settings.autoTheme = enabled;
       saveSettingsToStorage(); // 保存设置
@@ -1635,17 +1760,25 @@
     function addTaskToList(task) {
       const tasksList = document.getElementById('tasks-list');
       const taskItem = document.createElement('div');
-      taskItem.className = 'task-item fade-in';
+      taskItem.className = `task-item fade-in ${task.completed ? 'completed-task' : ''}`;
+
+      const completionStatus = task.completed ?
+        '<span style="color: #4caf50; font-weight: bold;">✅ 已完成</span>' :
+        '<span style="color: #ff9800; font-weight: bold;">🔄 进行中</span>';
+
       taskItem.innerHTML = `
         <div class="task-title">${task.name}</div>
         <div class="task-meta">
           ${task.description ? `描述: ${task.description}<br>` : ''}
           完成番茄钟: ${task.completedPomodoros || 0}/${task.plannedPomodoros || 4} |
           投入时间: ${task.totalTime || 0}分钟<br>
+          状态: ${completionStatus}<br>
           创建时间: ${task.createdAt.toLocaleString()}
         </div>
         <div class="task-actions">
-          <button class="task-btn btn-primary" onclick="startTaskTimer(${task.id})">开始</button>
+          ${!task.completed ? `<button class="task-btn btn-primary" onclick="startTaskTimer(${task.id})">开始</button>` : ''}
+          ${!task.completed ? `<button class="task-btn" onclick="completeTask(${task.id})" style="background: #4caf50; color: white;">完成</button>` :
+            `<button class="task-btn" onclick="uncompleteTask(${task.id})" style="background: #ff9800; color: white;">重新开始</button>`}
           <button class="task-btn" onclick="deleteTask(${task.id})" style="background: #f44336; color: white;">删除</button>
         </div>
       `;
@@ -1658,6 +1791,35 @@
         setCurrentTask(task);
         switchTab(0, document.querySelector('.nav-item'));
         showToast(`开始处理任务: ${task.name}`);
+      }
+    }
+
+    function completeTask(taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = true;
+        task.completedAt = new Date();
+
+        // 如果当前任务是被完成的任务，清除当前任务
+        if (currentTask && currentTask.id === taskId) {
+          clearCurrentTask();
+        }
+
+        renderTasks();
+        saveTasksToStorage();
+        showToast(`🎉 任务 "${task.name}" 已完成！`);
+      }
+    }
+
+    function uncompleteTask(taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = false;
+        delete task.completedAt;
+
+        renderTasks();
+        saveTasksToStorage();
+        showToast(`🔄 任务 "${task.name}" 已重新开始`);
       }
     }
 
@@ -1677,6 +1839,25 @@
       const tasksList = document.getElementById('tasks-list');
       tasksList.innerHTML = '';
       tasks.forEach(addTaskToList);
+      updateStatistics(); // 更新统计数据
+    }
+
+    // 更新统计数据
+    function updateStatistics() {
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter(t => t.completed).length;
+      const totalPomodoros = tasks.reduce((sum, t) => sum + (t.completedPomodoros || 0), 0);
+      const totalTime = tasks.reduce((sum, t) => sum + (t.totalTime || 0), 0);
+      const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      const avgPomodoros = totalTasks > 0 ? Math.round((totalPomodoros / totalTasks) * 10) / 10 : 0;
+
+      // 更新统计显示
+      document.getElementById('total-tasks').textContent = totalTasks;
+      document.getElementById('completed-tasks').textContent = completedTasks;
+      document.getElementById('total-pomodoros').textContent = totalPomodoros;
+      document.getElementById('total-time').textContent = Math.round((totalTime / 60) * 10) / 10; // 转换为小时
+      document.getElementById('completion-rate').textContent = completionRate + '%';
+      document.getElementById('avg-pomodoros').textContent = avgPomodoros;
     }
 
     function showToast(message) {
@@ -1691,6 +1872,115 @@
       setTimeout(() => {
         document.body.removeChild(toast);
       }, 2000);
+    }
+
+    // 声音通知函数
+    function playNotificationSound() {
+      try {
+        // 使用Web Audio API创建提示音
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // 确保音频上下文已启动（某些浏览器需要用户交互）
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+
+        // 创建一个简单的铃声音效
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        // 设置音频参数
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // 800Hz频率
+        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1); // 升到1000Hz
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2); // 回到800Hz
+
+        gainNode.gain.setValueAtTime(settings.soundVolume, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+
+        // 播放第二个提示音
+        setTimeout(() => {
+          const oscillator2 = audioContext.createOscillator();
+          const gainNode2 = audioContext.createGain();
+
+          oscillator2.connect(gainNode2);
+          gainNode2.connect(audioContext.destination);
+
+          oscillator2.frequency.setValueAtTime(1000, audioContext.currentTime);
+          oscillator2.frequency.setValueAtTime(800, audioContext.currentTime + 0.1);
+          oscillator2.frequency.setValueAtTime(1000, audioContext.currentTime + 0.2);
+
+          gainNode2.gain.setValueAtTime(settings.soundVolume, audioContext.currentTime);
+          gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+          oscillator2.start();
+          oscillator2.stop(audioContext.currentTime + 0.5);
+        }, 600);
+
+      } catch (error) {
+        console.log('声音播放失败:', error);
+        // 备用方案：尝试使用HTML5 Audio
+        try {
+          const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYiYjON0+/Dcy4LKm+/7tOFPAo');
+          audio.volume = settings.soundVolume;
+          audio.play().catch(() => console.log('备用音频播放失败'));
+        } catch (e) {
+          console.log('备用音频也播放失败:', e);
+        }
+      }
+    }
+
+    // 桌面通知函数
+    function showDesktopNotification() {
+      // 检查浏览器是否支持通知
+      if (!('Notification' in window)) {
+        console.log('此浏览器不支持桌面通知');
+        return;
+      }
+
+      // 检查通知权限
+      if (Notification.permission === 'granted') {
+        createNotification();
+      } else if (Notification.permission !== 'denied') {
+        // 请求通知权限
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            createNotification();
+          }
+        });
+      }
+
+      function createNotification() {
+        const title = currentMode === 'work' ? '🍅 番茄钟完成！' : '⏰ 休息结束！';
+        const body = currentMode === 'work'
+          ? `恭喜完成一个番茄钟！${currentTask ? '任务: ' + currentTask.name : ''}`
+          : '休息时间结束，准备开始新的专注时间！';
+
+        const notification = new Notification(title, {
+          body: body,
+          icon: 'icons/Icon-192.png',
+          badge: 'icons/Icon-192.png',
+          tag: 'pomodoro-timer',
+          requireInteraction: true,
+          vibrate: [200, 100, 200]
+        });
+
+        // 点击通知时聚焦到应用
+        notification.onclick = function() {
+          window.focus();
+          notification.close();
+        };
+
+        // 5秒后自动关闭通知
+        setTimeout(() => {
+          notification.close();
+        }, 5000);
+      }
     }
 
     // 键盘事件
@@ -1722,6 +2012,11 @@
       document.getElementById('sound-notifications').checked = settings.soundNotifications;
       document.getElementById('desktop-notifications').checked = settings.desktopNotifications;
       document.getElementById('auto-theme').checked = settings.autoTheme;
+
+      // 设置音量滑块
+      const volumePercent = Math.round(settings.soundVolume * 100);
+      document.getElementById('volume-slider').value = volumePercent;
+      document.getElementById('volume-display').textContent = volumePercent + '%';
 
       // 设置主题显示
       const themeName = document.querySelector(`.theme-option[data-theme="${settings.theme}"]`).dataset.name;
@@ -1758,6 +2053,13 @@
       updateTimerDisplay();
       updateCurrentTaskDisplay();
       initializeSettings();
+
+      // 请求通知权限
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+          console.log('通知权限:', permission);
+        });
+      }
 
       // 调试信息
       console.log('🍅 Pomodoro Genie Task Integration Enhanced 已加载 - 数据已从本地存储恢复');
