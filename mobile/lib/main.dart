@@ -5,6 +5,7 @@ import 'screens/task_screen.dart';
 import 'services/task_service.dart';
 import 'services/notification_service.dart';
 import 'services/session_service.dart';
+import 'services/sync_service.dart';
 import 'models/pomodoro_session.dart';
 
 void main() {
@@ -215,6 +216,8 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   late List<Widget> _screens;
+  final SyncService _syncService = SyncService();
+  Timer? _syncCheckTimer;
 
   @override
   void initState() {
@@ -229,19 +232,47 @@ class _MainScreenState extends State<MainScreen> {
       const ReportsScreen(),
       const SettingsScreen(),
     ];
+
+    // 定期检查同步状态
+    _syncCheckTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        _syncService.checkConnectivity().then((_) {
+          if (mounted) setState(() {});
+        });
+      }
+    });
   }
 
   Future<void> _initializeServices() async {
     final sessionService = SessionService();
     await sessionService.initialize();
+
+    // 初始化同步服务
+    await _syncService.initialize();
+  }
+
+  @override
+  void dispose() {
+    _syncCheckTimer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _selectedIndex,
+            children: _screens,
+          ),
+          // 同步状态浮动指示器
+          Positioned(
+            top: 50,
+            right: 16,
+            child: _buildSyncIndicator(),
+          ),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -266,6 +297,64 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSyncIndicator() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([]),
+      builder: (context, child) {
+        final isOnline = _syncService.isOnline;
+        final isSyncing = _syncService.isSyncInProgress;
+
+        if (!isOnline && !isSyncing) {
+          return const SizedBox.shrink(); // 离线且未同步时不显示
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isSyncing ? Colors.orange : (isOnline ? Colors.green : Colors.grey),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSyncing)
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              else
+                Icon(
+                  isOnline ? Icons.cloud_done : Icons.cloud_off,
+                  size: 12,
+                  color: Colors.white,
+                ),
+              const SizedBox(width: 4),
+              Text(
+                isSyncing ? '同步' : (isOnline ? '在线' : '离线'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

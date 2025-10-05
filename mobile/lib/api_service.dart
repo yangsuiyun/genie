@@ -1,46 +1,61 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'models/task.dart';
+import 'models/pomodoro_session.dart';
 
 class ApiService {
   static const String _baseUrl = 'http://localhost:8081';
 
   static Future<String> _makeRequest(String method, String path, {Map<String, dynamic>? body}) async {
-    final client = HttpClient();
-    try {
-      final uri = Uri.parse('$_baseUrl$path');
-      HttpClientRequest request;
+    final uri = Uri.parse('$_baseUrl$path');
+    final headers = {'Content-Type': 'application/json'};
 
-      switch (method) {
+    http.Response response;
+
+    try {
+      switch (method.toUpperCase()) {
         case 'GET':
-          request = await client.getUrl(uri);
+          response = await http.get(uri, headers: headers);
           break;
         case 'POST':
-          request = await client.postUrl(uri);
+          response = await http.post(
+            uri,
+            headers: headers,
+            body: body != null ? json.encode(body) : null,
+          );
           break;
         case 'PUT':
-          request = await client.putUrl(uri);
+          response = await http.put(
+            uri,
+            headers: headers,
+            body: body != null ? json.encode(body) : null,
+          );
+          break;
+        case 'DELETE':
+          response = await http.delete(uri, headers: headers);
           break;
         default:
           throw Exception('Unsupported method: $method');
       }
 
-      request.headers.set('Content-Type', 'application/json');
-
-      if (body != null) {
-        final bodyString = json.encode(body);
-        request.write(bodyString);
-      }
-
-      final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
-
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return responseBody;
+        return response.body;
       } else {
-        throw Exception('HTTP ${response.statusCode}: $responseBody');
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
-    } finally {
-      client.close();
+    } catch (e) {
+      print('API Request failed: $e');
+      rethrow;
+    }
+  }
+
+  // Server connectivity check
+  static Future<bool> isServerOnline() async {
+    try {
+      await _makeRequest('GET', '/health');
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -49,8 +64,8 @@ class ApiService {
     try {
       final responseBody = await _makeRequest('GET', '/v1/tasks/');
       final data = json.decode(responseBody);
-      final List<dynamic> tasksJson = data['data'];
-      return tasksJson.map((json) => Task.fromJson(json)).toList();
+      final List<dynamic> tasksJson = data['data'] ?? data['tasks'] ?? [];
+      return tasksJson.map((json) => Task.fromApiJson(json)).toList();
     } catch (e) {
       print('Error getting tasks: $e');
       return [];
@@ -58,23 +73,11 @@ class ApiService {
   }
 
   // Create a new task
-  static Future<Task?> createTask({
-    required String title,
-    String? description,
-    String priority = 'medium',
-    DateTime? dueDate,
-  }) async {
+  static Future<Task?> createTask(Task task) async {
     try {
-      final taskData = {
-        'title': title,
-        'description': description,
-        'priority': priority,
-        'due_date': dueDate?.toIso8601String(),
-      };
-
-      final responseBody = await _makeRequest('POST', '/v1/tasks/', body: taskData);
+      final responseBody = await _makeRequest('POST', '/v1/tasks/', body: task.toApiJson());
       final data = json.decode(responseBody);
-      return Task.fromJson(data['data']);
+      return Task.fromApiJson(data['data'] ?? data);
     } catch (e) {
       print('Error creating task: $e');
       return null;
@@ -93,24 +96,11 @@ class ApiService {
   }
 
   // Update task (full update)
-  static Future<Task?> updateTask(String taskId, {
-    String? title,
-    String? description,
-    String? priority,
-    String? status,
-    DateTime? dueDate,
-  }) async {
+  static Future<Task?> updateTask(Task task) async {
     try {
-      final updateData = <String, dynamic>{};
-      if (title != null) updateData['title'] = title;
-      if (description != null) updateData['description'] = description;
-      if (priority != null) updateData['priority'] = priority;
-      if (status != null) updateData['status'] = status;
-      if (dueDate != null) updateData['due_date'] = dueDate.toIso8601String();
-
-      final responseBody = await _makeRequest('PUT', '/v1/tasks/$taskId', body: updateData);
+      final responseBody = await _makeRequest('PUT', '/v1/tasks/${task.id}', body: task.toApiJson());
       final data = json.decode(responseBody);
-      return Task.fromJson(data['data']);
+      return Task.fromApiJson(data['data'] ?? data);
     } catch (e) {
       print('Error updating task: $e');
       return null;
@@ -129,199 +119,121 @@ class ApiService {
   }
 
   // Start a pomodoro session
-  static Future<PomodoroSession?> startSession({
-    String? taskId,
-    String type = 'work',
-    int duration = 1500, // 25 minutes in seconds
-  }) async {
+  static Future<PomodoroSession?> startSession(PomodoroSession session) async {
     try {
       final sessionData = {
-        'task_id': taskId,
-        'type': type,
-        'duration': duration,
+        'task_id': session.taskId,
+        'task_title': session.taskTitle,
+        'type': session.type.name,
+        'planned_duration': session.plannedDuration,
       };
 
       final responseBody = await _makeRequest('POST', '/v1/pomodoro/sessions/', body: sessionData);
       final data = json.decode(responseBody);
-      return PomodoroSession.fromJson(data['data']);
+      return PomodoroSession.fromApiJson(data['data'] ?? data);
     } catch (e) {
       print('Error starting session: $e');
       return null;
     }
   }
 
-  // Update session status
-  static Future<bool> updateSession(
-    String sessionId, {
-    String? status,
-    int? remainingTime,
-  }) async {
+  // Update session
+  static Future<PomodoroSession?> updateSession(PomodoroSession session) async {
     try {
-      final updateData = <String, dynamic>{};
-      if (status != null) updateData['status'] = status;
-      if (remainingTime != null) updateData['remaining_time'] = remainingTime;
-
-      final responseBody = await _makeRequest('PUT', '/v1/pomodoro/sessions/$sessionId', body: updateData);
-      return true;
+      final responseBody = await _makeRequest('PUT', '/v1/pomodoro/sessions/${session.id}', body: session.toApiJson());
+      final data = json.decode(responseBody);
+      return PomodoroSession.fromApiJson(data['data'] ?? data);
     } catch (e) {
       print('Error updating session: $e');
-      return false;
+      return null;
+    }
+  }
+
+  // Get session history
+  static Future<List<PomodoroSession>> getSessions({String? taskId}) async {
+    try {
+      String path = '/v1/pomodoro/sessions/';
+      if (taskId != null) {
+        path += '?task_id=$taskId';
+      }
+
+      final responseBody = await _makeRequest('GET', path);
+      final data = json.decode(responseBody);
+      final List<dynamic> sessionsJson = data['data'] ?? data['sessions'] ?? [];
+      return sessionsJson.map((json) => PomodoroSession.fromApiJson(json)).toList();
+    } catch (e) {
+      print('Error getting sessions: $e');
+      return [];
     }
   }
 
   // Get analytics data
-  static Future<AnalyticsData?> getAnalytics() async {
+  static Future<Map<String, dynamic>?> getAnalytics() async {
     try {
       final responseBody = await _makeRequest('GET', '/v1/reports/analytics');
       final data = json.decode(responseBody);
-      return AnalyticsData.fromJson(data['data']);
+      return data['data'] ?? data;
     } catch (e) {
       print('Error getting analytics: $e');
       return null;
     }
   }
-}
 
-// Data models
-class Task {
-  final String id;
-  final String title;
-  final String? description;
-  final String priority;
-  final String status;
-  final DateTime? dueDate;
-  final List<Subtask> subtasks;
-
-  Task({
-    required this.id,
-    required this.title,
-    this.description,
-    required this.priority,
-    required this.status,
-    this.dueDate,
-    this.subtasks = const [],
-  });
-
-  factory Task.fromJson(Map<String, dynamic> json) {
-    return Task(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'],
-      priority: json['priority'],
-      status: json['status'],
-      dueDate: json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
-      subtasks: json['subtasks'] != null
-          ? (json['subtasks'] as List).map((s) => Subtask.fromJson(s)).toList()
-          : [],
-    );
+  // Sync local data to server
+  static Future<bool> syncTasks(List<Task> tasks) async {
+    try {
+      final tasksData = tasks.map((task) => task.toApiJson()).toList();
+      await _makeRequest('POST', '/v1/tasks/sync', body: {'tasks': tasksData});
+      return true;
+    } catch (e) {
+      print('Error syncing tasks: $e');
+      return false;
+    }
   }
-}
 
-class Subtask {
-  final String id;
-  final String title;
-  final bool completed;
-
-  Subtask({
-    required this.id,
-    required this.title,
-    required this.completed,
-  });
-
-  factory Subtask.fromJson(Map<String, dynamic> json) {
-    return Subtask(
-      id: json['id'],
-      title: json['title'],
-      completed: json['completed'],
-    );
+  // Sync local sessions to server
+  static Future<bool> syncSessions(List<PomodoroSession> sessions) async {
+    try {
+      final sessionsData = sessions.map((session) => session.toApiJson()).toList();
+      await _makeRequest('POST', '/v1/pomodoro/sessions/sync', body: {'sessions': sessionsData});
+      return true;
+    } catch (e) {
+      print('Error syncing sessions: $e');
+      return false;
+    }
   }
-}
 
-class PomodoroSession {
-  final String id;
-  final String? taskId;
-  final String type;
-  final int duration;
-  final DateTime startedAt;
-  final String status;
-  final int remainingTime;
-
-  PomodoroSession({
-    required this.id,
-    this.taskId,
-    required this.type,
-    required this.duration,
-    required this.startedAt,
-    required this.status,
-    required this.remainingTime,
-  });
-
-  factory PomodoroSession.fromJson(Map<String, dynamic> json) {
-    return PomodoroSession(
-      id: json['id'],
-      taskId: json['task_id'],
-      type: json['type'],
-      duration: json['duration'],
-      startedAt: DateTime.parse(json['started_at']),
-      status: json['status'],
-      remainingTime: json['remaining_time'],
-    );
+  // Get server timestamp for sync
+  static Future<DateTime?> getServerTime() async {
+    try {
+      final responseBody = await _makeRequest('GET', '/v1/time');
+      final data = json.decode(responseBody);
+      return DateTime.parse(data['time']);
+    } catch (e) {
+      print('Error getting server time: $e');
+      return null;
+    }
   }
-}
 
-class AnalyticsData {
-  final DailyStats today;
-  final WeeklyStats thisWeek;
-
-  AnalyticsData({
-    required this.today,
-    required this.thisWeek,
-  });
-
-  factory AnalyticsData.fromJson(Map<String, dynamic> json) {
-    return AnalyticsData(
-      today: DailyStats.fromJson(json['today']),
-      thisWeek: WeeklyStats.fromJson(json['this_week']),
-    );
+  // Backup user data
+  static Future<Map<String, dynamic>?> backupData() async {
+    try {
+      final responseBody = await _makeRequest('GET', '/v1/user/backup');
+      return json.decode(responseBody);
+    } catch (e) {
+      print('Error backing up data: $e');
+      return null;
+    }
   }
-}
 
-class DailyStats {
-  final int sessionsCompleted;
-  final int focusTime;
-  final int tasksCompleted;
-
-  DailyStats({
-    required this.sessionsCompleted,
-    required this.focusTime,
-    required this.tasksCompleted,
-  });
-
-  factory DailyStats.fromJson(Map<String, dynamic> json) {
-    return DailyStats(
-      sessionsCompleted: json['sessions_completed'],
-      focusTime: json['focus_time'],
-      tasksCompleted: json['tasks_completed'],
-    );
-  }
-}
-
-class WeeklyStats {
-  final int sessionsCompleted;
-  final int focusTime;
-  final int tasksCompleted;
-
-  WeeklyStats({
-    required this.sessionsCompleted,
-    required this.focusTime,
-    required this.tasksCompleted,
-  });
-
-  factory WeeklyStats.fromJson(Map<String, dynamic> json) {
-    return WeeklyStats(
-      sessionsCompleted: json['sessions_completed'],
-      focusTime: json['focus_time'],
-      tasksCompleted: json['tasks_completed'],
-    );
+  // Restore user data
+  static Future<bool> restoreData(Map<String, dynamic> backupData) async {
+    try {
+      await _makeRequest('POST', '/v1/user/restore', body: backupData);
+      return true;
+    } catch (e) {
+      print('Error restoring data: $e');
+      return false;
+    }
   }
 }

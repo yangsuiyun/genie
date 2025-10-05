@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'services/sync_service.dart';
 
 // 设置数据模型
 class AppSettings {
@@ -85,11 +86,13 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final AppSettings _settings = AppSettings();
+  final SyncService _syncService = SyncService();
 
   @override
   void initState() {
     super.initState();
     _settings.addListener(_onSettingsChanged);
+    _syncService.initialize();
   }
 
   @override
@@ -212,6 +215,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSectionHeader('外观'),
           _buildThemeSetting(),
 
+          // 数据同步
+          _buildSectionHeader('数据同步'),
+          _buildSyncStatusSection(),
+
           // 关于
           _buildSectionHeader('关于'),
           _buildInfoSetting('应用版本', 'v1.0.0', Icons.info, () {
@@ -285,6 +292,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: () {
         _showThemePicker();
+      },
+    );
+  }
+
+  Widget _buildSyncStatusSection() {
+    return FutureBuilder<void>(
+      future: _syncService.checkConnectivity(),
+      builder: (context, snapshot) {
+        final isOnline = _syncService.isOnline;
+        final lastSyncTime = _syncService.lastSyncTime;
+        final isSyncing = _syncService.isSyncInProgress;
+
+        return Column(
+          children: [
+            // 连接状态
+            ListTile(
+              leading: Icon(
+                isOnline ? Icons.cloud_done : Icons.cloud_off,
+                color: isOnline ? Colors.green : Colors.grey,
+              ),
+              title: Text('服务器连接'),
+              subtitle: Text(isOnline ? '已连接' : '离线'),
+              trailing: isSyncing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : null,
+            ),
+
+            // 上次同步时间
+            ListTile(
+              leading: Icon(Icons.sync, color: _settings.themeColor),
+              title: const Text('上次同步'),
+              subtitle: Text(_formatLastSyncTime(lastSyncTime)),
+              trailing: ElevatedButton(
+                onPressed: isSyncing ? null : () => _performManualSync(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _settings.themeColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(isSyncing ? '同步中...' : '手动同步'),
+              ),
+            ),
+
+            // 同步统计
+            if (isOnline) ...[
+              ListTile(
+                leading: Icon(Icons.analytics, color: _settings.themeColor),
+                title: const Text('同步统计'),
+                subtitle: Text(_getSyncStatisticsText()),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () => _showSyncStatistics(),
+              ),
+            ],
+          ],
+        );
       },
     );
   }
@@ -628,6 +693,111 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: const Text('发送'),
           ),
+        ],
+      ),
+    );
+  }
+
+  String _formatLastSyncTime(DateTime? lastSyncTime) {
+    if (lastSyncTime == null) {
+      return '从未同步';
+    }
+
+    final now = DateTime.now();
+    final difference = now.difference(lastSyncTime);
+
+    if (difference.inMinutes < 1) {
+      return '刚刚';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} 分钟前';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} 小时前';
+    } else {
+      return '${difference.inDays} 天前';
+    }
+  }
+
+  String _getSyncStatisticsText() {
+    final stats = _syncService.getSyncStatistics();
+    final localTasks = stats['localTasks'] ?? 0;
+    final localSessions = stats['localSessions'] ?? 0;
+    return '$localTasks 个任务, $localSessions 个会话';
+  }
+
+  Future<void> _performManualSync() async {
+    setState(() {}); // Refresh UI to show syncing state
+
+    try {
+      final result = await _syncService.syncAll();
+
+      if (result.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('同步成功: ${result.message}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('同步失败: ${result.message}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('同步错误: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    setState(() {}); // Refresh UI after sync
+  }
+
+  void _showSyncStatistics() {
+    final stats = _syncService.getSyncStatistics();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('同步统计'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildStatRow('连接状态', stats['isOnline'] ? '在线' : '离线'),
+            _buildStatRow('本地任务', '${stats['localTasks']} 个'),
+            _buildStatRow('本地会话', '${stats['localSessions']} 个'),
+            _buildStatRow('同步状态', stats['syncInProgress'] ? '同步中' : '空闲'),
+            if (stats['lastSyncTime'] != null)
+              _buildStatRow('上次同步', _formatLastSyncTime(DateTime.parse(stats['lastSyncTime']))),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _settings.themeColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(value),
         ],
       ),
     );

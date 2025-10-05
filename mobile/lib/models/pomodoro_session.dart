@@ -105,6 +105,63 @@ class PomodoroSession {
     );
   }
 
+  // Factory for API responses
+  factory PomodoroSession.fromApiJson(Map<String, dynamic> json) {
+    return PomodoroSession(
+      id: json['id'].toString(),
+      taskId: json['task_id']?.toString(),
+      taskTitle: json['task_title'],
+      startTime: json['start_time'] != null ? DateTime.parse(json['start_time']) : DateTime.now(),
+      endTime: json['end_time'] != null ? DateTime.parse(json['end_time']) : null,
+      plannedDuration: json['planned_duration'] ?? json['duration'] ?? 1500,
+      actualDuration: json['actual_duration'] ?? 0,
+      status: _parseApiStatus(json['status']),
+      notes: json['notes'],
+      type: _parseApiType(json['type']),
+    );
+  }
+
+  static SessionStatus _parseApiStatus(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return SessionStatus.completed;
+      case 'interrupted':
+        return SessionStatus.interrupted;
+      case 'paused':
+        return SessionStatus.paused;
+      default:
+        return SessionStatus.active;
+    }
+  }
+
+  static SessionType _parseApiType(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'short_break':
+      case 'shortbreak':
+        return SessionType.shortBreak;
+      case 'long_break':
+      case 'longbreak':
+        return SessionType.longBreak;
+      default:
+        return SessionType.work;
+    }
+  }
+
+  // Convert to API format
+  Map<String, dynamic> toApiJson() {
+    return {
+      'task_id': taskId,
+      'task_title': taskTitle,
+      'start_time': startTime.toIso8601String(),
+      'end_time': endTime?.toIso8601String(),
+      'planned_duration': plannedDuration,
+      'actual_duration': actualDuration,
+      'status': status.name,
+      'notes': notes,
+      'type': type.name,
+    };
+  }
+
   // 获取方法
   bool get isCompleted => status == SessionStatus.completed;
   bool get isActive => status == SessionStatus.active;

@@ -109,6 +109,59 @@ class Task {
     );
   }
 
+  // Factory for API responses (different format)
+  factory Task.fromApiJson(Map<String, dynamic> json) {
+    return Task(
+      id: json['id'].toString(),
+      title: json['title'],
+      description: json['description'] ?? '',
+      priority: _parsePriority(json['priority']),
+      status: _parseStatus(json['status']),
+      dueDate: json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
+      tags: List<String>.from(json['tags'] ?? []),
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : DateTime.now(),
+      subtasks: (json['subtasks'] as List<dynamic>?)
+          ?.map((s) => Subtask.fromApiJson(s))
+          .toList() ?? [],
+    );
+  }
+
+  static TaskPriority _parsePriority(String? priority) {
+    switch (priority?.toLowerCase()) {
+      case 'high':
+        return TaskPriority.high;
+      case 'low':
+        return TaskPriority.low;
+      default:
+        return TaskPriority.medium;
+    }
+  }
+
+  static TaskStatus _parseStatus(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return TaskStatus.completed;
+      case 'in_progress':
+      case 'inprogress':
+        return TaskStatus.inProgress;
+      default:
+        return TaskStatus.pending;
+    }
+  }
+
+  // Convert to API format
+  Map<String, dynamic> toApiJson() {
+    return {
+      'title': title,
+      'description': description,
+      'priority': priority.name,
+      'status': status.name,
+      'due_date': dueDate?.toIso8601String(),
+      'tags': tags,
+    };
+  }
+
   // Getters
   bool get isCompleted => status == TaskStatus.completed;
   bool get isOverdue => dueDate != null &&
@@ -189,6 +242,15 @@ class Subtask {
       title: json['title'],
       isCompleted: json['isCompleted'] ?? false,
       createdAt: DateTime.parse(json['createdAt']),
+    );
+  }
+
+  factory Subtask.fromApiJson(Map<String, dynamic> json) {
+    return Subtask(
+      id: json['id'].toString(),
+      title: json['title'],
+      isCompleted: json['completed'] ?? json['is_completed'] ?? false,
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
     );
   }
 }
