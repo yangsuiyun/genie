@@ -118,10 +118,24 @@ class _TaskScreenState extends State<TaskScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTaskDialog,
-        backgroundColor: _settings.themeColor,
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: "templates",
+            onPressed: _showTemplateDialog,
+            backgroundColor: _settings.themeColor.shade300,
+            child: const Icon(Icons.bookmark, color: Colors.white),
+            mini: true,
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: "add",
+            onPressed: _showAddTaskDialog,
+            backgroundColor: _settings.themeColor,
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        ],
       ),
     );
   }
@@ -451,6 +465,196 @@ class _TaskScreenState extends State<TaskScreen> with TickerProviderStateMixin {
         ),
       );
     }
+  }
+
+  void _showTemplateDialog() {
+    // 预定义的任务模板
+    final templates = [
+      {
+        'title': '阅读文档',
+        'description': '阅读和学习新的技术文档或资料',
+        'priority': TaskPriority.medium,
+        'tags': ['学习', '文档'],
+        'subtasks': ['确定阅读目标', '记录重点内容', '总结要点'],
+      },
+      {
+        'title': '代码复查',
+        'description': '检查和优化现有代码',
+        'priority': TaskPriority.high,
+        'tags': ['开发', '质量'],
+        'subtasks': ['检查代码逻辑', '优化性能', '更新注释'],
+      },
+      {
+        'title': '会议准备',
+        'description': '准备即将到来的会议材料',
+        'priority': TaskPriority.medium,
+        'tags': ['会议', '准备'],
+        'subtasks': ['准备议程', '整理资料', '准备演示'],
+      },
+      {
+        'title': '项目规划',
+        'description': '制定新项目的详细计划',
+        'priority': TaskPriority.high,
+        'tags': ['规划', '管理'],
+        'subtasks': ['分析需求', '制定时间线', '分配资源'],
+      },
+      {
+        'title': '学习新技能',
+        'description': '学习一项新的技术或技能',
+        'priority': TaskPriority.low,
+        'tags': ['学习', '技能'],
+        'subtasks': ['选择学习资源', '制定学习计划', '实践练习'],
+      },
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('选择任务模板'),
+        content: Container(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('从预设模板快速创建任务'),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: templates.length,
+                  itemBuilder: (context, index) {
+                    final template = templates[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.bookmark_border,
+                          color: _settings.themeColor,
+                        ),
+                        title: Text(template['title'] as String),
+                        subtitle: Text(template['description'] as String),
+                        trailing: Text(
+                          (template['priority'] as TaskPriority).displayName,
+                          style: TextStyle(
+                            color: _getPriorityColor(template['priority'] as TaskPriority),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _createTaskFromTemplate(template);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showRecurringTaskDialog();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _settings.themeColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('创建重复任务'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getPriorityColor(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.high:
+        return Colors.red;
+      case TaskPriority.medium:
+        return Colors.orange;
+      case TaskPriority.low:
+        return Colors.green;
+    }
+  }
+
+  void _createTaskFromTemplate(Map<String, dynamic> template) {
+    final subtasks = (template['subtasks'] as List<String>)
+        .map((title) => Subtask.create(title))
+        .toList();
+
+    final task = Task.create(
+      title: template['title'] as String,
+      description: template['description'] as String,
+      priority: template['priority'] as TaskPriority,
+      tags: List<String>.from(template['tags'] as List),
+    ).copyWith(subtasks: subtasks);
+
+    _taskService.addTask(task);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('已从模板创建任务: ${task.title}'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _showRecurringTaskDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => RecurringTaskDialog(
+        onTaskCreated: (task, recurrence) {
+          _createRecurringTasks(task, recurrence);
+        },
+      ),
+    );
+  }
+
+  void _createRecurringTasks(Task baseTask, Map<String, dynamic> recurrence) {
+    final frequency = recurrence['frequency'] as String;
+    final count = recurrence['count'] as int;
+
+    for (int i = 0; i < count; i++) {
+      DateTime? dueDate;
+      if (baseTask.dueDate != null) {
+        switch (frequency) {
+          case 'daily':
+            dueDate = baseTask.dueDate!.add(Duration(days: i));
+            break;
+          case 'weekly':
+            dueDate = baseTask.dueDate!.add(Duration(days: i * 7));
+            break;
+          case 'monthly':
+            dueDate = DateTime(
+              baseTask.dueDate!.year,
+              baseTask.dueDate!.month + i,
+              baseTask.dueDate!.day,
+            );
+            break;
+        }
+      }
+
+      final task = baseTask.copyWith(
+        title: i == 0 ? baseTask.title : '${baseTask.title} (${i + 1})',
+        dueDate: dueDate,
+      );
+
+      _taskService.addTask(task);
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('已创建 $count 个重复任务'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 }
 
@@ -1043,5 +1247,236 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+}
+
+// 重复任务创建对话框
+class RecurringTaskDialog extends StatefulWidget {
+  final Function(Task, Map<String, dynamic>) onTaskCreated;
+
+  const RecurringTaskDialog({super.key, required this.onTaskCreated});
+
+  @override
+  State<RecurringTaskDialog> createState() => _RecurringTaskDialogState();
+}
+
+class _RecurringTaskDialogState extends State<RecurringTaskDialog> {
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  TaskPriority _priority = TaskPriority.medium;
+  DateTime? _startDate;
+  String _frequency = 'daily';
+  int _count = 7;
+  final List<String> _tags = [];
+  final TextEditingController _tagController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('创建重复任务'),
+      content: Container(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: '任务标题 *',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: '任务描述',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<TaskPriority>(
+                value: _priority,
+                decoration: const InputDecoration(
+                  labelText: '优先级',
+                  border: OutlineInputBorder(),
+                ),
+                items: TaskPriority.values.map((priority) {
+                  return DropdownMenuItem(
+                    value: priority,
+                    child: Text(priority.displayName),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _priority = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(_startDate == null ? '设置开始日期' : '开始日期: ${_formatDate(_startDate!)}'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: _selectStartDate,
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _frequency,
+                decoration: const InputDecoration(
+                  labelText: '重复频率',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'daily', child: Text('每日')),
+                  DropdownMenuItem(value: 'weekly', child: Text('每周')),
+                  DropdownMenuItem(value: 'monthly', child: Text('每月')),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _frequency = value!;
+                    // 根据频率调整默认数量
+                    switch (_frequency) {
+                      case 'daily':
+                        _count = 7;
+                        break;
+                      case 'weekly':
+                        _count = 4;
+                        break;
+                      case 'monthly':
+                        _count = 3;
+                        break;
+                    }
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Text('创建数量: '),
+                  Expanded(
+                    child: Slider(
+                      value: _count.toDouble(),
+                      min: 1,
+                      max: _frequency == 'daily' ? 30 : (_frequency == 'weekly' ? 12 : 6),
+                      divisions: (_frequency == 'daily' ? 29 : (_frequency == 'weekly' ? 11 : 5)),
+                      label: _count.toString(),
+                      onChanged: (value) {
+                        setState(() {
+                          _count = value.round();
+                        });
+                      },
+                    ),
+                  ),
+                  Text('$_count 个'),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // 标签
+              if (_tags.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  children: _tags.map((tag) => Chip(
+                    label: Text(tag),
+                    onDeleted: () {
+                      setState(() {
+                        _tags.remove(tag);
+                      });
+                    },
+                  )).toList(),
+                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _tagController,
+                      decoration: const InputDecoration(
+                        hintText: '添加标签',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: _addTag,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => _addTag(_tagController.text),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        ElevatedButton(
+          onPressed: _titleController.text.trim().isEmpty ? null : _createRecurringTask,
+          child: const Text('创建'),
+        ),
+      ],
+    );
+  }
+
+  void _addTag(String tag) {
+    final trimmedTag = tag.trim();
+    if (trimmedTag.isNotEmpty && !_tags.contains(trimmedTag)) {
+      setState(() {
+        _tags.add(trimmedTag);
+        _tagController.clear();
+      });
+    }
+  }
+
+  Future<void> _selectStartDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _startDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (date != null) {
+      setState(() {
+        _startDate = date;
+      });
+    }
+  }
+
+  void _createRecurringTask() {
+    final task = Task.create(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      priority: _priority,
+      dueDate: _startDate,
+      tags: _tags,
+    );
+
+    final recurrence = {
+      'frequency': _frequency,
+      'count': _count,
+    };
+
+    widget.onTaskCreated(task, recurrence);
+    Navigator.pop(context);
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _tagController.dispose();
+    super.dispose();
   }
 }

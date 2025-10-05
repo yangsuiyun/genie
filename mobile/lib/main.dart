@@ -50,6 +50,11 @@ class PomodoroState {
   // 当前会话
   PomodoroSession? _currentSession;
 
+  // 番茄钟循环管理
+  int _completedPomodoros = 0;
+  bool _isBreakTime = false;
+  SessionType _currentSessionType = SessionType.work;
+
   // 状态变化监听器
   final List<VoidCallback> _listeners = [];
 
@@ -59,6 +64,9 @@ class PomodoroState {
   double get progress => 1.0 - (_remainingSeconds / _totalSeconds);
   Task? get currentTask => _currentTask;
   PomodoroSession? get currentSession => _currentSession;
+  int get completedPomodoros => _completedPomodoros;
+  bool get isBreakTime => _isBreakTime;
+  SessionType get currentSessionType => _currentSessionType;
 
   String get timeDisplay {
     int minutes = _remainingSeconds ~/ 60;
@@ -80,20 +88,46 @@ class PomodoroState {
     }
   }
 
-  void start([Task? task]) async {
+  void start([Task? task, SessionType? sessionType]) async {
     if (_isRunning) return;
 
-    _currentTask = task;
-    if (_currentTask != null) {
-      // 如果有指定任务，将任务状态设为进行中
-      await _taskService.updateTask(_currentTask!.copyWith(status: TaskStatus.inProgress));
+    // 确定会话类型
+    if (sessionType != null) {
+      _currentSessionType = sessionType;
+    } else if (!_isBreakTime) {
+      _currentSessionType = SessionType.work;
     }
+
+    // 根据会话类型设置时长
+    switch (_currentSessionType) {
+      case SessionType.work:
+        _totalSeconds = _settings.workDuration * 60;
+        _isBreakTime = false;
+        _currentTask = task;
+        if (_currentTask != null) {
+          // 如果有指定任务，将任务状态设为进行中
+          await _taskService.updateTask(_currentTask!.copyWith(status: TaskStatus.inProgress));
+        }
+        break;
+      case SessionType.shortBreak:
+        _totalSeconds = _settings.shortBreak * 60;
+        _isBreakTime = true;
+        _currentTask = null; // 休息时不关联任务
+        break;
+      case SessionType.longBreak:
+        _totalSeconds = _settings.longBreak * 60;
+        _isBreakTime = true;
+        _currentTask = null; // 休息时不关联任务
+        break;
+    }
+
+    _remainingSeconds = _totalSeconds;
 
     // 创建新的会话记录
     _currentSession = await _sessionService.startSession(
       task: _currentTask,
       plannedDuration: _totalSeconds,
-      type: SessionType.work,
+      type: _currentSessionType,
     );
 
     _isRunning = true;
@@ -102,7 +136,7 @@ class PomodoroState {
         _remainingSeconds--;
         _notifyListeners();
       } else {
-        // 番茄钟结束
+        // 会话结束
         _complete();
       }
     });
@@ -188,17 +222,106 @@ class PomodoroState {
       );
     }
 
-    // 发送通知
-    if (_currentTask != null) {
-      _notificationService.showPomodoroCompleted(taskTitle: _currentTask!.title);
-      print('Pomodoro completed for task: ${_currentTask!.title}');
+    // 根据会话类型处理完成逻辑
+    if (_currentSessionType == SessionType.work) {
+      // 工作会话完成，增加完成的番茄钟数量
+      _completedPomodoros++;
+
+      // 发送工作完成通知
+      if (_currentTask != null) {
+        _notificationService.showPomodoroCompleted(taskTitle: _currentTask!.title);
+        print('Work session completed for task: ${_currentTask!.title}');
+      } else {
+        _notificationService.showPomodoroCompleted();
+        print('Work session completed');
+      }
+
+      // 准备休息建议
+      _suggestBreak();
     } else {
-      _notificationService.showPomodoroCompleted();
-      print('Pomodoro completed');
+      // 休息会话完成
+      _isBreakTime = false;
+
+      // 发送休息完成通知
+      String breakType = _currentSessionType == SessionType.shortBreak ? '短休息' : '长休息';
+      _notificationService.showBreakCompleted(breakType: breakType);
+      print('$breakType completed');
+
+      // 重置为工作模式
+      _currentSessionType = SessionType.work;
+      _totalSeconds = _settings.workDuration * 60;
+      _remainingSeconds = _totalSeconds;
+
+      // 自动开始下一个番茄钟（如果设置了自动开始）
+      if (_settings.autoStartPomodoros) {
+        // 延迟一秒后自动开始，给用户时间看到完成状态
+        Timer(const Duration(seconds: 1), () {
+          start();
+        });
+      }
     }
 
     _currentTask = null;
     _currentSession = null;
+    _notifyListeners();
+  }
+
+  void _suggestBreak() {
+    // 根据完成的番茄钟数量建议休息
+    if (_completedPomodoros % _settings.longBreakInterval == 0) {
+      // 长休息时间
+      _currentSessionType = SessionType.longBreak;
+      print('建议长休息 ${_settings.longBreak} 分钟');
+    } else {
+      // 短休息时间
+      _currentSessionType = SessionType.shortBreak;
+      print('建议短休息 ${_settings.shortBreak} 分钟');
+    }
+
+    // 设置休息时长
+    switch (_currentSessionType) {
+      case SessionType.shortBreak:
+        _totalSeconds = _settings.shortBreak * 60;
+        break;
+      case SessionType.longBreak:
+        _totalSeconds = _settings.longBreak * 60;
+        break;
+      case SessionType.work:
+        break; // 不会到这里
+    }
+
+    _remainingSeconds = _totalSeconds;
+    _isBreakTime = true;
+
+    // 自动开始休息（如果设置了自动开始）
+    if (_settings.autoStartBreaks) {
+      // 延迟一秒后自动开始休息
+      Timer(const Duration(seconds: 1), () {
+        start(null, _currentSessionType);
+      });
+    }
+  }
+
+  // 手动开始休息
+  void startBreak({SessionType? breakType}) {
+    if (_isRunning) return;
+
+    final sessionType = breakType ??
+        ((_completedPomodoros % _settings.longBreakInterval == 0)
+            ? SessionType.longBreak
+            : SessionType.shortBreak);
+
+    start(null, sessionType);
+  }
+
+  // 跳过休息，直接开始下一个工作会话
+  void skipBreak() {
+    if (_isRunning) return;
+
+    _isBreakTime = false;
+    _currentSessionType = SessionType.work;
+    _totalSeconds = _settings.workDuration * 60;
+    _remainingSeconds = _totalSeconds;
     _notifyListeners();
   }
 
@@ -626,6 +749,34 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // 番茄钟计数显示
+            if (_pomodoroState.completedPomodoros > 0)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _settings.themeColor.shade100,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _settings.themeColor.shade300),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.local_fire_department,
+                         color: _settings.themeColor, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      '已完成 ${_pomodoroState.completedPomodoros} 个番茄钟',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _settings.themeColor.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // 圆形计时器
             SizedBox(
               width: 250,
@@ -639,24 +790,53 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
                     child: AnimatedBuilder(
                       animation: _controller,
                       builder: (context, child) {
+                        Color timerColor;
+                        if (_pomodoroState.currentSessionType == SessionType.work) {
+                          timerColor = _pomodoroState.isRunning ? Colors.red : Colors.grey;
+                        } else if (_pomodoroState.currentSessionType == SessionType.shortBreak) {
+                          timerColor = _pomodoroState.isRunning ? Colors.green : Colors.grey;
+                        } else {
+                          timerColor = _pomodoroState.isRunning ? Colors.blue : Colors.grey;
+                        }
+
                         return CircularProgressIndicator(
                           value: _controller.value,
                           strokeWidth: 8,
                           backgroundColor: Colors.grey.shade300,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            _pomodoroState.isRunning ? Colors.red : Colors.grey,
-                          ),
+                          valueColor: AlwaysStoppedAnimation<Color>(timerColor),
                         );
                       },
                     ),
                   ),
-                  Text(
-                    _pomodoroState.timeDisplay,
-                    style: const TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _pomodoroState.timeDisplay,
+                        style: TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: _pomodoroState.currentSessionType == SessionType.work
+                              ? Colors.red
+                              : _pomodoroState.currentSessionType == SessionType.shortBreak
+                                  ? Colors.green
+                                  : Colors.blue,
+                        ),
+                      ),
+                      if (_pomodoroState.currentSessionType != SessionType.work)
+                        Text(
+                          _pomodoroState.currentSessionType == SessionType.shortBreak
+                              ? '短休息时间'
+                              : '长休息时间',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: _pomodoroState.currentSessionType == SessionType.shortBreak
+                                ? Colors.green.shade600
+                                : Colors.blue.shade600,
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),
@@ -800,38 +980,126 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
 
             const SizedBox(height: 20),
 
+            // 休息建议通知
+            if (_pomodoroState.isBreakTime && !_pomodoroState.isRunning)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: _pomodoroState.currentSessionType == SessionType.shortBreak
+                        ? [Colors.green.shade50, Colors.green.shade100]
+                        : [Colors.blue.shade50, Colors.blue.shade100],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _pomodoroState.currentSessionType == SessionType.shortBreak
+                        ? Colors.green.shade200
+                        : Colors.blue.shade200,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.coffee,
+                          color: _pomodoroState.currentSessionType == SessionType.shortBreak
+                              ? Colors.green.shade600
+                              : Colors.blue.shade600,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _pomodoroState.currentSessionType == SessionType.shortBreak
+                              ? '建议短休息 ${_settings.shortBreak} 分钟'
+                              : '建议长休息 ${_settings.longBreak} 分钟',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: _pomodoroState.currentSessionType == SessionType.shortBreak
+                                ? Colors.green.shade700
+                                : Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '您已完成一个番茄钟，适当休息有助于保持专注力！',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _pomodoroState.currentSessionType == SessionType.shortBreak
+                            ? Colors.green.shade600
+                            : Colors.blue.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // 控制按钮
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _pomodoroState.isRunning ? _pauseTimer : _startTimer,
-                  icon: Icon(_pomodoroState.isRunning ? Icons.pause : Icons.play_arrow),
-                  label: Text(_pomodoroState.isRunning ? '暂停' : '开始'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _pomodoroState.isRunning ? Colors.orange : Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
+            if (_pomodoroState.isBreakTime && !_pomodoroState.isRunning)
+              // 休息控制按钮
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _pomodoroState.startBreak(),
+                    icon: const Icon(Icons.coffee),
+                    label: Text(_pomodoroState.currentSessionType == SessionType.shortBreak ? '开始短休息' : '开始长休息'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _pomodoroState.currentSessionType == SessionType.shortBreak
+                          ? Colors.green
+                          : Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                   ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _resetTimer,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('重置'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
+                  ElevatedButton.icon(
+                    onPressed: () => _pomodoroState.skipBreak(),
+                    icon: const Icon(Icons.skip_next),
+                    label: const Text('跳过休息'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
+            else
+              // 正常工作/休息控制按钮
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _pomodoroState.isRunning ? _pauseTimer : _startTimer,
+                    icon: Icon(_pomodoroState.isRunning ? Icons.pause : Icons.play_arrow),
+                    label: Text(_pomodoroState.isRunning ? '暂停' : '开始'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _pomodoroState.currentSessionType == SessionType.work
+                          ? (_pomodoroState.isRunning ? Colors.orange : Colors.green)
+                          : _pomodoroState.currentSessionType == SessionType.shortBreak
+                              ? Colors.green
+                              : Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _resetTimer,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('重置'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
             const SizedBox(height: 30),
 
             // 状态信息和会话信息
@@ -839,10 +1107,22 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
               padding: const EdgeInsets.all(16),
               margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: _pomodoroState.isRunning ? Colors.red.shade50 : Colors.grey.shade50,
+                color: _pomodoroState.isRunning
+                    ? (_pomodoroState.currentSessionType == SessionType.work
+                        ? Colors.red.shade50
+                        : _pomodoroState.currentSessionType == SessionType.shortBreak
+                            ? Colors.green.shade50
+                            : Colors.blue.shade50)
+                    : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _pomodoroState.isRunning ? Colors.red.shade200 : Colors.grey.shade200
+                  color: _pomodoroState.isRunning
+                      ? (_pomodoroState.currentSessionType == SessionType.work
+                          ? Colors.red.shade200
+                          : _pomodoroState.currentSessionType == SessionType.shortBreak
+                              ? Colors.green.shade200
+                              : Colors.blue.shade200)
+                      : Colors.grey.shade200,
                 ),
               ),
               child: Column(
@@ -851,20 +1131,104 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        _pomodoroState.isRunning ? Icons.timer : Icons.info_outline,
-                        color: _pomodoroState.isRunning ? Colors.red : Colors.grey.shade600,
+                        _pomodoroState.isRunning
+                            ? Icons.timer
+                            : _pomodoroState.isBreakTime
+                                ? Icons.coffee
+                                : Icons.info_outline,
+                        color: _pomodoroState.isRunning
+                            ? (_pomodoroState.currentSessionType == SessionType.work
+                                ? Colors.red
+                                : _pomodoroState.currentSessionType == SessionType.shortBreak
+                                    ? Colors.green
+                                    : Colors.blue)
+                            : _pomodoroState.isBreakTime
+                                ? (_pomodoroState.currentSessionType == SessionType.shortBreak
+                                    ? Colors.green.shade600
+                                    : Colors.blue.shade600)
+                                : Colors.grey.shade600,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        _pomodoroState.isRunning ? '专注中，保持高效！' : '点击开始，专注工作！',
+                        _pomodoroState.isRunning
+                            ? (_pomodoroState.currentSessionType == SessionType.work
+                                ? '专注中，保持高效！'
+                                : _pomodoroState.currentSessionType == SessionType.shortBreak
+                                    ? '短休息中，放松身心！'
+                                    : '长休息中，好好放松！')
+                            : _pomodoroState.isBreakTime
+                                ? '休息时间到了！'
+                                : '点击开始，专注工作！',
                         style: TextStyle(
                           fontSize: 16,
-                          color: _pomodoroState.isRunning ? Colors.red : Colors.grey.shade600,
+                          color: _pomodoroState.isRunning
+                              ? (_pomodoroState.currentSessionType == SessionType.work
+                                  ? Colors.red
+                                  : _pomodoroState.currentSessionType == SessionType.shortBreak
+                                      ? Colors.green
+                                      : Colors.blue)
+                              : _pomodoroState.isBreakTime
+                                  ? (_pomodoroState.currentSessionType == SessionType.shortBreak
+                                      ? Colors.green.shade600
+                                      : Colors.blue.shade600)
+                                  : Colors.grey.shade600,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
+
+                  // 番茄钟进度指示器
+                  if (_pomodoroState.completedPomodoros > 0) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _settings.themeColor.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '番茄钟周期进度',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: _settings.themeColor.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(_settings.longBreakInterval, (index) {
+                              final completed = index < (_pomodoroState.completedPomodoros % _settings.longBreakInterval);
+                              return Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 2),
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  color: completed ? _settings.themeColor : Colors.grey.shade300,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: completed
+                                    ? const Icon(Icons.check, size: 10, color: Colors.white)
+                                    : null,
+                              );
+                            }),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_pomodoroState.completedPomodoros % _settings.longBreakInterval}/${_settings.longBreakInterval} 完成',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: _settings.themeColor.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
 
                   // 当前会话信息
                   if (_pomodoroState.currentSession != null) ...[
@@ -1136,6 +1500,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
             const SizedBox(height: 24),
 
+            // 本周趋势
+            _buildSectionHeader('本周趋势'),
+            _buildWeeklyTrendCard(),
+
+            const SizedBox(height: 24),
+
+            // 时间分布
+            _buildSectionHeader('专注时间分布'),
+            _buildTimeDistributionCard(),
+
+            const SizedBox(height: 24),
+
             // 任务统计
             _buildSectionHeader('任务统计'),
             _buildTaskOverview(),
@@ -1272,6 +1648,212 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 '开始使用番茄钟来获得更多洞察！',
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeeklyTrendCard() {
+    // 获取最近7天的数据
+    final weeklyData = _sessionService.getWeeklyTrend();
+    final maxSessions = weeklyData.values.reduce((a, b) => a > b ? a : b);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.trending_up, color: _settings.themeColor, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  '最近7天',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _settings.themeColor.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // 简单的柱状图
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: weeklyData.entries.map((entry) {
+                final dayIndex = entry.key;
+                final sessions = entry.value;
+                final dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+                final height = maxSessions > 0 ? (sessions / maxSessions * 80).clamp(4.0, 80.0) : 4.0;
+
+                return Column(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: height,
+                      decoration: BoxDecoration(
+                        color: _settings.themeColor.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      dayNames[dayIndex],
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    Text(
+                      sessions.toString(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _settings.themeColor,
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '平均每天 ${(weeklyData.values.reduce((a, b) => a + b) / 7).toStringAsFixed(1)} 个番茄钟',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeDistributionCard() {
+    final hourlyData = _sessionService.getHourlyDistribution();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.schedule, color: _settings.themeColor, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  '时间分析',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _settings.themeColor.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 最佳工作时间
+            if (_insights['bestWorkingHour'] != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.star, color: Colors.green, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '最佳专注时间: ${_insights['bestWorkingHour']}:00-${_insights['bestWorkingHour'] + 1}:00',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // 时间分布网格
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 6,
+                childAspectRatio: 1,
+                crossAxisSpacing: 4,
+                mainAxisSpacing: 4,
+              ),
+              itemCount: 24,
+              itemBuilder: (context, index) {
+                final hour = index;
+                final sessions = hourlyData[hour] ?? 0;
+                final maxHourlySessions = hourlyData.values.isNotEmpty
+                    ? hourlyData.values.reduce((a, b) => a > b ? a : b)
+                    : 1;
+                final intensity = sessions / maxHourlySessions;
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: _settings.themeColor.withOpacity(intensity * 0.8),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: _settings.themeColor.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      hour.toString().padLeft(2, '0'),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: intensity > 0.5 ? Colors.white : _settings.themeColor.shade700,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: _settings.themeColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Text('少', style: TextStyle(fontSize: 10)),
+                const SizedBox(width: 16),
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: _settings.themeColor.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Text('多', style: TextStyle(fontSize: 10)),
+              ],
+            ),
           ],
         ),
       ),

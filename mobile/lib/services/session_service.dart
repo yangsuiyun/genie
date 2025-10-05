@@ -273,6 +273,50 @@ class SessionService {
     return result;
   }
 
+  // 获取周趋势数据（最近7天的每日番茄钟数量）
+  Map<int, int> getWeeklyTrend() {
+    final now = DateTime.now();
+    final result = <int, int>{};
+
+    // 初始化7天数据
+    for (int i = 0; i < 7; i++) {
+      result[i] = 0;
+    }
+
+    for (var session in _sessions) {
+      if (session.isCompleted && session.type == SessionType.work) {
+        final sessionDate = session.startTime;
+        final daysDifference = now.difference(sessionDate).inDays;
+
+        if (daysDifference >= 0 && daysDifference < 7) {
+          final dayIndex = (6 - daysDifference) % 7; // 0=今天往前6天, 6=今天
+          result[dayIndex] = (result[dayIndex] ?? 0) + 1;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  // 获取每小时分布数据
+  Map<int, int> getHourlyDistribution() {
+    final result = <int, int>{};
+
+    // 初始化24小时数据
+    for (int i = 0; i < 24; i++) {
+      result[i] = 0;
+    }
+
+    for (var session in _sessions) {
+      if (session.isCompleted && session.type == SessionType.work) {
+        final hour = session.startTime.hour;
+        result[hour] = (result[hour] ?? 0) + 1;
+      }
+    }
+
+    return result;
+  }
+
   // 删除会话
   Future<void> deleteSession(String sessionId) async {
     _sessions.removeWhere((session) => session.id == sessionId);
