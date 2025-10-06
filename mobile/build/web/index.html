@@ -14,25 +14,103 @@
   <link rel="manifest" href="manifest.json">
   <style>
     :root {
+      /* Primary Colors */
       --primary-color: #d32f2f;
+      --primary-rgb: 211, 47, 47;
       --primary-light: #ff6659;
       --primary-dark: #9a0007;
+      --primary-50: rgba(211, 47, 47, 0.05);
+      --primary-100: rgba(211, 47, 47, 0.1);
+      --primary-200: rgba(211, 47, 47, 0.2);
+
+      /* Secondary Colors */
       --secondary-color: #ff9800;
+      --secondary-light: #ffb74d;
+      --secondary-dark: #f57c00;
+
+      /* Semantic Colors */
       --success-color: #4caf50;
+      --success-light: rgba(76, 175, 80, 0.1);
       --warning-color: #ff9800;
+      --warning-light: rgba(255, 152, 0, 0.1);
       --error-color: #f44336;
+      --error-light: rgba(244, 67, 54, 0.1);
+      --info-color: #2196f3;
+      --info-light: rgba(33, 150, 243, 0.1);
+
+      /* Background Colors */
       --background-color: #fafafa;
+      --background-secondary: #f5f5f5;
       --surface-color: #ffffff;
+      --surface-elevated: #ffffff;
+      --surface-accent: #f8f9fa;
+
+      /* Text Colors */
       --text-primary: #212121;
       --text-secondary: #757575;
       --text-disabled: #bdbdbd;
+      --text-inverse: #ffffff;
+      --text-success: #2e7d32;
+      --text-error: #c62828;
+      --text-warning: #ef6c00;
+
+      /* Border & Divider */
       --border-color: #e0e0e0;
-      --shadow-light: 0 2px 8px rgba(0,0,0,0.1);
-      --shadow-medium: 0 4px 16px rgba(0,0,0,0.12);
+      --border-light: #f0f0f0;
+      --border-strong: #cccccc;
+      --divider-color: #e8eaed;
+
+      /* Shadows */
+      --shadow-light: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-medium: 0 4px 12px rgba(0,0,0,0.12);
       --shadow-heavy: 0 8px 24px rgba(0,0,0,0.15);
+      --shadow-focus: 0 0 0 3px rgba(211, 47, 47, 0.2);
+
+      /* Border Radius */
       --border-radius: 12px;
-      --border-radius-small: 8px;
+      --border-radius-small: 6px;
+      --border-radius-large: 16px;
+      --border-radius-circle: 50%;
+
+      /* Spacing Scale */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+
+      /* Typography Scale */
+      --font-size-xs: 0.75rem;
+      --font-size-sm: 0.875rem;
+      --font-size-base: 1rem;
+      --font-size-lg: 1.125rem;
+      --font-size-xl: 1.25rem;
+      --font-size-2xl: 1.5rem;
+      --font-size-3xl: 1.875rem;
+
+      --font-weight-normal: 400;
+      --font-weight-medium: 500;
+      --font-weight-semibold: 600;
+      --font-weight-bold: 700;
+
+      --line-height-tight: 1.25;
+      --line-height-normal: 1.5;
+      --line-height-relaxed: 1.75;
+
+      /* Transitions */
       --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+      /* Z-Index Scale */
+      --z-dropdown: 1000;
+      --z-sticky: 1010;
+      --z-modal: 1050;
+      --z-tooltip: 1070;
     }
 
     /* 深色模式支持 */
@@ -121,7 +199,7 @@
     /* Project Sidebar Styles */
     .project-sidebar {
       grid-area: sidebar;
-      background: var(--surface-color);
+      background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
@@ -130,7 +208,7 @@
     }
 
     .sidebar-section {
-      padding: 20px 16px 16px;
+      padding: 24px 20px 20px;
       border-bottom: 1px solid var(--border-color);
     }
 
@@ -140,8 +218,8 @@
     }
 
     .sidebar-section h3 {
-      margin: 0 0 12px 0;
-      font-size: 14px;
+      margin: 0 0 16px 0;
+      font-size: 15px;
       font-weight: 600;
       color: var(--text-secondary);
       text-transform: uppercase;
@@ -301,22 +379,25 @@
       background: var(--surface-color);
       border: 1px solid var(--border-color);
       border-radius: var(--border-radius);
-      padding: 20px;
-      margin-bottom: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
       box-shadow: var(--shadow-light);
       transition: var(--transition);
+      position: relative;
+      background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
     }
 
     .task-card:hover {
       box-shadow: var(--shadow-medium);
       transform: translateY(-2px);
+      border-color: var(--primary-color);
     }
 
     .task-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .task-info {
@@ -324,25 +405,28 @@
     }
 
     .task-title {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 600;
       color: var(--text-primary);
-      margin: 0 0 8px 0;
+      margin: 0 0 10px 0;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+      line-height: 1.4;
     }
 
     .task-checkbox {
-      width: 18px;
-      height: 18px;
-      margin-right: 8px;
+      width: 20px;
+      height: 20px;
+      margin-right: 0;
+      accent-color: var(--primary-color);
     }
 
     .task-description {
       font-size: 14px;
       color: var(--text-secondary);
-      margin-bottom: 12px;
+      margin-bottom: 16px;
+      line-height: 1.5;
     }
 
     .task-meta {
@@ -400,6 +484,586 @@
       padding: 2px 8px;
       font-size: 12px;
       margin-left: 8px;
+    }
+
+    /* Icon Selector Styles */
+    .icon-selector {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .icon-option {
+      padding: 12px;
+      border: 2px solid var(--border-color);
+      background: var(--surface-color);
+      border-radius: var(--border-radius-small);
+      cursor: pointer;
+      font-size: 20px;
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .icon-option:hover {
+      border-color: var(--primary-color);
+      background: var(--background-color);
+    }
+
+    .icon-option.active {
+      border-color: var(--primary-color);
+      background: var(--primary-color);
+      color: white;
+    }
+
+    /* Enhanced Modal Styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .modal-content {
+      background: var(--surface-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-heavy);
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+      color: var(--text-primary);
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+
+    .close-btn:hover {
+      background: var(--background-color);
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-small);
+      font-size: 14px;
+      background: var(--surface-color);
+      color: var(--text-primary);
+      transition: var(--transition);
+    }
+
+    .modal-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+    }
+
+    /* Enhanced Timer Display */
+    .timer-display {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 32px 0;
+    }
+
+    .timer-circle {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-shadow:
+        0 8px 32px rgba(211, 47, 47, 0.3),
+        inset 0 2px 16px rgba(255, 255, 255, 0.1);
+      color: white;
+      transition: var(--transition);
+    }
+
+    .timer-circle:hover {
+      transform: scale(1.02);
+      box-shadow:
+        0 12px 40px rgba(211, 47, 47, 0.4),
+        inset 0 2px 16px rgba(255, 255, 255, 0.15);
+    }
+
+    .timer-time {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .timer-status {
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .timer-controls {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    .timer-controls .btn {
+      padding: 12px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      min-width: 120px;
+    }
+
+    .task-progress-info {
+      background: var(--background-color);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      margin-top: 24px;
+      border-left: 4px solid var(--primary-color);
+    }
+
+    .task-progress-info p {
+      margin: 0 0 12px 0;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .progress-indicator {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--surface-color);
+      border-radius: var(--border-radius-small);
+      border: 1px solid var(--border-color);
+    }
+
+    .progress-indicator span:first-child {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .progress-indicator span:last-child {
+      color: var(--primary-color);
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    /* Empty States */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      margin: 0 0 8px 0;
+      color: var(--text-primary);
+      font-size: 18px;
+    }
+
+    .empty-state p {
+      margin: 0 0 24px 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Enhanced Task Cards */
+    .task-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-light);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .task-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--text-disabled);
+      transition: var(--transition);
+    }
+
+    .task-card.priority-high::before {
+      background: var(--error-color);
+    }
+
+    .task-card.priority-medium::before {
+      background: var(--warning-color);
+    }
+
+    .task-card.priority-low::before {
+      background: var(--success-color);
+    }
+
+    .task-card:hover {
+      box-shadow: var(--shadow-medium);
+      transform: translateY(-2px);
+      border-color: var(--primary-color);
+    }
+
+    /* Toast Notifications */
+    .toast {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-heavy);
+      z-index: 3000;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      min-width: 300px;
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .toast.success {
+      border-left: 4px solid var(--success-color);
+    }
+
+    .toast.error {
+      border-left: 4px solid var(--error-color);
+    }
+
+    .toast.info {
+      border-left: 4px solid var(--primary-color);
+    }
+
+    /* Loading spinner styles */
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: currentColor;
+      animation: spin 0.8s ease-in-out infinite;
+    }
+
+    .loading-spinner.large {
+      width: 24px;
+      height: 24px;
+      border-width: 3px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Button loading states */
+    .btn.loading {
+      position: relative;
+      color: transparent !important;
+      pointer-events: none;
+    }
+
+    .btn.loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s ease-in-out infinite;
+    }
+
+    /* Skeleton loading for cards */
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s infinite;
+    }
+
+    @keyframes skeleton-loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .skeleton-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .skeleton-line {
+      height: 16px;
+      margin-bottom: 12px;
+      border-radius: 4px;
+    }
+
+    .skeleton-line.title {
+      height: 20px;
+      width: 70%;
+    }
+
+    .skeleton-line.text {
+      width: 90%;
+    }
+
+    .skeleton-line.short {
+      width: 40%;
+    }
+
+    /* Micro-interactions */
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .task-pomodoro-btn:hover {
+      background: var(--primary-color);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .project-item:hover {
+      background: rgba(var(--primary-color-rgb), 0.05);
+    }
+
+    /* Progress bar animation */
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: rgba(var(--primary-color-rgb), 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--primary-color);
+      transition: width 0.3s ease;
+      border-radius: 2px;
+    }
+
+    .progress-fill.animated {
+      animation: progress-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes progress-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* Accessibility improvements */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Focus styles */
+    .btn:focus,
+    .task-checkbox:focus,
+    .project-item:focus,
+    input:focus,
+    textarea:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
+    /* High contrast focus for better visibility */
+    .btn:focus-visible {
+      outline: 3px solid var(--primary-color);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 6px rgba(var(--primary-color-rgb), 0.2);
+    }
+
+    /* Skip link for screen readers */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 6px;
+      background: var(--primary-color);
+      color: white;
+      padding: 8px;
+      text-decoration: none;
+      z-index: 1000;
+      border-radius: 4px;
+    }
+
+    .skip-link:focus {
+      top: 6px;
+    }
+
+    /* Keyboard navigation indicators */
+    .keyboard-navigation .project-item:focus {
+      background: rgba(var(--primary-color-rgb), 0.1);
+      transform: translateX(4px);
+    }
+
+    .keyboard-navigation .btn:focus {
+      transform: translateY(-1px);
+    }
+
+    /* Empty states */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      opacity: 0.6;
+    }
+
+    .empty-state-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .empty-state-description {
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .empty-state-action {
+      margin-top: 16px;
+    }
+
+    /* Success messages */
+    .success-message {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(46, 204, 113, 0.1);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      border-radius: var(--border-radius);
+      color: #27ae60;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .success-message::before {
+      content: '✓';
+      margin-right: 8px;
+      font-weight: bold;
+    }
+
+    /* Progress indicators */
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border-color);
+    }
+
+    .step-dot.active {
+      background: var(--primary-color);
+    }
+
+    .step-dot.completed {
+      background: var(--success-color);
+    }
+
+    /* Feedback animations */
+    .feedback-pulse {
+      animation: pulse 0.6s ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .shake {
+      animation: shake 0.5s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
     }
 
     .nav-item {
@@ -1095,16 +1759,70 @@
       transform: translateX(28px);
     }
 
+    /* Mobile Menu Toggle */
+    .mobile-menu-toggle {
+      display: none;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: var(--border-radius-small);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
     /* 响应式设计 */
     @media (max-width: 768px) {
+      .app-container {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "header"
+          "main";
+      }
+
+      .mobile-menu-toggle {
+        display: block;
+      }
+
+      .project-sidebar {
+        position: fixed;
+        top: 60px;
+        left: -240px;
+        height: calc(100vh - 60px);
+        width: 240px;
+        z-index: 1500;
+        transition: left 0.3s ease;
+      }
+
+      .project-sidebar.open {
+        left: 0;
+      }
+
       .content {
         padding: 16px;
       }
 
       .timer-circle {
-        width: 240px;
-        height: 240px;
-        font-size: 42px;
+        width: 200px;
+        height: 200px;
+      }
+
+      .timer-time {
+        font-size: 32px;
+      }
+
+      .task-card {
+        padding: 16px;
+      }
+
+      .task-actions {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .task-pomodoro-btn {
+        flex: 1;
+        min-width: 140px;
       }
 
       .timer-container {
@@ -1238,9 +1956,13 @@
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">跳转到主内容</a>
   <div class="app-container">
     <div class="top-bar">
-      <div>🍅 Pomodoro Genie</div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="切换侧边栏菜单" aria-expanded="false">☰</button>
+        <span>🍅 Pomodoro Genie</span>
+      </div>
       <div style="display: flex; align-items: center; gap: 16px;">
         <span id="user-greeting">欢迎回来!</span>
         <button class="btn btn-small" onclick="openSettings()" style="background: rgba(255,255,255,0.2); border: none; color: white;">⚙️</button>
@@ -1284,6 +2006,13 @@
         </div>
       </div>
 
+      <!-- Projects Management -->
+      <div style="padding: 0 16px 12px;">
+        <button class="btn btn-primary" onclick="showCreateProjectModal()" style="width: 100%; font-size: 13px; padding: 8px 12px;">
+          ➕ 新建项目
+        </button>
+      </div>
+
       <!-- Daily Stats Section -->
       <div class="sidebar-section">
         <h3>📊 今日统计</h3>
@@ -1305,7 +2034,7 @@
     </div>
 
     <!-- Main Content Area -->
-    <div class="main-content">
+    <main class="main-content" id="main-content" role="main" aria-label="主要内容区域">
       <div class="project-header">
         <h1 class="project-title" id="current-project-title">📥 Inbox</h1>
         <div class="project-actions">
@@ -1342,8 +2071,8 @@
               🍅 开始番茄钟
               <span class="pomodoro-count">2/5</span>
             </button>
-            <button class="btn btn-small btn-secondary">✏️</button>
-            <button class="btn btn-small btn-danger">🗑️</button>
+            <button class="btn btn-small btn-secondary" onclick="editTask('task-1')">✏️</button>
+            <button class="btn btn-small btn-danger" onclick="deleteTask('task-1')">🗑️</button>
           </div>
         </div>
 
@@ -1366,8 +2095,8 @@
             <button class="task-pomodoro-btn" disabled>
               ✅ 已完成
             </button>
-            <button class="btn btn-small btn-secondary">✏️</button>
-            <button class="btn btn-small btn-danger">🗑️</button>
+            <button class="btn btn-small btn-secondary" onclick="editTask('task-2')">✏️</button>
+            <button class="btn btn-small btn-danger" onclick="deleteTask('task-2')">🗑️</button>
           </div>
         </div>
 
@@ -1390,12 +2119,12 @@
             <button class="task-pomodoro-btn" onclick="startTaskPomodoro('task-3')">
               🍅 开始番茄钟
             </button>
-            <button class="btn btn-small btn-secondary">✏️</button>
-            <button class="btn btn-small btn-danger">🗑️</button>
+            <button class="btn btn-small btn-secondary" onclick="editTask('task-3')">✏️</button>
+            <button class="btn btn-small btn-danger" onclick="deleteTask('task-3')">🗑️</button>
           </div>
         </div>
       </div>
-    </div>
+    </main>
 
     <!-- Pomodoro Modal -->
     <div id="pomodoro-modal" class="modal" style="display: none;">
@@ -1421,6 +2150,85 @@
               <span>番茄钟进度: </span>
               <span id="modal-pomodoro-progress">2/5</span>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div id="create-project-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>创建新项目</h2>
+          <button class="close-btn" onclick="closeCreateProjectModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="margin-bottom: 16px;">
+            <label for="project-name" style="display: block; margin-bottom: 8px; font-weight: 500;">项目名称:</label>
+            <input type="text" id="project-name" class="modal-input" placeholder="输入项目名称..." maxlength="50">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label for="project-icon" style="display: block; margin-bottom: 8px; font-weight: 500;">项目图标:</label>
+            <div class="icon-selector">
+              <button type="button" class="icon-option active" data-icon="📋">📋</button>
+              <button type="button" class="icon-option" data-icon="💼">💼</button>
+              <button type="button" class="icon-option" data-icon="🏠">🏠</button>
+              <button type="button" class="icon-option" data-icon="📚">📚</button>
+              <button type="button" class="icon-option" data-icon="🎯">🎯</button>
+              <button type="button" class="icon-option" data-icon="💡">💡</button>
+              <button type="button" class="icon-option" data-icon="🚀">🚀</button>
+              <button type="button" class="icon-option" data-icon="🎨">🎨</button>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 12px;">
+            <button class="btn btn-secondary" onclick="closeCreateProjectModal()">取消</button>
+            <button class="btn btn-primary" onclick="createProject()">创建项目</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>设置</h2>
+          <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="margin-bottom: 20px;">
+            <h3>番茄钟设置</h3>
+            <div style="margin-bottom: 16px;">
+              <label for="work-duration" style="display: block; margin-bottom: 8px;">工作时长 (分钟):</label>
+              <input type="number" id="work-duration" class="modal-input" value="25" min="1" max="60">
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label for="break-duration" style="display: block; margin-bottom: 8px;">短休息时长 (分钟):</label>
+              <input type="number" id="break-duration" class="modal-input" value="5" min="1" max="30">
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label for="long-break-duration" style="display: block; margin-bottom: 8px;">长休息时长 (分钟):</label>
+              <input type="number" id="long-break-duration" class="modal-input" value="15" min="1" max="60">
+            </div>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <h3>通知设置</h3>
+            <div style="margin-bottom: 16px;">
+              <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="sound-notifications" checked>
+                <span>声音提醒</span>
+              </label>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="desktop-notifications" checked>
+                <span>桌面通知</span>
+              </label>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 12px;">
+            <button class="btn btn-secondary" onclick="closeSettingsModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
           </div>
         </div>
       </div>
@@ -1761,6 +2569,13 @@
       const project = projects[projectId];
       const titleElement = document.getElementById('current-project-title');
       titleElement.textContent = `${project.icon} ${project.name}`;
+
+      // Update task count display
+      const taskCount = document.querySelectorAll('.task-card').length;
+      const projectCountElement = document.getElementById(`${projectId}-count`);
+      if (projectCountElement) {
+        projectCountElement.textContent = taskCount;
+      }
     }
 
     function loadProjectTasks(projectId) {
@@ -1882,15 +2697,235 @@
     }
 
     function createNewTask() {
-      alert('新建任务功能正在开发中...');
+      const taskTitle = prompt('输入任务标题:');
+      if (!taskTitle || !taskTitle.trim()) {
+        return;
+      }
+
+      const taskDescription = prompt('输入任务描述 (可选):') || '';
+
+      // Generate unique task ID
+      const taskId = 'task_' + Date.now();
+
+      // Create task card
+      const taskList = document.getElementById('task-list');
+      const taskCard = document.createElement('div');
+      taskCard.className = 'task-card';
+      taskCard.innerHTML = `
+        <div class="task-header">
+          <div class="task-info">
+            <div class="task-title">
+              <input type="checkbox" class="task-checkbox" id="${taskId}">
+              <label for="${taskId}">${taskTitle.trim()}</label>
+            </div>
+            <div class="task-description">${taskDescription.trim()}</div>
+            <div class="task-meta">
+              <span class="task-priority priority-medium">🟡 中优先级</span>
+              <span>📅 ${new Date().toLocaleDateString('zh-CN')}</span>
+              <span>🍅 0/3</span>
+            </div>
+          </div>
+        </div>
+        <div class="task-actions">
+          <button class="task-pomodoro-btn" onclick="startTaskPomodoro('${taskId}')">
+            🍅 开始番茄钟
+          </button>
+          <button class="btn btn-small btn-secondary" onclick="editTask('${taskId}')">✏️</button>
+          <button class="btn btn-small btn-danger" onclick="deleteTask('${taskId}')">🗑️</button>
+        </div>
+      `;
+
+      taskList.appendChild(taskCard);
+
+      // Update project task count
+      updateProjectHeader(currentProject);
+
+      // Save to localStorage (in a real app, this would save to backend)
+      console.log('New task created:', { taskId, title: taskTitle, description: taskDescription, project: currentProject });
     }
 
     function openSettings() {
-      alert('设置功能正在开发中...');
+      document.getElementById('settings-modal').style.display = 'flex';
+      loadSettings();
+    }
+
+    // Project Creation Functions
+    function showCreateProjectModal() {
+      document.getElementById('create-project-modal').style.display = 'flex';
+      document.getElementById('project-name').value = '';
+
+      // Reset icon selection
+      document.querySelectorAll('.icon-option').forEach(option => {
+        option.classList.remove('active');
+      });
+      document.querySelector('.icon-option[data-icon="📋"]').classList.add('active');
+
+      // Set up icon selection
+      document.querySelectorAll('.icon-option').forEach(option => {
+        option.onclick = () => {
+          document.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('active'));
+          option.classList.add('active');
+        };
+      });
+    }
+
+    function closeCreateProjectModal() {
+      document.getElementById('create-project-modal').style.display = 'none';
+    }
+
+    function createProject() {
+      const projectName = document.getElementById('project-name').value.trim();
+      const selectedIcon = document.querySelector('.icon-option.active').dataset.icon;
+
+      if (!projectName) {
+        alert('请输入项目名称');
+        return;
+      }
+
+      // Generate unique project ID
+      const projectId = 'project_' + Date.now();
+
+      // Add to projects object
+      projects[projectId] = {
+        name: projectName,
+        icon: selectedIcon,
+        tasks: []
+      };
+
+      // Create project button
+      const projectList = document.getElementById('project-list');
+      const projectButton = document.createElement('button');
+      projectButton.className = 'project-item';
+      projectButton.onclick = () => selectProject(projectId);
+      projectButton.innerHTML = `
+        <div class="project-info">
+          <span class="project-icon">${selectedIcon}</span>
+          <span class="project-name">${projectName}</span>
+        </div>
+        <span class="project-count" id="${projectId}-count">0</span>
+      `;
+
+      projectList.appendChild(projectButton);
+
+      // Save to localStorage
+      localStorage.setItem('pomodoroProjects', JSON.stringify(projects));
+
+      closeCreateProjectModal();
+
+      // Select the new project
+      selectProject(projectId);
+    }
+
+    // Settings Functions
+    function closeSettingsModal() {
+      document.getElementById('settings-modal').style.display = 'none';
+    }
+
+    function loadSettings() {
+      const settings = JSON.parse(localStorage.getItem('pomodoroSettings') || '{}');
+
+      document.getElementById('work-duration').value = settings.workDuration || 25;
+      document.getElementById('break-duration').value = settings.breakDuration || 5;
+      document.getElementById('long-break-duration').value = settings.longBreakDuration || 15;
+      document.getElementById('sound-notifications').checked = settings.soundNotifications !== false;
+      document.getElementById('desktop-notifications').checked = settings.desktopNotifications !== false;
+    }
+
+    function saveSettings() {
+      // 从表单获取新的设置值
+      const workDurationInput = document.getElementById('work-duration');
+      const shortBreakInput = document.getElementById('short-break-duration');
+      const longBreakInput = document.getElementById('long-break-duration');
+      const longBreakIntervalInput = document.getElementById('long-break-interval');
+      const soundNotificationsInput = document.getElementById('sound-notifications');
+      const desktopNotificationsInput = document.getElementById('desktop-notifications');
+
+      // 更新全局settings对象
+      if (workDurationInput) settings.workDuration = parseInt(workDurationInput.value) || 25;
+      if (shortBreakInput) settings.shortBreak = parseInt(shortBreakInput.value) || 5;
+      if (longBreakInput) settings.longBreak = parseInt(longBreakInput.value) || 15;
+      if (longBreakIntervalInput) settings.longBreakInterval = parseInt(longBreakIntervalInput.value) || 4;
+      if (soundNotificationsInput) settings.soundNotifications = soundNotificationsInput.checked;
+      if (desktopNotificationsInput) settings.desktopNotifications = desktopNotificationsInput.checked;
+
+      // 保存到localStorage
+      saveSettingsToStorage();
+
+      // 同步计时器时间到新设置
+      syncTimerWithSettings();
+
+      // 关闭设置模态框
+      closeSettingsModal();
+
+      // 显示成功消息
+      showToast('设置已保存！', 'success');
+    }
+
+    // Task Edit/Delete Functions
+    function editTask(taskId) {
+      const taskCard = document.getElementById(taskId).closest('.task-card');
+      const taskTitle = taskCard.querySelector('.task-title label').textContent;
+      const taskDescription = taskCard.querySelector('.task-description').textContent;
+
+      const newTitle = prompt('编辑任务标题:', taskTitle);
+      if (newTitle && newTitle.trim()) {
+        taskCard.querySelector('.task-title label').textContent = newTitle.trim();
+
+        const newDescription = prompt('编辑任务描述:', taskDescription);
+        if (newDescription !== null) {
+          taskCard.querySelector('.task-description').textContent = newDescription.trim();
+        }
+
+        // Save to localStorage (in a real app, this would save to backend)
+        console.log('Task updated:', { taskId, title: newTitle.trim(), description: newDescription?.trim() });
+      }
+    }
+
+    function deleteTask(taskId) {
+      if (confirm('确定要删除这个任务吗？')) {
+        const taskCard = document.getElementById(taskId).closest('.task-card');
+        taskCard.remove();
+
+        // Save to localStorage (in a real app, this would delete from backend)
+        console.log('Task deleted:', taskId);
+      }
+    }
+
+    // Load projects from localStorage
+    function loadProjects() {
+      const savedProjects = localStorage.getItem('pomodoroProjects');
+      if (savedProjects) {
+        const loadedProjects = JSON.parse(savedProjects);
+
+        // Add custom projects to the project list
+        Object.keys(loadedProjects).forEach(projectId => {
+          if (!projects[projectId]) {
+            projects[projectId] = loadedProjects[projectId];
+
+            // Create project button if it's a custom project
+            if (projectId.startsWith('project_')) {
+              const projectList = document.getElementById('project-list');
+              const projectButton = document.createElement('button');
+              projectButton.className = 'project-item';
+              projectButton.onclick = () => selectProject(projectId);
+              projectButton.innerHTML = `
+                <div class="project-info">
+                  <span class="project-icon">${projects[projectId].icon}</span>
+                  <span class="project-name">${projects[projectId].name}</span>
+                </div>
+                <span class="project-count" id="${projectId}-count">0</span>
+              `;
+
+              projectList.appendChild(projectButton);
+            }
+          }
+        });
+      }
     }
 
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
+      loadProjects();
       updateProjectHeader(currentProject);
       console.log('Project-first UI initialized');
     });
@@ -2084,8 +3119,19 @@
     function updateTimerDisplay() {
       const minutes = Math.floor(Math.abs(timerSeconds) / 60);
       const seconds = Math.abs(timerSeconds) % 60;
-      document.getElementById('timer-display').textContent =
-        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+      // 更新主界面计时器
+      const mainTimer = document.getElementById('timer-display');
+      if (mainTimer) {
+        mainTimer.textContent = timeString;
+      }
+
+      // 同步更新模态框中的计时器
+      const modalTimer = document.getElementById('modal-timer');
+      if (modalTimer) {
+        modalTimer.textContent = timeString;
+      }
     }
 
     function updateTimerStatus() {
@@ -2653,28 +3699,333 @@
       }
     });
 
+    // 移动端菜单切换功能
+    function toggleMobileMenu() {
+      const sidebar = document.querySelector('.project-sidebar');
+      const isOpen = sidebar.style.left === '0px';
+
+      if (isOpen) {
+        sidebar.style.left = '-240px';
+      } else {
+        sidebar.style.left = '0px';
+      }
+    }
+
+    // 响应式调整
+    function handleResize() {
+      const sidebar = document.querySelector('.project-sidebar');
+      if (window.innerWidth > 768) {
+        sidebar.style.left = '0px'; // 桌面端始终显示
+      } else {
+        sidebar.style.left = '-240px'; // 移动端默认隐藏
+      }
+    }
+
+    window.addEventListener('resize', handleResize);
+
+    // 初始化时设置正确状态
+    handleResize();
+
+    // Loading state utilities
+    function setButtonLoading(button, loading = true) {
+      if (loading) {
+        button.classList.add('loading');
+        button.disabled = true;
+      } else {
+        button.classList.remove('loading');
+        button.disabled = false;
+      }
+    }
+
+    function showLoadingSkeletons() {
+      const tasksContainer = document.querySelector('.tasks-container');
+      if (!tasksContainer) return;
+
+      const skeletonHTML = `
+        <div class="skeleton-card">
+          <div class="skeleton-line title skeleton"></div>
+          <div class="skeleton-line text skeleton"></div>
+          <div class="skeleton-line short skeleton"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-line title skeleton"></div>
+          <div class="skeleton-line text skeleton"></div>
+          <div class="skeleton-line short skeleton"></div>
+        </div>
+      `;
+
+      tasksContainer.innerHTML = skeletonHTML;
+    }
+
+    function hideLoadingSkeletons() {
+      const skeletons = document.querySelectorAll('.skeleton-card');
+      skeletons.forEach(skeleton => skeleton.remove());
+    }
+
+    // Enhanced button interactions with loading
+    function enhancedButtonClick(button, asyncAction) {
+      return async function(event) {
+        event.preventDefault();
+        setButtonLoading(button, true);
+
+        try {
+          await asyncAction();
+          showToast('操作成功完成', 'success');
+        } catch (error) {
+          showToast('操作失败，请重试', 'error');
+        } finally {
+          setButtonLoading(button, false);
+        }
+      };
+    }
+
+    // Accessibility and keyboard navigation
+    let isKeyboardNavigation = false;
+
+    // Detect keyboard navigation
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') {
+        isKeyboardNavigation = true;
+        document.body.classList.add('keyboard-navigation');
+      }
+    });
+
+    document.addEventListener('mousedown', function() {
+      isKeyboardNavigation = false;
+      document.body.classList.remove('keyboard-navigation');
+    });
+
+    // Enhanced keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Alt + M: Toggle mobile menu
+      if (e.altKey && e.key === 'm') {
+        e.preventDefault();
+        toggleMobileMenu();
+      }
+
+      // Alt + N: Create new task
+      if (e.altKey && e.key === 'n') {
+        e.preventDefault();
+        createNewTask();
+      }
+
+      // Alt + S: Open settings
+      if (e.altKey && e.key === 's') {
+        e.preventDefault();
+        openSettings();
+      }
+
+      // Escape: Close any open modals
+      if (e.key === 'Escape') {
+        closeAllModals();
+      }
+
+      // Enter/Space on custom elements
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('project-item')) {
+        e.preventDefault();
+        e.target.click();
+      }
+    });
+
+    function closeAllModals() {
+      closePomodoroModal();
+      closeCreateProjectModal();
+      closeSettingsModal();
+    }
+
+    // Improve mobile menu accessibility
+    function toggleMobileMenu() {
+      const sidebar = document.querySelector('.project-sidebar');
+      const toggleBtn = document.querySelector('.mobile-menu-toggle');
+      const isOpen = sidebar.style.left === '0px';
+
+      if (isOpen) {
+        sidebar.style.left = '-240px';
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      } else {
+        sidebar.style.left = '0px';
+        toggleBtn.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    // Empty states and UX feedback
+    function showEmptyState(container, type = 'tasks') {
+      const emptyStates = {
+        tasks: {
+          icon: '📝',
+          title: '还没有任务',
+          description: '创建你的第一个任务，开始高效工作！任务可以帮助你分解目标，专注执行。',
+          actionText: '创建任务',
+          actionFunction: 'createNewTask()'
+        },
+        projects: {
+          icon: '📁',
+          title: '还没有项目',
+          description: '创建项目来组织你的任务和工作流程，让工作更有条理。',
+          actionText: '创建项目',
+          actionFunction: 'openCreateProjectModal()'
+        },
+        search: {
+          icon: '🔍',
+          title: '没有找到匹配的内容',
+          description: '尝试使用不同的关键词搜索，或者创建新的任务。',
+          actionText: '清除搜索',
+          actionFunction: 'clearSearch()'
+        }
+      };
+
+      const state = emptyStates[type];
+      const emptyStateHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">${state.icon}</div>
+          <div class="empty-state-title">${state.title}</div>
+          <div class="empty-state-description">${state.description}</div>
+          <div class="empty-state-action">
+            <button class="btn btn-primary" onclick="${state.actionFunction}">
+              ${state.actionText}
+            </button>
+          </div>
+        </div>
+      `;
+
+      if (container) {
+        container.innerHTML = emptyStateHTML;
+      }
+    }
+
+    function hideEmptyState(container) {
+      const emptyState = container.querySelector('.empty-state');
+      if (emptyState) {
+        emptyState.remove();
+      }
+    }
+
+    // Enhanced feedback with animations
+    function showSuccessMessage(message, duration = 3000) {
+      const existingMessage = document.querySelector('.success-message');
+      if (existingMessage) existingMessage.remove();
+
+      const successHTML = `
+        <div class="success-message">
+          ${message}
+        </div>
+      `;
+
+      const mainContent = document.querySelector('.main-content');
+      if (mainContent) {
+        mainContent.insertAdjacentHTML('afterbegin', successHTML);
+
+        setTimeout(() => {
+          const message = document.querySelector('.success-message');
+          if (message) {
+            message.style.transition = 'opacity 0.3s ease';
+            message.style.opacity = '0';
+            setTimeout(() => message.remove(), 300);
+          }
+        }, duration);
+      }
+    }
+
+    function addFeedbackAnimation(element, type = 'pulse') {
+      element.classList.add(`feedback-${type}`);
+      setTimeout(() => {
+        element.classList.remove(`feedback-${type}`);
+      }, 600);
+    }
+
+    function showProgressIndicator(steps, currentStep) {
+      const dotsHTML = steps.map((step, index) => {
+        let className = 'step-dot';
+        if (index < currentStep) className += ' completed';
+        else if (index === currentStep) className += ' active';
+
+        return `<div class="${className}" title="${step}"></div>`;
+      }).join('');
+
+      return `<div class="step-indicator">${dotsHTML}</div>`;
+    }
+
+    // Enhanced error handling with better UX
+    function handleError(error, context = '') {
+      console.error(`Error in ${context}:`, error);
+
+      const errorElement = document.querySelector('.error-message');
+      if (errorElement) {
+        addFeedbackAnimation(errorElement, 'shake');
+      }
+
+      showToast(`操作失败: ${error.message || '未知错误'}`, 'error');
+    }
+
+    // Form validation with instant feedback
+    function validateForm(formElement) {
+      const inputs = formElement.querySelectorAll('input[required], textarea[required]');
+      let isValid = true;
+
+      inputs.forEach(input => {
+        const value = input.value.trim();
+        const errorElement = input.nextElementSibling;
+
+        if (!value) {
+          isValid = false;
+          input.style.borderColor = 'var(--error-color)';
+          addFeedbackAnimation(input, 'shake');
+
+          if (errorElement && errorElement.classList.contains('error-hint')) {
+            errorElement.textContent = '此字段为必填项';
+            errorElement.style.display = 'block';
+          }
+        } else {
+          input.style.borderColor = 'var(--success-color)';
+
+          if (errorElement && errorElement.classList.contains('error-hint')) {
+            errorElement.style.display = 'none';
+          }
+        }
+      });
+
+      return isValid;
+    }
+
     // 初始化
     // 初始化设置显示
     function initializeSettings() {
-      // 更新设置UI显示值
-      document.getElementById('work-duration').textContent = settings.workDuration;
-      document.getElementById('short-break-duration').textContent = settings.shortBreak;
-      document.getElementById('long-break-duration').textContent = settings.longBreak;
-      document.getElementById('long-break-interval').textContent = settings.longBreakInterval;
+      // 更新设置UI输入框的值
+      const workDurationInput = document.getElementById('work-duration');
+      const shortBreakInput = document.getElementById('short-break-duration');
+      const longBreakInput = document.getElementById('long-break-duration');
+      const longBreakIntervalInput = document.getElementById('long-break-interval');
+
+      if (workDurationInput) workDurationInput.value = settings.workDuration;
+      if (shortBreakInput) shortBreakInput.value = settings.shortBreak;
+      if (longBreakInput) longBreakInput.value = settings.longBreak;
+      if (longBreakIntervalInput) longBreakIntervalInput.value = settings.longBreakInterval;
 
       // 设置开关状态
-      document.getElementById('sound-notifications').checked = settings.soundNotifications;
-      document.getElementById('desktop-notifications').checked = settings.desktopNotifications;
-      document.getElementById('auto-theme').checked = settings.autoTheme;
+      const soundNotifications = document.getElementById('sound-notifications');
+      const desktopNotifications = document.getElementById('desktop-notifications');
+      const autoTheme = document.getElementById('auto-theme');
+
+      if (soundNotifications) soundNotifications.checked = settings.soundNotifications;
+      if (desktopNotifications) desktopNotifications.checked = settings.desktopNotifications;
+      if (autoTheme) autoTheme.checked = settings.autoTheme;
 
       // 设置音量滑块
-      const volumePercent = Math.round(settings.soundVolume * 100);
-      document.getElementById('volume-slider').value = volumePercent;
-      document.getElementById('volume-display').textContent = volumePercent + '%';
+      const volumeSlider = document.getElementById('volume-slider');
+      const volumeDisplay = document.getElementById('volume-display');
+      if (volumeSlider && volumeDisplay) {
+        const volumePercent = Math.round(settings.soundVolume * 100);
+        volumeSlider.value = volumePercent;
+        volumeDisplay.textContent = volumePercent + '%';
+      }
 
       // 设置主题显示
-      const themeName = document.querySelector(`.theme-option[data-theme="${settings.theme}"]`).dataset.name;
-      document.getElementById('current-theme').textContent = themeName;
+      const themeOption = document.querySelector(`.theme-option[data-theme="${settings.theme}"]`);
+      const currentTheme = document.getElementById('current-theme');
+      if (themeOption && currentTheme) {
+        const themeName = themeOption.dataset.name;
+        currentTheme.textContent = themeName;
+      }
 
       // 应用主题色
       const themeColors = {
@@ -2686,9 +4037,20 @@
       };
       document.documentElement.style.setProperty('--primary-color', themeColors[settings.theme]);
 
-      // 如果计时器未运行且为工作模式，更新计时器时间
-      if (!isTimerRunning && currentMode === 'work') {
-        timerSeconds = settings.workDuration * 60;
+      // 同步计时器时间到当前设置
+      syncTimerWithSettings();
+    }
+
+    function syncTimerWithSettings() {
+      // 如果计时器未运行，根据当前模式更新计时器时间
+      if (!isTimerRunning) {
+        if (currentMode === 'work') {
+          timerSeconds = settings.workDuration * 60;
+        } else if (currentMode === 'shortBreak') {
+          timerSeconds = settings.shortBreak * 60;
+        } else if (currentMode === 'longBreak') {
+          timerSeconds = settings.longBreak * 60;
+        }
         updateTimerDisplay();
       }
     }
