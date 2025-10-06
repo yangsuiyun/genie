@@ -2872,9 +2872,31 @@
 
     // Task Edit/Delete Functions
     function editTask(taskId) {
-      const taskCard = document.getElementById(taskId).closest('.task-card');
-      const taskTitle = taskCard.querySelector('.task-title label').textContent;
-      const taskDescription = taskCard.querySelector('.task-description').textContent;
+      const taskCheckbox = document.getElementById(taskId);
+      if (!taskCheckbox) {
+        console.error('Task not found:', taskId);
+        showToast('任务未找到', 'error');
+        return;
+      }
+
+      const taskCard = taskCheckbox.closest('.task-card');
+      if (!taskCard) {
+        console.error('Task card not found for:', taskId);
+        showToast('任务卡片未找到', 'error');
+        return;
+      }
+
+      const taskTitleLabel = taskCard.querySelector('.task-title label');
+      const taskDescriptionElement = taskCard.querySelector('.task-description');
+
+      if (!taskTitleLabel || !taskDescriptionElement) {
+        console.error('Task elements not found in card');
+        showToast('任务元素未找到', 'error');
+        return;
+      }
+
+      const taskTitle = taskTitleLabel.textContent;
+      const taskDescription = taskDescriptionElement.textContent;
 
       // 获取当前优先级
       const priorityElement = taskCard.querySelector('.task-priority');
@@ -2883,15 +2905,17 @@
       else if (priorityElement.classList.contains('priority-low')) currentPriority = 'low';
       else if (priorityElement.classList.contains('priority-urgent')) currentPriority = 'urgent';
 
+      console.log('Editing task:', taskId, 'Title:', taskTitle, 'Description:', taskDescription);
+
       // 编辑标题
       const newTitle = prompt('编辑任务标题:', taskTitle);
       if (newTitle && newTitle.trim()) {
-        taskCard.querySelector('.task-title label').textContent = newTitle.trim();
+        taskTitleLabel.textContent = newTitle.trim();
 
         // 编辑描述
         const newDescription = prompt('编辑任务描述:', taskDescription);
         if (newDescription !== null) {
-          taskCard.querySelector('.task-description').textContent = newDescription.trim();
+          taskDescriptionElement.textContent = newDescription.trim();
         }
 
         // 编辑优先级
@@ -2915,10 +2939,21 @@
         }
 
         // 编辑截止日期
-        const currentDate = taskCard.querySelector('.task-meta span:nth-child(2)').textContent.replace('📅 ', '');
-        const newDate = prompt('编辑截止日期 (格式: MM月DD日):', currentDate);
-        if (newDate && newDate.trim()) {
-          taskCard.querySelector('.task-meta span:nth-child(2)').textContent = '📅 ' + newDate.trim();
+        const dateElements = taskCard.querySelectorAll('.task-meta span');
+        let dateElement = null;
+        for (let span of dateElements) {
+          if (span.textContent.includes('📅')) {
+            dateElement = span;
+            break;
+          }
+        }
+
+        if (dateElement) {
+          const currentDate = dateElement.textContent.replace('📅 ', '');
+          const newDate = prompt('编辑截止日期 (格式: MM月DD日):', currentDate);
+          if (newDate && newDate.trim()) {
+            dateElement.textContent = '📅 ' + newDate.trim();
+          }
         }
 
         // 保存更改
@@ -2935,8 +2970,22 @@
 
     function deleteTask(taskId) {
       if (confirm('确定要删除这个任务吗？')) {
-        const taskCard = document.getElementById(taskId).closest('.task-card');
+        const taskCheckbox = document.getElementById(taskId);
+        if (!taskCheckbox) {
+          console.error('Task not found:', taskId);
+          showToast('任务未找到', 'error');
+          return;
+        }
+
+        const taskCard = taskCheckbox.closest('.task-card');
+        if (!taskCard) {
+          console.error('Task card not found for:', taskId);
+          showToast('任务卡片未找到', 'error');
+          return;
+        }
+
         taskCard.remove();
+        showToast('任务已删除', 'success');
 
         // Save to localStorage (in a real app, this would delete from backend)
         console.log('Task deleted:', taskId);
