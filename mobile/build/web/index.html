@@ -2008,8 +2008,8 @@
 
       <!-- Projects Management -->
       <div style="padding: 0 16px 12px;">
-        <button class="btn btn-primary" onclick="showCreateProjectModal()" style="width: 100%; font-size: 13px; padding: 8px 12px;">
-          ➕ 新建项目
+        <button class="btn btn-primary" onclick="showCreateProjectModal()" style="width: 100%; font-size: 16px; padding: 8px 12px;" title="新建项目">
+          ➕
         </button>
       </div>
 
@@ -2036,7 +2036,7 @@
     <!-- Main Content Area -->
     <main class="main-content" id="main-content" role="main" aria-label="主要内容区域">
       <div class="project-header">
-        <h1 class="project-title" id="current-project-title">📥 Inbox</h1>
+        <h1 class="project-title" id="current-project-title" onclick="editProjectName()" style="cursor: pointer;" title="点击编辑项目名称">📥 Inbox</h1>
         <div class="project-actions">
           <button class="btn btn-primary" onclick="createNewTask()">➕ 新建任务</button>
         </div>
@@ -2822,13 +2822,22 @@
     }
 
     function loadSettings() {
-      const settings = JSON.parse(localStorage.getItem('pomodoroSettings') || '{}');
+      // 使用全局settings对象来填充设置表单
+      const workDurationInput = document.getElementById('work-duration');
+      const shortBreakInput = document.getElementById('short-break-duration');
+      const longBreakInput = document.getElementById('long-break-duration');
+      const longBreakIntervalInput = document.getElementById('long-break-interval');
+      const soundNotificationsInput = document.getElementById('sound-notifications');
+      const desktopNotificationsInput = document.getElementById('desktop-notifications');
 
-      document.getElementById('work-duration').value = settings.workDuration || 25;
-      document.getElementById('break-duration').value = settings.breakDuration || 5;
-      document.getElementById('long-break-duration').value = settings.longBreakDuration || 15;
-      document.getElementById('sound-notifications').checked = settings.soundNotifications !== false;
-      document.getElementById('desktop-notifications').checked = settings.desktopNotifications !== false;
+      if (workDurationInput) workDurationInput.value = settings.workDuration;
+      if (shortBreakInput) shortBreakInput.value = settings.shortBreak;
+      if (longBreakInput) longBreakInput.value = settings.longBreak;
+      if (longBreakIntervalInput) longBreakIntervalInput.value = settings.longBreakInterval;
+      if (soundNotificationsInput) soundNotificationsInput.checked = settings.soundNotifications;
+      if (desktopNotificationsInput) desktopNotificationsInput.checked = settings.desktopNotifications;
+
+      console.log('📝 Settings loaded into modal:', settings);
     }
 
     function saveSettings() {
@@ -2867,17 +2876,60 @@
       const taskTitle = taskCard.querySelector('.task-title label').textContent;
       const taskDescription = taskCard.querySelector('.task-description').textContent;
 
+      // 获取当前优先级
+      const priorityElement = taskCard.querySelector('.task-priority');
+      let currentPriority = 'medium';
+      if (priorityElement.classList.contains('priority-high')) currentPriority = 'high';
+      else if (priorityElement.classList.contains('priority-low')) currentPriority = 'low';
+      else if (priorityElement.classList.contains('priority-urgent')) currentPriority = 'urgent';
+
+      // 编辑标题
       const newTitle = prompt('编辑任务标题:', taskTitle);
       if (newTitle && newTitle.trim()) {
         taskCard.querySelector('.task-title label').textContent = newTitle.trim();
 
+        // 编辑描述
         const newDescription = prompt('编辑任务描述:', taskDescription);
         if (newDescription !== null) {
           taskCard.querySelector('.task-description').textContent = newDescription.trim();
         }
 
-        // Save to localStorage (in a real app, this would save to backend)
-        console.log('Task updated:', { taskId, title: newTitle.trim(), description: newDescription?.trim() });
+        // 编辑优先级
+        const priorityOptions = {
+          'low': '🟢 低优先级',
+          'medium': '🟡 中优先级',
+          'high': '🔴 高优先级',
+          'urgent': '🟣 紧急'
+        };
+
+        const priorityChoice = prompt(`选择优先级:\n1. 低优先级\n2. 中优先级\n3. 高优先级\n4. 紧急\n\n当前: ${priorityOptions[currentPriority]}\n\n请输入数字 (1-4):`,
+          currentPriority === 'low' ? '1' : currentPriority === 'medium' ? '2' : currentPriority === 'high' ? '3' : '4');
+
+        if (priorityChoice && ['1', '2', '3', '4'].includes(priorityChoice)) {
+          const newPriorityMap = {'1': 'low', '2': 'medium', '3': 'high', '4': 'urgent'};
+          const newPriority = newPriorityMap[priorityChoice];
+
+          // 更新优先级样式
+          priorityElement.className = `task-priority priority-${newPriority}`;
+          priorityElement.textContent = priorityOptions[newPriority];
+        }
+
+        // 编辑截止日期
+        const currentDate = taskCard.querySelector('.task-meta span:nth-child(2)').textContent.replace('📅 ', '');
+        const newDate = prompt('编辑截止日期 (格式: MM月DD日):', currentDate);
+        if (newDate && newDate.trim()) {
+          taskCard.querySelector('.task-meta span:nth-child(2)').textContent = '📅 ' + newDate.trim();
+        }
+
+        // 保存更改
+        showToast('任务已更新', 'success');
+        console.log('Task updated:', {
+          taskId,
+          title: newTitle.trim(),
+          description: newDescription?.trim(),
+          priority: newPriority || currentPriority,
+          date: newDate?.trim()
+        });
       }
     }
 
@@ -4055,10 +4107,35 @@
       }
     }
 
+    // 编辑项目名称功能
+    function editProjectName() {
+      const titleElement = document.getElementById('current-project-title');
+      const currentTitle = titleElement.textContent;
+
+      const newTitle = prompt('编辑项目名称:', currentTitle);
+      if (newTitle && newTitle.trim() && newTitle.trim() !== currentTitle) {
+        titleElement.textContent = newTitle.trim();
+
+        // 保存到localStorage (在实际应用中这里会保存到后端)
+        const projectData = {
+          name: newTitle.trim(),
+          updatedAt: new Date().toISOString()
+        };
+        localStorage.setItem('currentProject', JSON.stringify(projectData));
+
+        showToast('项目名称已更新', 'success');
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       // 先加载数据
       loadSettingsFromStorage();
       loadTasksFromStorage();
+
+      // 重要：确保计时器初始值与设置同步
+      if (!isTimerRunning && currentMode === 'work') {
+        timerSeconds = settings.workDuration * 60;
+      }
 
       // 渲染任务列表 (在所有函数定义完成后)
       if (tasks.length > 0) {
@@ -4080,6 +4157,8 @@
       // 调试信息
       console.log('🍅 Pomodoro Genie Task Integration Enhanced 已加载 - 数据已从本地存储恢复');
       console.log('📋 已加载任务数量:', tasks.length);
+      console.log('⏰ 当前设置:', settings);
+      console.log('⏱️ 计时器初始值:', timerSeconds, '秒 (', Math.floor(timerSeconds/60), '分钟)');
       console.log('🎯 当前任务:', currentTask ? currentTask.name : '无');
       console.log('⚙️ 设置:', settings);
     });
