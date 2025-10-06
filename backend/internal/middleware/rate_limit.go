@@ -54,10 +54,10 @@ type RateLimitTier struct {
 }
 
 type inMemoryStore struct {
-	mu      sync.RWMutex
-	clients map[string]*clientInfo
-	maxKeys int
-	cleanup time.Duration
+	mu           sync.RWMutex
+	clients      map[string]*clientInfo
+	maxKeys      int
+	cleanupInterval time.Duration
 }
 
 type clientInfo struct {
@@ -74,7 +74,7 @@ func NewInMemoryStore(maxKeys int, cleanup time.Duration) RateLimiter {
 	store := &inMemoryStore{
 		clients: make(map[string]*clientInfo),
 		maxKeys: maxKeys,
-		cleanup: cleanup,
+		cleanupInterval: cleanup,
 	}
 
 	go store.cleanupRoutine()
@@ -129,7 +129,7 @@ func (s *inMemoryStore) GetLimit(key string) RateLimit {
 	}
 
 	reservation := client.limiter.Reserve()
-	remaining := int(client.limiter.Burst()) - int(reservation.Tokens())
+	remaining := int(client.limiter.Burst()) - 1
 	if remaining < 0 {
 		remaining = 0
 	}
@@ -192,7 +192,7 @@ func (s *inMemoryStore) evictOldest() {
 }
 
 func (s *inMemoryStore) cleanupRoutine() {
-	ticker := time.NewTicker(s.cleanup)
+	ticker := time.NewTicker(s.cleanupInterval)
 	defer ticker.Stop()
 
 	for range ticker.C {
@@ -204,7 +204,7 @@ func (s *inMemoryStore) cleanup() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	cutoff := time.Now().Add(-s.cleanup)
+	cutoff := time.Now().Add(-s.cleanupInterval)
 	for key, client := range s.clients {
 		if client.lastSeen.Before(cutoff) {
 			delete(s.clients, key)

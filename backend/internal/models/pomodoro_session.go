@@ -5,36 +5,43 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // PomodoroSession represents a Pomodoro session
 type PomodoroSession struct {
-	ID                string             `json:"id" db:"id"`
-	UserID            string             `json:"user_id" db:"user_id"`
-	TaskID            string             `json:"task_id" db:"task_id"`
-	SessionType       PomodoroSessionType `json:"session_type" db:"session_type"`
-	Status            PomodoroStatus     `json:"status" db:"status"`
-	PlannedDuration   int                `json:"planned_duration" db:"planned_duration"`     // in seconds
-	ActualDuration    *int               `json:"actual_duration,omitempty" db:"actual_duration"` // in seconds
-	StartedAt         time.Time          `json:"started_at" db:"started_at"`
-	PausedAt          *time.Time         `json:"paused_at,omitempty" db:"paused_at"`
-	ResumedAt         *time.Time         `json:"resumed_at,omitempty" db:"resumed_at"`
-	CompletedAt       *time.Time         `json:"completed_at,omitempty" db:"completed_at"`
-	CancelledAt       *time.Time         `json:"cancelled_at,omitempty" db:"cancelled_at"`
-	InterruptionCount int                `json:"interruption_count" db:"interruption_count"`
-	InterruptionReason *string           `json:"interruption_reason,omitempty" db:"interruption_reason"`
-	Notes             *string            `json:"notes,omitempty" db:"notes"`
-	CreatedAt         time.Time          `json:"created_at" db:"created_at"`
-	UpdatedAt         time.Time          `json:"updated_at" db:"updated_at"`
-	SyncVersion       int64              `json:"sync_version" db:"sync_version"`
+	ID                uuid.UUID           `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID            uuid.UUID           `json:"user_id" gorm:"type:uuid;not null;index"`
+	ProjectID         uuid.UUID           `json:"project_id" gorm:"type:uuid;not null;index"` // Required field
+	TaskID            *uuid.UUID          `json:"task_id,omitempty" gorm:"type:uuid;index"`   // Optional for free pomodoros
+	SessionType       PomodoroSessionType `json:"session_type" gorm:"type:varchar(20);not null"`
+	Status            PomodoroStatus      `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
+	PlannedDuration   int                 `json:"planned_duration" gorm:"not null"`     // in seconds
+	ActualDuration    *int                `json:"actual_duration,omitempty"`           // in seconds
+	StartedAt         time.Time           `json:"started_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	PausedAt          *time.Time          `json:"paused_at,omitempty"`
+	ResumedAt         *time.Time          `json:"resumed_at,omitempty"`
+	CompletedAt       *time.Time          `json:"completed_at,omitempty"`
+	CancelledAt       *time.Time          `json:"cancelled_at,omitempty"`
+	InterruptionCount int                 `json:"interruption_count" gorm:"not null;default:0"`
+	InterruptionReason *string            `json:"interruption_reason,omitempty" gorm:"type:text"`
+	Notes             *string             `json:"notes,omitempty" gorm:"type:text"`
+	CreatedAt         time.Time           `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt         time.Time           `json:"updated_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	SyncVersion       int64               `json:"sync_version" gorm:"not null;default:1"`
+
+	// Relationships
+	User    User     `json:"-" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	Project Project  `json:"project,omitempty" gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
+	Task    *Task    `json:"task,omitempty" gorm:"foreignKey:TaskID;constraint:OnDelete:CASCADE"`
 
 	// Computed fields (not stored in DB)
-	ElapsedTime       int                `json:"elapsed_time" db:"-"`       // in seconds
-	RemainingTime     int                `json:"remaining_time" db:"-"`     // in seconds
-	ProgressPercent   float64            `json:"progress_percent" db:"-"`   // 0-100
-	PauseCount        int                `json:"pause_count" db:"-"`
-	TotalPauseTime    int                `json:"total_pause_time" db:"-"`   // in seconds
-	EfficiencyScore   float64            `json:"efficiency_score" db:"-"`   // 0-100
+	ElapsedTime     int     `json:"elapsed_time" gorm:"-"`     // in seconds
+	RemainingTime   int     `json:"remaining_time" gorm:"-"`   // in seconds
+	ProgressPercent float64 `json:"progress_percent" gorm:"-"` // 0-100
+	PauseCount      int     `json:"pause_count" gorm:"-"`
+	TotalPauseTime  int     `json:"total_pause_time" gorm:"-"` // in seconds
+	EfficiencyScore float64 `json:"efficiency_score" gorm:"-"` // 0-100
 }
 
 // PomodoroSessionType represents the type of Pomodoro session
@@ -57,11 +64,12 @@ const (
 )
 
 // NewPomodoroSession creates a new Pomodoro session
-func NewPomodoroSession(userID, taskID string, sessionType PomodoroSessionType, plannedDuration int) *PomodoroSession {
+func NewPomodoroSession(userID, projectID uuid.UUID, taskID *uuid.UUID, sessionType PomodoroSessionType, plannedDuration int) *PomodoroSession {
 	now := time.Now()
 	return &PomodoroSession{
-		ID:                uuid.New().String(),
+		ID:                uuid.New(),
 		UserID:            userID,
+		ProjectID:         projectID,
 		TaskID:            taskID,
 		SessionType:       sessionType,
 		Status:            StatusActive,
@@ -72,6 +80,19 @@ func NewPomodoroSession(userID, taskID string, sessionType PomodoroSessionType, 
 		UpdatedAt:         now,
 		SyncVersion:       1,
 	}
+}
+
+// BeforeCreate sets the ID if not provided
+func (ps *PomodoroSession) BeforeCreate(tx *gorm.DB) error {
+	if ps.ID == uuid.Nil {
+		ps.ID = uuid.New()
+	}
+	return nil
+}
+
+// TableName returns the table name for PomodoroSession
+func (PomodoroSession) TableName() string {
+	return "pomodoro_sessions"
 }
 
 // StateMachine defines valid state transitions for Pomodoro sessions

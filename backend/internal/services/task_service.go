@@ -2,290 +2,514 @@ package services
 
 import (
 	"fmt"
-	"sync"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"pomodoro-backend/internal/models"
+	"pomodoro-backend/internal/repositories"
 )
 
-// TaskService handles task management operations
-type TaskService struct {
-	tasks    map[string]*models.Task // taskID -> task
-	userTasks map[string][]string    // userID -> []taskID
-	mutex    sync.RWMutex
+// TaskService interface defines task business logic
+type TaskService interface {
+	// Core operations
+	CreateTask(userID uuid.UUID, req *models.TaskCreateRequest) (*models.Task, error)
+	GetTask(taskID, userID uuid.UUID) (*models.Task, error)
+	UpdateTask(taskID, userID uuid.UUID, req *models.TaskUpdateRequest) (*models.Task, error)
+	DeleteTask(taskID, userID uuid.UUID) error
+
+	// Query operations
+	ListTasks(userID uuid.UUID, filter *repositories.TaskFilter) ([]models.Task, *repositories.PaginationResult, error)
+	ListTasksByProject(projectID, userID uuid.UUID, filter *repositories.TaskFilter) ([]models.Task, *repositories.PaginationResult, error)
+	GetTaskStatistics(userID uuid.UUID) (*TaskStatistics, error)
+
+	// Specialized operations
+	CompleteTask(taskID, userID uuid.UUID) (*models.Task, error)
+	UncompleteTask(taskID, userID uuid.UUID) (*models.Task, error)
+	UpdateTaskProgress(taskID, userID uuid.UUID, progress float64) (*models.Task, error)
+
+	// Validation and access control
+	ValidateTaskAccess(taskID, userID uuid.UUID) error
+	ValidateProjectAccess(projectID, userID uuid.UUID) error
+
+	// Migration support
+	MigrateTasksToDefaultProject(userID uuid.UUID) error
+}
+
+// TaskStatistics represents task statistics for a user
+type TaskStatistics struct {
+	TotalTasks         int64 `json:"total_tasks"`
+	CompletedTasks     int64 `json:"completed_tasks"`
+	PendingTasks       int64 `json:"pending_tasks"`
+	OverdueTasks       int   `json:"overdue_tasks"`
+	TasksDueToday      int   `json:"tasks_due_today"`
+	CompletionRate     float64 `json:"completion_rate"`
+	AverageTasksPerDay float64 `json:"average_tasks_per_day"`
+}
+
+// taskService implements TaskService
+type taskService struct {
+	taskRepo    repositories.TaskRepository
+	projectRepo repositories.ProjectRepository
 }
 
 // NewTaskService creates a new task service
-func NewTaskService() *TaskService {
-	return &TaskService{
-		tasks:     make(map[string]*models.Task),
-		userTasks: make(map[string][]string),
+func NewTaskService(taskRepo repositories.TaskRepository, projectRepo repositories.ProjectRepository) TaskService {
+	return &taskService{
+		taskRepo:    taskRepo,
+		projectRepo: projectRepo,
 	}
 }
 
-// CreateTask creates a new task for a user
-func (s *TaskService) CreateTask(userID string, req models.TaskCreateRequest) (*models.Task, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	// Generate task ID
-	taskID, err := generateID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate task ID: %w", err)
+// CreateTask creates a new task
+func (s *taskService) CreateTask(userID uuid.UUID, req *models.TaskCreateRequest) (*models.Task, error) {
+	// Validate input
+	if err := s.validateCreateRequest(req); err != nil {
+		return nil, err
 	}
 
-	// Set default priority if not specified
-	priority := req.Priority
-	if priority == "" {
-		priority = "medium"
+	// Validate project access
+	if err := s.ValidateProjectAccess(req.ProjectID, userID); err != nil {
+		return nil, err
+	}
+
+	// Validate parent task if specified
+	if req.ParentTaskID != nil {
+		if err := s.ValidateTaskAccess(*req.ParentTaskID, userID); err != nil {
+			return nil, fmt.Errorf("invalid parent task: %w", err)
+		}
 	}
 
 	// Create task
+	priority := models.PriorityMedium
+	if req.Priority != nil {
+		priority = *req.Priority
+	}
+
 	task := &models.Task{
-		ID:          taskID,
-		UserID:      userID,
-		Title:       req.Title,
-		Description: req.Description,
-		Priority:    priority,
-		Status:      "pending",
-		DueDate:     req.DueDate,
-		Tags:        req.Tags,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-		Subtasks:    []models.Subtask{},
+		ID:            uuid.New(),
+		UserID:        userID,
+		ProjectID:     req.ProjectID,
+		Title:         strings.TrimSpace(req.Title),
+		Description:   strings.TrimSpace(req.Description),
+		DueDate:       req.DueDate,
+		Priority:      priority,
+		Tags:          req.Tags,
+		ParentTaskID:  req.ParentTaskID,
+		EstimatedTime: req.EstimatedTime,
+		IsCompleted:   false,
+		Progress:      0.0,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		SyncVersion:   1,
+		IsDeleted:     false,
 	}
 
-	// Store task
-	s.tasks[taskID] = task
-	s.userTasks[userID] = append(s.userTasks[userID], taskID)
-
-	return task, nil
-}
-
-// GetTask retrieves a task by ID
-func (s *TaskService) GetTask(taskID, userID string) (*models.Task, error) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-
-	task, exists := s.tasks[taskID]
-	if !exists {
-		return nil, fmt.Errorf("task not found")
-	}
-
-	// Verify ownership
-	if task.UserID != userID {
-		return nil, fmt.Errorf("access denied")
+	if err := s.taskRepo.Create(task); err != nil {
+		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
 
 	return task, nil
 }
 
-// GetUserTasks retrieves all tasks for a user
-func (s *TaskService) GetUserTasks(userID string, status string) ([]*models.Task, error) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-
-	taskIDs, exists := s.userTasks[userID]
-	if !exists {
-		return []*models.Task{}, nil
+// GetTask gets a task by ID
+func (s *taskService) GetTask(taskID, userID uuid.UUID) (*models.Task, error) {
+	// Validate access
+	if err := s.ValidateTaskAccess(taskID, userID); err != nil {
+		return nil, err
 	}
 
-	var tasks []*models.Task
-	for _, taskID := range taskIDs {
-		task, exists := s.tasks[taskID]
-		if !exists {
-			continue
-		}
-
-		// Filter by status if specified
-		if status != "" && task.Status != status {
-			continue
-		}
-
-		tasks = append(tasks, task)
+	task, err := s.taskRepo.GetByID(taskID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task: %w", err)
 	}
 
-	return tasks, nil
-}
-
-// UpdateTask updates an existing task
-func (s *TaskService) UpdateTask(taskID, userID string, req models.TaskUpdateRequest) (*models.Task, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	task, exists := s.tasks[taskID]
-	if !exists {
+	if task == nil {
 		return nil, fmt.Errorf("task not found")
 	}
 
-	// Verify ownership
-	if task.UserID != userID {
-		return nil, fmt.Errorf("access denied")
+	return task, nil
+}
+
+// UpdateTask updates a task
+func (s *taskService) UpdateTask(taskID, userID uuid.UUID, req *models.TaskUpdateRequest) (*models.Task, error) {
+	// Validate access
+	if err := s.ValidateTaskAccess(taskID, userID); err != nil {
+		return nil, err
+	}
+
+	// Get existing task
+	task, err := s.taskRepo.GetByID(taskID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task: %w", err)
+	}
+
+	if task == nil {
+		return nil, fmt.Errorf("task not found")
+	}
+
+	// Validate update request
+	if err := s.validateUpdateRequest(req); err != nil {
+		return nil, err
 	}
 
 	// Update fields
 	if req.Title != nil {
-		task.Title = *req.Title
+		task.Title = strings.TrimSpace(*req.Title)
 	}
+
 	if req.Description != nil {
-		task.Description = *req.Description
+		task.Description = strings.TrimSpace(*req.Description)
 	}
-	if req.Priority != nil {
-		task.Priority = *req.Priority
-	}
-	if req.Status != nil {
-		task.Status = *req.Status
-	}
+
 	if req.DueDate != nil {
 		task.DueDate = req.DueDate
 	}
+
+	if req.Priority != nil {
+		task.Priority = *req.Priority
+	}
+
 	if req.Tags != nil {
 		task.Tags = req.Tags
 	}
 
+	if req.IsCompleted != nil {
+		task.IsCompleted = *req.IsCompleted
+		if *req.IsCompleted {
+			now := time.Now()
+			task.CompletedAt = &now
+			task.Progress = 100.0
+		} else {
+			task.CompletedAt = nil
+		}
+	}
+
+	if req.Progress != nil {
+		task.Progress = *req.Progress
+		// Auto-complete/uncomplete based on progress
+		if *req.Progress >= 100 && !task.IsCompleted {
+			now := time.Now()
+			task.IsCompleted = true
+			task.CompletedAt = &now
+		} else if *req.Progress < 100 && task.IsCompleted {
+			task.IsCompleted = false
+			task.CompletedAt = nil
+		}
+	}
+
+	if req.EstimatedTime != nil {
+		task.EstimatedTime = req.EstimatedTime
+	}
+
 	task.UpdatedAt = time.Now()
+	task.SyncVersion++
+
+	// Save changes
+	if err := s.taskRepo.Update(task); err != nil {
+		return nil, fmt.Errorf("failed to update task: %w", err)
+	}
 
 	return task, nil
 }
 
 // DeleteTask deletes a task
-func (s *TaskService) DeleteTask(taskID, userID string) error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	task, exists := s.tasks[taskID]
-	if !exists {
-		return fmt.Errorf("task not found")
+func (s *taskService) DeleteTask(taskID, userID uuid.UUID) error {
+	// Validate access
+	if err := s.ValidateTaskAccess(taskID, userID); err != nil {
+		return err
 	}
 
-	// Verify ownership
-	if task.UserID != userID {
-		return fmt.Errorf("access denied")
+	// Soft delete the task
+	if err := s.taskRepo.Delete(taskID); err != nil {
+		return fmt.Errorf("failed to delete task: %w", err)
 	}
 
-	// Remove from tasks map
-	delete(s.tasks, taskID)
+	return nil
+}
 
-	// Remove from user's task list
-	taskIDs := s.userTasks[userID]
-	for i, id := range taskIDs {
-		if id == taskID {
-			s.userTasks[userID] = append(taskIDs[:i], taskIDs[i+1:]...)
-			break
+// ListTasks lists tasks for a user with filters and pagination
+func (s *taskService) ListTasks(userID uuid.UUID, filter *repositories.TaskFilter) ([]models.Task, *repositories.PaginationResult, error) {
+	// Validate and set defaults for filter
+	if filter == nil {
+		filter = &repositories.TaskFilter{}
+	}
+
+	if filter.Page <= 0 {
+		filter.Page = 1
+	}
+
+	if filter.Limit <= 0 || filter.Limit > 100 {
+		filter.Limit = 20
+	}
+
+	// Sanitize search query
+	if filter.SearchQuery != "" {
+		filter.SearchQuery = strings.TrimSpace(filter.SearchQuery)
+		if len(filter.SearchQuery) > 100 {
+			filter.SearchQuery = filter.SearchQuery[:100]
+		}
+	}
+
+	// Get tasks
+	tasks, pagination, err := s.taskRepo.ListByUserID(userID, filter)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to list tasks: %w", err)
+	}
+
+	return tasks, pagination, nil
+}
+
+// ListTasksByProject lists tasks for a specific project
+func (s *taskService) ListTasksByProject(projectID, userID uuid.UUID, filter *repositories.TaskFilter) ([]models.Task, *repositories.PaginationResult, error) {
+	// Validate project access
+	if err := s.ValidateProjectAccess(projectID, userID); err != nil {
+		return nil, nil, err
+	}
+
+	// Validate and set defaults for filter
+	if filter == nil {
+		filter = &repositories.TaskFilter{}
+	}
+
+	if filter.Page <= 0 {
+		filter.Page = 1
+	}
+
+	if filter.Limit <= 0 || filter.Limit > 100 {
+		filter.Limit = 20
+	}
+
+	// Get tasks
+	tasks, pagination, err := s.taskRepo.ListByProjectID(projectID, filter)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to list tasks: %w", err)
+	}
+
+	return tasks, pagination, nil
+}
+
+// GetTaskStatistics gets task statistics for a user
+func (s *taskService) GetTaskStatistics(userID uuid.UUID) (*TaskStatistics, error) {
+	totalTasks, err := s.taskRepo.GetTaskCount(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total task count: %w", err)
+	}
+
+	completedTasks, err := s.taskRepo.GetCompletedTaskCount(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get completed task count: %w", err)
+	}
+
+	overdueTasks, err := s.taskRepo.GetOverdueTasks(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get overdue tasks: %w", err)
+	}
+
+	tasksDueToday, err := s.taskRepo.GetTasksDueToday(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tasks due today: %w", err)
+	}
+
+	pendingTasks := totalTasks - completedTasks
+
+	var completionRate float64
+	if totalTasks > 0 {
+		completionRate = float64(completedTasks) / float64(totalTasks) * 100
+	}
+
+	stats := &TaskStatistics{
+		TotalTasks:     totalTasks,
+		CompletedTasks: completedTasks,
+		PendingTasks:   pendingTasks,
+		OverdueTasks:   len(overdueTasks),
+		TasksDueToday:  len(tasksDueToday),
+		CompletionRate: completionRate,
+		// TODO: Calculate average tasks per day based on user's activity period
+		AverageTasksPerDay: 0,
+	}
+
+	return stats, nil
+}
+
+// CompleteTask marks a task as completed
+func (s *taskService) CompleteTask(taskID, userID uuid.UUID) (*models.Task, error) {
+	isCompleted := true
+	req := &models.TaskUpdateRequest{
+		IsCompleted: &isCompleted,
+	}
+
+	return s.UpdateTask(taskID, userID, req)
+}
+
+// UncompleteTask marks a task as not completed
+func (s *taskService) UncompleteTask(taskID, userID uuid.UUID) (*models.Task, error) {
+	isCompleted := false
+	req := &models.TaskUpdateRequest{
+		IsCompleted: &isCompleted,
+	}
+
+	return s.UpdateTask(taskID, userID, req)
+}
+
+// UpdateTaskProgress updates the progress of a task
+func (s *taskService) UpdateTaskProgress(taskID, userID uuid.UUID, progress float64) (*models.Task, error) {
+	req := &models.TaskUpdateRequest{
+		Progress: &progress,
+	}
+
+	return s.UpdateTask(taskID, userID, req)
+}
+
+// ValidateTaskAccess validates that a user has access to a task
+func (s *taskService) ValidateTaskAccess(taskID, userID uuid.UUID) error {
+	hasAccess, err := s.taskRepo.CheckTaskOwnership(taskID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to check task access: %w", err)
+	}
+
+	if !hasAccess {
+		return fmt.Errorf("task not found or access denied")
+	}
+
+	return nil
+}
+
+// ValidateProjectAccess validates that a user has access to a project
+func (s *taskService) ValidateProjectAccess(projectID, userID uuid.UUID) error {
+	hasAccess, err := s.projectRepo.CheckProjectOwnership(projectID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to check project access: %w", err)
+	}
+
+	if !hasAccess {
+		return fmt.Errorf("project not found or access denied")
+	}
+
+	return nil
+}
+
+// MigrateTasksToDefaultProject migrates tasks without project_id to user's default project
+func (s *taskService) MigrateTasksToDefaultProject(userID uuid.UUID) error {
+	// Get or create default project
+	defaultProject, err := s.projectRepo.GetDefaultProject(userID)
+	if err != nil {
+		return fmt.Errorf("failed to get default project: %w", err)
+	}
+
+	if defaultProject == nil {
+		defaultProject, err = s.projectRepo.CreateDefaultInboxProject(userID)
+		if err != nil {
+			return fmt.Errorf("failed to create default project: %w", err)
+		}
+	}
+
+	// Get tasks without project_id
+	tasks, err := s.taskRepo.GetTasksRequiringProjectID(userID)
+	if err != nil {
+		return fmt.Errorf("failed to get tasks requiring project assignment: %w", err)
+	}
+
+	// Update tasks to assign them to default project
+	for _, task := range tasks {
+		task.ProjectID = defaultProject.ID
+		if err := s.taskRepo.Update(&task); err != nil {
+			return fmt.Errorf("failed to migrate task %s to default project: %w", task.ID, err)
 		}
 	}
 
 	return nil
 }
 
-// AddSubtask adds a subtask to an existing task
-func (s *TaskService) AddSubtask(taskID, userID, title string) (*models.Subtask, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+// Validation methods
 
-	task, exists := s.tasks[taskID]
-	if !exists {
-		return nil, fmt.Errorf("task not found")
+func (s *taskService) validateCreateRequest(req *models.TaskCreateRequest) error {
+	if req == nil {
+		return fmt.Errorf("request cannot be nil")
 	}
 
-	// Verify ownership
-	if task.UserID != userID {
-		return nil, fmt.Errorf("access denied")
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		return fmt.Errorf("task title is required")
 	}
 
-	// Generate subtask ID
-	subtaskID, err := generateID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate subtask ID: %w", err)
+	if len(title) > 200 {
+		return fmt.Errorf("task title must be 200 characters or less")
 	}
 
-	// Create subtask
-	subtask := models.Subtask{
-		ID:        subtaskID,
-		TaskID:    taskID,
-		Title:     title,
-		Completed: false,
-		CreatedAt: time.Now(),
+	if len(req.Description) > 2000 {
+		return fmt.Errorf("task description must be 2000 characters or less")
 	}
 
-	// Add to task
-	task.Subtasks = append(task.Subtasks, subtask)
-	task.UpdatedAt = time.Now()
+	if req.EstimatedTime != nil && (*req.EstimatedTime < 1 || *req.EstimatedTime > 1440) {
+		return fmt.Errorf("estimated time must be between 1 and 1440 minutes")
+	}
 
-	return &subtask, nil
+	if len(req.Tags) > 50 {
+		return fmt.Errorf("maximum 50 tags allowed")
+	}
+
+	// Validate priority
+	if req.Priority != nil {
+		validPriorities := map[models.TaskPriority]bool{
+			models.PriorityLow:    true,
+			models.PriorityMedium: true,
+			models.PriorityHigh:   true,
+			models.PriorityUrgent: true,
+		}
+		if !validPriorities[*req.Priority] {
+			return fmt.Errorf("invalid priority value")
+		}
+	}
+
+	return nil
 }
 
-// UpdateSubtask updates a subtask
-func (s *TaskService) UpdateSubtask(taskID, subtaskID, userID string, completed bool) error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	task, exists := s.tasks[taskID]
-	if !exists {
-		return fmt.Errorf("task not found")
+func (s *taskService) validateUpdateRequest(req *models.TaskUpdateRequest) error {
+	if req == nil {
+		return fmt.Errorf("request cannot be nil")
 	}
 
-	// Verify ownership
-	if task.UserID != userID {
-		return fmt.Errorf("access denied")
-	}
+	if req.Title != nil {
+		title := strings.TrimSpace(*req.Title)
+		if title == "" {
+			return fmt.Errorf("task title cannot be empty")
+		}
 
-	// Find and update subtask
-	for i, subtask := range task.Subtasks {
-		if subtask.ID == subtaskID {
-			task.Subtasks[i].Completed = completed
-			task.UpdatedAt = time.Now()
-			return nil
+		if len(title) > 200 {
+			return fmt.Errorf("task title must be 200 characters or less")
 		}
 	}
 
-	return fmt.Errorf("subtask not found")
-}
-
-// GetTaskStatistics returns task statistics for a user
-func (s *TaskService) GetTaskStatistics(userID string) (map[string]interface{}, error) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-
-	taskIDs, exists := s.userTasks[userID]
-	if !exists {
-		return map[string]interface{}{
-			"total":      0,
-			"pending":    0,
-			"completed":  0,
-			"in_progress": 0,
-		}, nil
+	if req.Description != nil && len(*req.Description) > 2000 {
+		return fmt.Errorf("task description must be 2000 characters or less")
 	}
 
-	stats := map[string]int{
-		"total":      0,
-		"pending":    0,
-		"completed":  0,
-		"in_progress": 0,
-		"overdue":    0,
+	if req.Progress != nil && (*req.Progress < 0 || *req.Progress > 100) {
+		return fmt.Errorf("progress must be between 0 and 100")
 	}
 
-	now := time.Now()
-	for _, taskID := range taskIDs {
-		task, exists := s.tasks[taskID]
-		if !exists {
-			continue
+	if req.EstimatedTime != nil && (*req.EstimatedTime < 1 || *req.EstimatedTime > 1440) {
+		return fmt.Errorf("estimated time must be between 1 and 1440 minutes")
+	}
+
+	if req.Tags != nil && len(req.Tags) > 50 {
+		return fmt.Errorf("maximum 50 tags allowed")
+	}
+
+	// Validate priority
+	if req.Priority != nil {
+		validPriorities := map[models.TaskPriority]bool{
+			models.PriorityLow:    true,
+			models.PriorityMedium: true,
+			models.PriorityHigh:   true,
+			models.PriorityUrgent: true,
 		}
-
-		stats["total"]++
-		stats[task.Status]++
-
-		// Check if overdue
-		if task.DueDate != nil && task.DueDate.Before(now) && task.Status != "completed" {
-			stats["overdue"]++
+		if !validPriorities[*req.Priority] {
+			return fmt.Errorf("invalid priority value")
 		}
 	}
 
-	// Convert to interface{}
-	result := make(map[string]interface{})
-	for k, v := range stats {
-		result[k] = v
-	}
-
-	return result, nil
+	return nil
 }

@@ -5,38 +5,81 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // Task represents a task in the system
 type Task struct {
-	ID             string              `json:"id" db:"id"`
-	UserID         string              `json:"user_id" db:"user_id"`
-	Title          string              `json:"title" db:"title"`
-	Description    string              `json:"description" db:"description"`
-	DueDate        *time.Time          `json:"due_date,omitempty" db:"due_date"`
-	IsCompleted    bool                `json:"is_completed" db:"is_completed"`
-	CompletedAt    *time.Time          `json:"completed_at,omitempty" db:"completed_at"`
-	Priority       TaskPriority        `json:"priority" db:"priority"`
-	Tags           []string            `json:"tags" db:"tags"`
-	ParentTaskID   *string             `json:"parent_task_id,omitempty" db:"parent_task_id"`
-	ProjectID      *string             `json:"project_id,omitempty" db:"project_id"`
-	EstimatedTime  *int                `json:"estimated_time,omitempty" db:"estimated_time"` // in minutes
-	ActualTime     *int                `json:"actual_time,omitempty" db:"actual_time"`       // in minutes
-	Progress       float64             `json:"progress" db:"progress"`                       // 0-100%
-	RecurrenceRule *RecurrenceRule     `json:"recurrence_rule,omitempty" db:"recurrence_rule"`
-	CreatedAt      time.Time           `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time           `json:"updated_at" db:"updated_at"`
-	SyncVersion    int64               `json:"sync_version" db:"sync_version"`
-	IsDeleted      bool                `json:"is_deleted" db:"is_deleted"`
-	DeletedAt      *time.Time          `json:"deleted_at,omitempty" db:"deleted_at"`
+	ID             uuid.UUID           `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID         uuid.UUID           `json:"user_id" gorm:"type:uuid;not null;index"`
+	ProjectID      uuid.UUID           `json:"project_id" gorm:"type:uuid;not null;index"` // Required field
+	Title          string              `json:"title" gorm:"type:varchar(200);not null"`
+	Description    string              `json:"description" gorm:"type:text"`
+	DueDate        *time.Time          `json:"due_date,omitempty"`
+	IsCompleted    bool                `json:"is_completed" gorm:"not null;default:false"`
+	CompletedAt    *time.Time          `json:"completed_at,omitempty"`
+	Priority       TaskPriority        `json:"priority" gorm:"type:varchar(20);not null;default:'medium'"`
+	Tags           []string            `json:"tags" gorm:"type:text[]"`
+	ParentTaskID   *uuid.UUID          `json:"parent_task_id,omitempty" gorm:"type:uuid;index"`
+	EstimatedTime  *int                `json:"estimated_time,omitempty"` // in minutes
+	ActualTime     *int                `json:"actual_time,omitempty"`    // in minutes
+	Progress       float64             `json:"progress" gorm:"not null;default:0"`  // 0-100%
+	RecurrenceRule *RecurrenceRule     `json:"recurrence_rule,omitempty" gorm:"type:jsonb"`
+	CreatedAt      time.Time           `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt      time.Time           `json:"updated_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	SyncVersion    int64               `json:"sync_version" gorm:"not null;default:1"`
+	IsDeleted      bool                `json:"is_deleted" gorm:"not null;default:false"`
+	DeletedAt      *time.Time          `json:"deleted_at,omitempty"`
+
+	// Relationships
+	User         User              `json:"-" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	Project      Project           `json:"project,omitempty" gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
+	ParentTask   *Task             `json:"parent_task,omitempty" gorm:"foreignKey:ParentTaskID;constraint:OnDelete:CASCADE"`
+	Subtasks     []Task            `json:"subtasks,omitempty" gorm:"foreignKey:ParentTaskID"`
+	Notes        []Note            `json:"notes,omitempty" gorm:"foreignKey:TaskID"`
+	Reminders    []Reminder        `json:"reminders,omitempty" gorm:"foreignKey:TaskID"`
+	Sessions     []PomodoroSession `json:"sessions,omitempty" gorm:"foreignKey:TaskID"`
 
 	// Computed fields (not stored in DB)
-	Subtasks       []Task              `json:"subtasks,omitempty" db:"-"`
-	Notes          []Note              `json:"notes,omitempty" db:"-"`
-	Reminders      []Reminder          `json:"reminders,omitempty" db:"-"`
-	Sessions       []PomodoroSession   `json:"sessions,omitempty" db:"-"`
-	SubtaskCount   int                 `json:"subtask_count" db:"-"`
-	CompletedSubtasks int              `json:"completed_subtasks" db:"-"`
+	SubtaskCount      int `json:"subtask_count" gorm:"-"`
+	CompletedSubtasks int `json:"completed_subtasks" gorm:"-"`
+}
+
+// TaskCreateRequest represents the request to create a new task
+type TaskCreateRequest struct {
+	ProjectID     uuid.UUID `json:"project_id" binding:"required"`
+	Title         string    `json:"title" binding:"required,min=1,max=200"`
+	Description   string    `json:"description" binding:"max=2000"`
+	DueDate       *time.Time `json:"due_date,omitempty"`
+	Priority      *TaskPriority `json:"priority,omitempty"`
+	Tags          []string  `json:"tags,omitempty"`
+	ParentTaskID  *uuid.UUID `json:"parent_task_id,omitempty"`
+	EstimatedTime *int      `json:"estimated_time,omitempty" binding:"omitempty,min=1,max=1440"`
+}
+
+// TaskUpdateRequest represents the request to update a task
+type TaskUpdateRequest struct {
+	Title         *string     `json:"title" binding:"omitempty,min=1,max=200"`
+	Description   *string     `json:"description" binding:"omitempty,max=2000"`
+	DueDate       *time.Time  `json:"due_date,omitempty"`
+	Priority      *TaskPriority `json:"priority,omitempty"`
+	Tags          []string    `json:"tags,omitempty"`
+	IsCompleted   *bool       `json:"is_completed,omitempty"`
+	Progress      *float64    `json:"progress,omitempty" binding:"omitempty,min=0,max=100"`
+	EstimatedTime *int        `json:"estimated_time,omitempty" binding:"omitempty,min=1,max=1440"`
+}
+
+// BeforeCreate sets the ID if not provided
+func (t *Task) BeforeCreate(tx *gorm.DB) error {
+	if t.ID == uuid.Nil {
+		t.ID = uuid.New()
+	}
+	return nil
+}
+
+// TableName returns the table name for Task
+func (Task) TableName() string {
+	return "tasks"
 }
 
 // TaskPriority represents task priority levels
@@ -61,11 +104,12 @@ const (
 )
 
 // NewTask creates a new task
-func NewTask(userID, title, description string) *Task {
+func NewTask(userID, projectID uuid.UUID, title, description string) *Task {
 	now := time.Now()
 	return &Task{
-		ID:          uuid.New().String(),
+		ID:          uuid.New(),
 		UserID:      userID,
+		ProjectID:   projectID,
 		Title:       title,
 		Description: description,
 		IsCompleted: false,
@@ -80,8 +124,8 @@ func NewTask(userID, title, description string) *Task {
 }
 
 // NewSubtask creates a new subtask under a parent task
-func NewSubtask(userID, parentTaskID, title, description string) *Task {
-	task := NewTask(userID, title, description)
+func NewSubtask(userID, projectID uuid.UUID, parentTaskID uuid.UUID, title, description string) *Task {
+	task := NewTask(userID, projectID, title, description)
 	task.ParentTaskID = &parentTaskID
 	return task
 }
