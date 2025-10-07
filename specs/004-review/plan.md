@@ -31,51 +31,23 @@
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
-Comprehensive code review and optimization of the Pomodoro Genie project to maintain functionality while streamlining code quality. Focus on all performance metrics (load time, memory usage, execution efficiency, bundle size), removing all duplicate code, improving organization and structure, and applying optimization only where no functional risk exists.
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
-**Language/Version**: Go 1.21+ (backend), Dart 3.5+ / Flutter 3.24.3 (frontend), HTML/CSS/JavaScript ES6+ (web app)
-**Primary Dependencies**: Gin framework (Go), Flutter SDK, PostgreSQL 15, Redis 7, Docker Compose
-**Storage**: PostgreSQL (configured), Redis cache (configured), localStorage (web), Flutter local services
-**Testing**: Go testing (`go test`), Flutter testing (`flutter test`), validation scripts (bash)
-**Target Platform**: Linux server (backend), Web browsers (frontend), mobile platforms (Flutter)
-**Project Type**: web - determines source structure (backend + frontend/mobile)
-**Performance Goals**: <2s load time, <200MB memory, <500KB individual assets, 60fps animations
-**Constraints**: Preserve all existing functionality, maintain cross-browser compatibility, offline-capable web app
-**Scale/Scope**: 4200+ line HTML file, Go backend with 15+ models, Flutter app with multiple screens
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]  
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### TDD Adherence
-- [x] **Contract tests approach**: Validation scripts already exist for performance, structure, functionality
-- [x] **Test-first strategy**: Tests will verify code optimization preserves functionality
-- [x] **Red-Green-Refactor**: Optimization tests fail initially, implementation makes them pass
-
-### Code Quality Standards
-- [x] **Linting/formatting**: Go (gofmt), Flutter (flutter analyze), HTML/CSS/JS validation
-- [x] **Coverage target**: >80% for critical code paths being optimized
-- [x] **DRY principle**: Aligned with requirement to remove duplicate code
-- [x] **Complexity limits**: ≤10 cyclomatic complexity, ≤50 lines per function
-
-### UX Consistency
-- [x] **Preserve UI patterns**: FR-002 maintains current UI behavior and appearance
-- [x] **Accessibility**: FR-009 maintains accessibility features
-- [x] **Responsive design**: FR-008 preserves responsive design behavior
-- [x] **Error handling**: FR-012 maintains proper error handling
-
-### Performance Requirements
-- [x] **Load time**: <2s aligned with constitutional <2s requirement
-- [x] **Memory usage**: <200MB target for web app
-- [x] **Response time**: Maintain existing performance levels
-- [x] **Optimization focus**: All metrics (load time, memory, execution, bundle size)
-
-### Documentation Excellence
-- [x] **Preserve valuable docs**: FR-015 preserves documentation and comments where valuable
-- [x] **Code organization**: FR-011 improves code organization and structure
-- [x] **Change documentation**: This plan documents optimization approach
-
-**RESULT**: ✅ PASS - No constitutional violations detected
+[Gates determined based on constitution file]
 
 ## Project Structure
 
@@ -91,36 +63,50 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 ```
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+src/
+├── models/
+├── services/
+├── cli/
+└── lib/
+
+tests/
+├── contract/
+├── integration/
+└── unit/
+
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
-├── cmd/                    # Application entry points
-├── internal/
-│   ├── models/            # Data models (User, Task, Session, etc.)
-│   ├── services/          # Business logic services
-│   ├── handlers/          # HTTP handlers
-│   └── middleware/        # Middleware components
-├── tests/                 # Go tests
-├── main.go               # Main API entry
-└── go.mod                # Go dependencies
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
 
-mobile/
-├── lib/
-│   ├── main.dart         # Flutter app entry (1927 lines)
-│   ├── settings.dart     # Settings system
-│   ├── models/           # Dart models
-│   ├── services/         # Flutter services
-│   └── screens/          # UI screens
-├── build/web/
-│   └── index.html        # Standalone web app (4200+ lines)
-├── test/                 # Flutter tests
-└── pubspec.yaml          # Flutter dependencies
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
 
-scripts/                  # Validation and build scripts
-docs/                     # Feature documentation
-specs/                    # Feature specifications
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: Web application with Go backend and Flutter frontend that also builds to standalone web. The optimization will focus on the 4200+ line standalone web app (`mobile/build/web/index.html`) as the primary target, with secondary optimization of Go backend and Flutter code structure.
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
 ## Phase 0: Outline & Research
 1. **Extract unknowns from Technical Context** above:
@@ -182,31 +168,17 @@ specs/                    # Feature specifications
 **Task Generation Strategy**:
 - Load `.specify/templates/tasks-template.md` as base
 - Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
-- Each optimization target (HTML, Go, Flutter) → analysis task [P]
-- Each optimization type → contract test task [P]
-- Each quickstart phase → implementation task sequence
-- Validation tasks for functionality and performance preservation
-
-**Specific Task Categories**:
-1. **Analysis Tasks** [P]: Baseline measurement, duplicate detection, complexity analysis
-2. **Contract Tests** [P]: Validation script creation, performance test setup
-3. **HTML Optimization**: CSS consolidation, JavaScript optimization, structure simplification
-4. **Backend Optimization**: Go code deduplication, structure improvement
-5. **Frontend Optimization**: Flutter code consolidation, widget extraction
-6. **Validation Tasks**: Functionality testing, performance verification, cross-browser testing
+- Each contract → contract test task [P]
+- Each entity → model creation task [P] 
+- Each user story → integration test task
+- Implementation tasks to make tests pass
 
 **Ordering Strategy**:
-- TDD order: Analysis and tests before optimization implementation
-- Dependency order: Baseline → HTML → Backend → Flutter → Final validation
-- Mark [P] for parallel execution (independent analysis and contract tasks)
-- Sequential for optimization phases to avoid conflicts
+- TDD order: Tests before implementation 
+- Dependency order: Models before services before UI
+- Mark [P] for parallel execution (independent files)
 
-**Risk Mitigation**:
-- Each optimization phase has rollback task
-- Validation after each major change
-- Git checkpoint before each phase
-
-**Estimated Output**: 35-40 numbered, ordered tasks in tasks.md
+**Estimated Output**: 25-30 numbered, ordered tasks in tasks.md
 
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
@@ -230,18 +202,18 @@ specs/                    # Feature specifications
 *This checklist is updated during execution flow*
 
 **Phase Status**:
-- [x] Phase 0: Research complete (/plan command)
-- [x] Phase 1: Design complete (/plan command)
-- [x] Phase 2: Task planning complete (/plan command - describe approach only)
+- [ ] Phase 0: Research complete (/plan command)
+- [ ] Phase 1: Design complete (/plan command)
+- [ ] Phase 2: Task planning complete (/plan command - describe approach only)
 - [ ] Phase 3: Tasks generated (/tasks command)
 - [ ] Phase 4: Implementation complete
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
-- [x] Initial Constitution Check: PASS
-- [x] Post-Design Constitution Check: PASS
-- [x] All NEEDS CLARIFICATION resolved
-- [x] Complexity deviations documented (none required)
+- [ ] Initial Constitution Check: PASS
+- [ ] Post-Design Constitution Check: PASS
+- [ ] All NEEDS CLARIFICATION resolved
+- [ ] Complexity deviations documented
 
 ---
 *Based on Constitution v2.1.1 - See `/memory/constitution.md`*

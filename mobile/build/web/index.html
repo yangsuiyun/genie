@@ -132,6 +132,35 @@
         background: #3a3a3a;
       }
 
+      /* 深色模式下的新建项目按钮优化 */
+      .add-project-btn {
+        border-color: #666666;
+        color: #b3b3b3;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .add-project-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      /* 深色模式下的项目计数器优化 */
+      .project-count {
+        background: #444444;
+        color: #e0e0e0;
+      }
+
+      .project-item.active .project-count {
+        background: rgba(255,255,255,0.25);
+        color: #ffffff;
+      }
+
+      /* 深色模式下的侧边栏背景优化 */
+      .project-sidebar {
+        background: linear-gradient(180deg, #2d2d2d 0%, #1a1a1a 100%);
+      }
+
       .task-option:hover {
         background: #3a3a3a;
       }
@@ -155,8 +184,8 @@
 
     .app-container {
       display: grid;
-      grid-template-columns: 240px 1fr;
-      grid-template-rows: 60px 1fr;
+      grid-template-columns: 220px 1fr;
+      grid-template-rows: 56px 1fr;
       grid-template-areas:
         "header header"
         "sidebar main";
@@ -168,11 +197,11 @@
       grid-area: header;
       background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
       color: white;
-      padding: 0 24px;
+      padding: 0 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
       box-shadow: var(--shadow-medium);
       position: relative;
@@ -208,7 +237,7 @@
     }
 
     .sidebar-section {
-      padding: 24px 20px 20px;
+      padding: 12px 14px 10px;
       border-bottom: 1px solid var(--border-color);
     }
 
@@ -218,8 +247,8 @@
     }
 
     .sidebar-section h3 {
-      margin: 0 0 16px 0;
-      font-size: 15px;
+      margin: 0 0 8px 0;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-secondary);
       text-transform: uppercase;
@@ -230,8 +259,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 12px;
-      margin-bottom: 4px;
+      padding: 6px 8px;
+      margin-bottom: 1px;
       border-radius: var(--border-radius-small);
       cursor: pointer;
       transition: var(--transition);
@@ -239,6 +268,19 @@
       border: none;
       width: 100%;
       text-align: left;
+      position: relative;
+      color: var(--text-primary);
+    }
+
+    .project-item.dragging {
+      opacity: 0.5;
+      transform: rotate(2deg);
+      z-index: 1000;
+      box-shadow: var(--shadow-heavy);
+    }
+
+    .project-item.drag-over {
+      border-top: 3px solid var(--primary-color);
     }
 
     .project-item:hover {
@@ -281,18 +323,45 @@
       background: rgba(255,255,255,0.3);
     }
 
+    .add-project-btn {
+      background: transparent;
+      border: 1px solid var(--text-disabled);
+      color: var(--text-secondary);
+      border-radius: 16px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .add-project-btn:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    .project-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .project-header h3 {
+      margin: 0;
+    }
+
     .daily-stats {
       background: var(--background-color);
       border-radius: var(--border-radius);
-      padding: 16px;
-      margin-top: 8px;
+      padding: 12px;
+      margin-top: 6px;
     }
 
     .stat-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .stat-row:last-child {
@@ -316,7 +385,7 @@
     .main-content {
       grid-area: main;
       background: var(--background-color);
-      padding: 24px;
+      padding: 16px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -331,8 +400,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
       border-bottom: 2px solid var(--border-color);
     }
 
@@ -350,19 +419,19 @@
 
     .task-filters {
       display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
+      gap: 6px;
+      margin-bottom: 16px;
     }
 
     .filter-btn {
-      padding: 8px 16px;
+      padding: 6px 12px;
       border: 1px solid var(--border-color);
       background: var(--surface-color);
       color: var(--text-secondary);
       border-radius: var(--border-radius-small);
       cursor: pointer;
       transition: var(--transition);
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .filter-btn:hover {
@@ -379,8 +448,8 @@
       background: var(--surface-color);
       border: 1px solid var(--border-color);
       border-radius: var(--border-radius);
-      padding: 24px;
-      margin-bottom: 20px;
+      padding: 12px;
+      margin-bottom: 8px;
       box-shadow: var(--shadow-light);
       transition: var(--transition);
       position: relative;
@@ -397,7 +466,7 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
     }
 
     .task-info {
@@ -405,14 +474,14 @@
     }
 
     .task-title {
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--text-primary);
-      margin: 0 0 10px 0;
+      margin: 0 0 4px 0;
       display: flex;
       align-items: center;
-      gap: 12px;
-      line-height: 1.4;
+      gap: 8px;
+      line-height: 1.3;
     }
 
     .task-checkbox {
@@ -423,18 +492,19 @@
     }
 
     .task-description {
-      font-size: 14px;
+      font-size: 12px;
       color: var(--text-secondary);
-      margin-bottom: 16px;
-      line-height: 1.5;
+      margin-bottom: 6px;
+      line-height: 1.4;
     }
 
     .task-meta {
       display: flex;
       align-items: center;
-      gap: 16px;
-      font-size: 13px;
+      gap: 12px;
+      font-size: 12px;
       color: var(--text-secondary);
+      margin-top: 6px;
     }
 
     .task-priority {
@@ -446,18 +516,19 @@
     .priority-high { color: var(--error-color); }
     .priority-medium { color: var(--warning-color); }
     .priority-low { color: var(--success-color); }
+    .priority-urgent { color: #9c27b0; }
 
     .task-actions {
       display: flex;
-      gap: 8px;
-      margin-top: 12px;
+      gap: 6px;
+      margin-top: 8px;
     }
 
     .task-pomodoro-btn {
       background: var(--primary-color);
       color: white;
       border: none;
-      padding: 10px 20px;
+      padding: 6px 12px;
       border-radius: var(--border-radius-small);
       cursor: pointer;
       font-weight: 500;
@@ -465,6 +536,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      font-size: 13px;
     }
 
     .task-pomodoro-btn:hover {
@@ -481,8 +553,8 @@
     .pomodoro-count {
       background: rgba(255,255,255,0.2);
       border-radius: 12px;
-      padding: 2px 8px;
-      font-size: 12px;
+      padding: 2px 6px;
+      font-size: 11px;
       margin-left: 8px;
     }
 
@@ -495,12 +567,12 @@
     }
 
     .icon-option {
-      padding: 12px;
+      padding: 8px;
       border: 2px solid var(--border-color);
       background: var(--surface-color);
       border-radius: var(--border-radius-small);
       cursor: pointer;
-      font-size: 20px;
+      font-size: 18px;
       text-align: center;
       transition: var(--transition);
     }
@@ -535,13 +607,13 @@
       border-radius: var(--border-radius);
       box-shadow: var(--shadow-heavy);
       width: 90%;
-      max-width: 500px;
-      max-height: 90vh;
+      max-width: 480px;
+      max-height: 85vh;
       overflow-y: auto;
     }
 
     .modal-header {
-      padding: 20px 24px;
+      padding: 16px 20px;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
@@ -575,12 +647,12 @@
     }
 
     .modal-body {
-      padding: 24px;
+      padding: 20px;
     }
 
     .modal-input {
       width: 100%;
-      padding: 12px 16px;
+      padding: 10px 14px;
       border: 1px solid var(--border-color);
       border-radius: var(--border-radius-small);
       font-size: 14px;
@@ -716,17 +788,18 @@
       line-height: 1.5;
     }
 
-    /* Enhanced Task Cards */
-    .task-card {
-      background: var(--surface-color);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius);
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: var(--shadow-light);
-      transition: var(--transition);
-      position: relative;
-      overflow: hidden;
+    /* Enhanced Task Cards - consolidated with existing definition above */
+
+    .task-card.dragging {
+      opacity: 0.6;
+      transform: rotate(1deg) scale(1.02);
+      z-index: 1000;
+      box-shadow: var(--shadow-heavy);
+    }
+
+    .task-card.drag-over {
+      border-top: 4px solid var(--primary-color);
+      transform: translateY(-2px);
     }
 
     .task-card::before {
@@ -750,6 +823,10 @@
 
     .task-card.priority-low::before {
       background: var(--success-color);
+    }
+
+    .task-card.priority-urgent::before {
+      background: #9c27b0;
     }
 
     .task-card:hover {
@@ -940,6 +1017,59 @@
       outline: 3px solid var(--primary-color);
       outline-offset: 2px;
       box-shadow: 0 0 0 6px rgba(var(--primary-color-rgb), 0.2);
+    }
+
+    /* Drag and Drop Styles */
+    .drag-handle {
+      cursor: grab;
+      color: var(--text-disabled);
+      font-size: 16px;
+      padding: 4px;
+      margin-right: 8px;
+      user-select: none;
+      transition: var(--transition);
+    }
+
+    .drag-handle:hover {
+      color: var(--primary-color);
+      transform: scale(1.1);
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .sort-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 8px 12px;
+      background: var(--background-secondary);
+      border-radius: var(--border-radius-small);
+    }
+
+    .sort-btn {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      border-radius: var(--border-radius-small);
+      cursor: pointer;
+      font-size: 12px;
+      transition: var(--transition);
+    }
+
+    .sort-btn:hover {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .sort-btn.active {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
     }
 
     /* Skip link for screen readers */
@@ -1224,8 +1354,8 @@
     }
 
     .btn-small {
-      padding: 8px 16px;
-      font-size: 14px;
+      padding: 6px 12px;
+      font-size: 12px;
       border-radius: var(--border-radius-small);
     }
     .settings-section {
@@ -1812,31 +1942,31 @@
       }
 
       .task-card {
-        padding: 16px;
+        padding: 12px;
       }
 
       .task-actions {
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
       }
 
       .task-pomodoro-btn {
         flex: 1;
-        min-width: 140px;
+        min-width: 120px;
       }
 
       .timer-container {
-        padding: 24px 16px;
+        padding: 20px 14px;
       }
 
       .current-task-card {
-        padding: 20px;
-        margin: 16px 0;
+        padding: 16px;
+        margin: 12px 0;
       }
 
       .task-header {
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
       }
 
       .task-controls {
@@ -1954,6 +2084,85 @@
       color: var(--text-secondary);
     }
 
+    /* 已完成任务区域样式 */
+    .completed-section {
+      margin-top: 20px;
+    }
+
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--border-radius-small);
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+
+    .section-header:hover {
+      background: var(--background-color);
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .section-count {
+      background: var(--text-disabled);
+      color: white;
+      border-radius: 12px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 500;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .toggle-icon {
+      font-size: 12px;
+      color: var(--text-secondary);
+      transition: transform 0.2s ease;
+    }
+
+    .toggle-icon.expanded {
+      transform: rotate(180deg);
+    }
+
+    .completed-tasks-container {
+      display: none;
+    }
+
+    .completed-tasks-container.expanded {
+      display: block;
+    }
+
+    .load-more-btn {
+      text-align: center;
+      margin-top: 12px;
+      margin-bottom: 20px;
+    }
+
+    .load-more-btn .btn {
+      font-size: 13px;
+      padding: 8px 16px;
+    }
+
     /* ========== GRADIENT UTILITY CLASSES ========== */
     .gradient-primary {
       background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
@@ -2034,44 +2243,46 @@
     <div class="project-sidebar">
       <!-- Projects Section -->
       <div class="sidebar-section">
-        <h3>📋 我的项目</h3>
-        <div id="project-list">
-          <button class="project-item active" onclick="selectProject('inbox')">
-            <div class="project-info">
-              <span class="project-icon">📥</span>
-              <span class="project-name">Inbox</span>
-            </div>
-            <span class="project-count" id="inbox-count">5</span>
-          </button>
-          <button class="project-item" onclick="selectProject('work')">
-            <div class="project-info">
-              <span class="project-icon">💼</span>
-              <span class="project-name">工作项目</span>
-            </div>
-            <span class="project-count" id="work-count">12</span>
-          </button>
-          <button class="project-item" onclick="selectProject('personal')">
-            <div class="project-info">
-              <span class="project-icon">🏠</span>
-              <span class="project-name">个人项目</span>
-            </div>
-            <span class="project-count" id="personal-count">3</span>
-          </button>
-          <button class="project-item" onclick="selectProject('study')">
-            <div class="project-info">
-              <span class="project-icon">📚</span>
-              <span class="project-name">学习项目</span>
-            </div>
-            <span class="project-count" id="study-count">8</span>
+        <div class="project-header">
+          <h3>📋 我的项目</h3>
+          <button class="add-project-btn" onclick="showCreateProjectModal()" title="新建项目">
+            + 新建
           </button>
         </div>
-      </div>
-
-      <!-- Projects Management -->
-      <div style="padding: 0 16px 12px;">
-        <button class="btn btn-primary" onclick="showCreateProjectModal()" style="width: 100%; font-size: 16px; padding: 8px 12px;" title="新建项目">
-          ➕
-        </button>
+        <div id="project-list">
+          <div class="project-item active" draggable="true" data-project-id="inbox" onclick="selectProject('inbox')">
+            <span class="drag-handle">⋮⋮</span>
+            <div class="project-info">
+              <span class="project-icon">📥</span>
+              <span class="project-name" onclick="editProjectNameInline(event, 'inbox')" title="点击编辑名称">Inbox</span>
+            </div>
+            <span class="project-count" id="inbox-count">5</span>
+          </div>
+          <div class="project-item" draggable="true" data-project-id="work" onclick="selectProject('work')">
+            <span class="drag-handle">⋮⋮</span>
+            <div class="project-info">
+              <span class="project-icon">💼</span>
+              <span class="project-name" onclick="editProjectNameInline(event, 'work')" title="点击编辑名称">工作项目</span>
+            </div>
+            <span class="project-count" id="work-count">12</span>
+          </div>
+          <div class="project-item" draggable="true" data-project-id="personal" onclick="selectProject('personal')">
+            <span class="drag-handle">⋮⋮</span>
+            <div class="project-info">
+              <span class="project-icon">🏠</span>
+              <span class="project-name" onclick="editProjectNameInline(event, 'personal')" title="点击编辑名称">个人项目</span>
+            </div>
+            <span class="project-count" id="personal-count">3</span>
+          </div>
+          <div class="project-item" draggable="true" data-project-id="study" onclick="selectProject('study')">
+            <span class="drag-handle">⋮⋮</span>
+            <div class="project-info">
+              <span class="project-icon">📚</span>
+              <span class="project-name" onclick="editProjectNameInline(event, 'study')" title="点击编辑名称">学习项目</span>
+            </div>
+            <span class="project-count" id="study-count">8</span>
+          </div>
+        </div>
       </div>
 
       <!-- Daily Stats Section -->
@@ -2111,12 +2322,15 @@
       </div>
 
       <div id="task-list">
-        <!-- Example task cards -->
-        <div class="task-card">
+        <!-- 活跃任务区域 -->
+        <div id="active-tasks">
+          <!-- Example task cards -->
+          <div class="task-card" draggable="true" data-task-id="task-1" data-project-id="inbox">
+          <span class="drag-handle" style="position: absolute; top: 8px; right: 8px;">⋮⋮</span>
           <div class="task-header">
             <div class="task-info">
               <div class="task-title">
-                <input type="checkbox" class="task-checkbox" id="task-1">
+                <input type="checkbox" class="task-checkbox" id="task-1" onchange="toggleTaskCompletion('task-1')">
                 <label for="task-1">完成项目架构设计</label>
               </div>
               <div class="task-description">设计前端项目优先架构，包括左侧边栏导航和任务管理系统</div>
@@ -2137,11 +2351,12 @@
           </div>
         </div>
 
-        <div class="task-card">
+        <div class="task-card" draggable="true" data-task-id="task-2" data-project-id="work">
+          <span class="drag-handle" style="position: absolute; top: 8px; right: 8px;">⋮⋮</span>
           <div class="task-header">
             <div class="task-info">
               <div class="task-title">
-                <input type="checkbox" class="task-checkbox" id="task-2" checked>
+                <input type="checkbox" class="task-checkbox" id="task-2" checked onchange="toggleTaskCompletion('task-2')">
                 <label for="task-2" style="text-decoration: line-through; opacity: 0.6;">编写API文档</label>
               </div>
               <div class="task-description">完成后端API接口文档编写</div>
@@ -2161,11 +2376,12 @@
           </div>
         </div>
 
-        <div class="task-card">
+        <div class="task-card" draggable="true" data-task-id="task-3" data-project-id="personal">
+          <span class="drag-handle" style="position: absolute; top: 8px; right: 8px;">⋮⋮</span>
           <div class="task-header">
             <div class="task-info">
               <div class="task-title">
-                <input type="checkbox" class="task-checkbox" id="task-3">
+                <input type="checkbox" class="task-checkbox" id="task-3" onchange="toggleTaskCompletion('task-3')">
                 <label for="task-3">实现响应式布局</label>
               </div>
               <div class="task-description">适配移动端和平板设备的响应式设计</div>
@@ -2182,6 +2398,30 @@
             </button>
             <button class="btn btn-small btn-secondary" onclick="editTask('task-3')">✏️</button>
             <button class="btn btn-small btn-danger" onclick="deleteTask('task-3')">🗑️</button>
+          </div>
+        </div>
+        </div> <!-- end active-tasks -->
+
+        <!-- 已完成任务区域 -->
+        <div id="completed-tasks-section" class="completed-section" style="display: none;">
+          <div class="section-divider">
+            <div class="divider-line"></div>
+            <div class="section-header" onclick="toggleCompletedTasks()">
+              <span class="section-title">📋 已完成任务</span>
+              <span class="section-count" id="completed-count">0</span>
+              <span class="toggle-icon" id="completed-toggle-icon">▼</span>
+            </div>
+            <div class="divider-line"></div>
+          </div>
+
+          <div id="completed-tasks-list" class="completed-tasks-container">
+            <!-- 已完成的任务将通过JavaScript动态加载到这里 -->
+          </div>
+
+          <div id="load-more-completed" class="load-more-btn" onclick="loadMoreCompletedTasks()" style="display: none;">
+            <button class="btn btn-secondary">
+              <span id="load-more-text">加载更多已完成任务 ↓</span>
+            </button>
           </div>
         </div>
       </div>
@@ -2630,6 +2870,52 @@
     </div>
   </div>
 
+  <!-- 新建任务模态框 -->
+  <div id="create-task-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>新建任务</h2>
+        <button class="close-btn" onclick="closeCreateTaskModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 16px;">
+          <label for="create-task-title" style="display: block; margin-bottom: 8px; font-weight: 500;">任务标题:</label>
+          <input type="text" id="create-task-title" class="modal-input" placeholder="输入任务标题..." maxlength="100" required>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="create-task-description" style="display: block; margin-bottom: 8px; font-weight: 500;">任务描述:</label>
+          <textarea id="create-task-description" class="modal-input" placeholder="输入任务描述..." rows="3" style="resize: vertical;"></textarea>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="create-task-priority" style="display: block; margin-bottom: 8px; font-weight: 500;">优先级:</label>
+          <select id="create-task-priority" class="modal-input">
+            <option value="low">🟢 低优先级</option>
+            <option value="medium" selected>🟡 中优先级</option>
+            <option value="high">🔴 高优先级</option>
+            <option value="urgent">🟣 紧急</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="create-task-planned-pomodoros" style="display: block; margin-bottom: 8px; font-weight: 500;">计划番茄钟数量:</label>
+          <input type="number" id="create-task-planned-pomodoros" class="modal-input" min="1" max="50" value="3">
+          <div style="font-size: 12px; color: #666; margin-top: 4px;">建议每个任务2-8个番茄钟</div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="create-task-due-date" style="display: block; margin-bottom: 8px; font-weight: 500;">截止日期 (可选):</label>
+          <input type="date" id="create-task-due-date" class="modal-input">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeCreateTaskModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveNewTask()">创建任务</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ========== GLOBAL CONSTANTS ==========
     const TIMER_CONSTANTS = {
@@ -2695,9 +2981,10 @@
       // Update UI
       document.querySelectorAll('.project-item').forEach(item => {
         item.classList.remove('active');
+        if (item.dataset.projectId === projectId) {
+          item.classList.add('active');
+        }
       });
-
-      event.target.closest('.project-item').classList.add('active');
 
       // Update main content
       updateProjectHeader(projectId);
@@ -2708,19 +2995,69 @@
       const project = projects[projectId];
       const titleElement = document.getElementById('current-project-title');
       titleElement.textContent = `${project.icon} ${project.name}`;
+    }
 
-      // Update task count display
-      const taskCount = document.querySelectorAll('.task-card').length;
-      const projectCountElement = document.getElementById(`${projectId}-count`);
-      if (projectCountElement) {
-        projectCountElement.textContent = taskCount;
-      }
+    function updateProjectTaskCounts() {
+      // 更新所有项目的任务计数
+      Object.keys(projects).forEach(projectId => {
+        const projectCountElement = document.getElementById(`${projectId}-count`);
+        if (projectCountElement) {
+          const taskList = document.getElementById('task-list');
+          const projectTasks = taskList.querySelectorAll(`.task-card[data-project-id="${projectId}"]`);
+          let taskCount = projectTasks.length;
+
+          // 如果是inbox项目，显示没有特定项目ID的任务
+          if (projectId === 'inbox') {
+            const allTasks = taskList.querySelectorAll('.task-card');
+            const unassignedTasks = Array.from(allTasks).filter(task =>
+              !task.dataset.projectId || task.dataset.projectId === 'inbox'
+            );
+            taskCount = unassignedTasks.length;
+          }
+
+          projectCountElement.textContent = taskCount;
+        }
+      });
     }
 
     function loadProjectTasks(projectId) {
-      // In a real app, this would load tasks from API
-      // For now, we show the example tasks for all projects
+      // 获取活跃任务
+      const activeTasksContainer = document.getElementById('active-tasks');
+      const allTaskCards = activeTasksContainer.querySelectorAll('.task-card');
+
+      // 根据项目ID筛选显示活跃任务
+      allTaskCards.forEach(taskCard => {
+        const taskProjectId = taskCard.dataset.projectId || 'inbox';
+
+        if (projectId === 'inbox' || taskProjectId === projectId) {
+          taskCard.style.display = 'block';
+        } else {
+          taskCard.style.display = 'none';
+        }
+      });
+
+      // 过滤已完成任务
+      filterCompletedTasksByProject(projectId);
+
+      // 更新任务计数
+      updateProjectTaskCounts();
+
       console.log(`Loading tasks for project: ${projectId}`);
+    }
+
+    function filterCompletedTasksByProject(projectId) {
+      // 如果已完成区域展开，则重新加载符合当前项目的已完成任务
+      if (isCompletedSectionExpanded) {
+        const filteredCompletedTasks = completedTasksData.filter(task => {
+          return projectId === 'inbox' || task.projectId === projectId;
+        });
+
+        // 临时存储当前过滤的已完成任务
+        const originalData = completedTasksData;
+        completedTasksData = filteredCompletedTasks;
+        loadMoreCompletedTasks(true);
+        completedTasksData = originalData; // 恢复原始数据
+      }
     }
 
     // Task Pomodoro Functions
@@ -2777,6 +3114,11 @@
             isModalTimerRunning = false;
             startBtn.textContent = '开始';
 
+            // Update task pomodoro progress
+            if (activeTaskId) {
+              updateTaskPomodoroProgress(activeTaskId);
+            }
+
             // Show completion notification
             alert('🎉 番茄钟完成！休息一下吧！');
             closePomodoroModal();
@@ -2801,6 +3143,179 @@
       const seconds = modalTimeLeft % 60;
       const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
       document.getElementById('modal-timer').textContent = timeString;
+    }
+
+    // Task Completion Functions
+    function updateTaskPomodoroProgress(taskId) {
+      const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+      if (!taskCard) return;
+
+      const pomodoroSpan = taskCard.querySelector('.task-meta span:last-child');
+      if (!pomodoroSpan) return;
+
+      // Extract current progress (e.g., "🍅 2/5")
+      const currentText = pomodoroSpan.textContent;
+      const match = currentText.match(/(\d+)\/(\d+)/);
+      if (!match) return;
+
+      const completed = parseInt(match[1]);
+      const total = parseInt(match[2]);
+      const newCompleted = completed + 1;
+
+      // Update the pomodoro count
+      pomodoroSpan.textContent = `🍅 ${newCompleted}/${total}`;
+
+      // Also update the pomodoro button count
+      const pomodoroBtn = taskCard.querySelector('.task-pomodoro-btn .pomodoro-count');
+      if (pomodoroBtn) {
+        pomodoroBtn.textContent = `${newCompleted}/${total}`;
+      }
+
+      // Check if task should be automatically completed
+      if (newCompleted >= total) {
+        completeTaskAutomatically(taskId);
+      }
+    }
+
+    function completeTaskAutomatically(taskId) {
+      const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+      if (!taskCard) return;
+
+      const checkbox = taskCard.querySelector('.task-checkbox');
+      const label = taskCard.querySelector(`label[for="${taskId}"]`);
+
+      // Mark task as completed
+      checkbox.checked = true;
+
+      // Show notification
+      const taskTitle = label.textContent;
+      setTimeout(() => {
+        alert(`🎉 恭喜！任务"${taskTitle}"已完成！`);
+
+        // 延迟移动到已完成区域，让用户看到完成动画
+        setTimeout(() => {
+          moveTaskToCompleted(taskCard);
+          updateProjectTaskCounts();
+          saveTaskCompletionState();
+        }, 1000);
+      }, 500);
+    }
+
+    function toggleTaskCompletion(taskId) {
+      const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+      if (!taskCard) return;
+
+      const checkbox = taskCard.querySelector('.task-checkbox');
+
+      if (checkbox.checked) {
+        // 任务被标记为完成 - 移动到已完成区域
+        setTimeout(() => {
+          moveTaskToCompleted(taskCard);
+          updateProjectTaskCounts();
+          saveTaskCompletionState();
+        }, 300); // 稍微延迟，让用户看到勾选动画
+      } else {
+        // 任务被标记为未完成
+        // 检查这个任务是否在已完成区域（意味着用户在已完成区域取消勾选）
+        const isInCompletedSection = taskCard.closest('#completed-tasks-list');
+
+        if (isInCompletedSection) {
+          // 从已完成任务数据中移除，重新加载活跃任务
+          moveTaskToActive(taskId);
+          recreateActiveTask(taskId);
+          updateProjectTaskCounts();
+          saveTaskCompletionState();
+        }
+      }
+    }
+
+    function recreateActiveTask(taskId) {
+      // 从已完成任务数据中获取任务信息，重新创建为活跃任务
+      const taskData = completedTasksData.find(task => task.id === taskId);
+      if (!taskData) return;
+
+      const activeTasksContainer = document.getElementById('active-tasks');
+      const taskCard = document.createElement('div');
+      taskCard.className = 'task-card';
+      taskCard.draggable = true;
+      taskCard.dataset.taskId = taskData.id;
+      taskCard.dataset.projectId = taskData.projectId;
+
+      taskCard.innerHTML = `
+        <span class="drag-handle" style="position: absolute; top: 8px; right: 8px;">⋮⋮</span>
+        <div class="task-header">
+          <div class="task-info">
+            <div class="task-title">
+              <input type="checkbox" class="task-checkbox" id="${taskData.id}" onchange="toggleTaskCompletion('${taskData.id}')">
+              <label for="${taskData.id}">${taskData.title}</label>
+            </div>
+            ${taskData.description ? `<div class="task-description">${taskData.description}</div>` : ''}
+            <div class="task-meta">
+              <span class="task-priority ${taskData.priorityClass}">${taskData.priorityText}</span>
+              <span>📅 ${taskData.dateText}</span>
+              <span>🍅 ${taskData.pomodoroText}</span>
+            </div>
+          </div>
+        </div>
+        <div class="task-actions">
+          <button class="task-pomodoro-btn" onclick="startTaskPomodoro('${taskData.id}')">
+            🍅 开始番茄钟
+          </button>
+          <button class="btn btn-small btn-secondary" onclick="editTask('${taskData.id}')">✏️</button>
+          <button class="btn btn-small btn-danger" onclick="deleteTask('${taskId}')">🗑️</button>
+        </div>
+      `;
+
+      activeTasksContainer.appendChild(taskCard);
+
+      // Initialize drag events
+      setTimeout(() => {
+        initTaskDragEvents();
+      }, 100);
+    }
+
+    function saveTaskCompletionState() {
+      const taskStates = {};
+      document.querySelectorAll('.task-card').forEach(card => {
+        const taskId = card.dataset.taskId;
+        const checkbox = card.querySelector('.task-checkbox');
+        const pomodoroSpan = card.querySelector('.task-meta span:last-child');
+        const match = pomodoroSpan ? pomodoroSpan.textContent.match(/(\d+)\/(\d+)/) : null;
+
+        taskStates[taskId] = {
+          completed: checkbox.checked,
+          completedPomodoros: match ? parseInt(match[1]) : 0,
+          totalPomodoros: match ? parseInt(match[2]) : 3
+        };
+      });
+
+      localStorage.setItem('pomodoroTaskStates', JSON.stringify(taskStates));
+    }
+
+    function loadTaskCompletionState() {
+      const savedStates = localStorage.getItem('pomodoroTaskStates');
+      if (!savedStates) return;
+
+      const taskStates = JSON.parse(savedStates);
+      Object.keys(taskStates).forEach(taskId => {
+        const state = taskStates[taskId];
+        const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (!taskCard) return;
+
+        const checkbox = taskCard.querySelector('.task-checkbox');
+        const pomodoroSpan = taskCard.querySelector('.task-meta span:last-child');
+
+        // Update pomodoro count
+        if (pomodoroSpan && state.completedPomodoros !== undefined) {
+          pomodoroSpan.textContent = `🍅 ${state.completedPomodoros}/${state.totalPomodoros}`;
+        }
+
+        // Update completion state
+        checkbox.checked = state.completed;
+        if (state.completed) {
+          toggleTaskCompletion(taskId);
+        }
+      });
     }
 
     // Filter Functions
@@ -2835,33 +3350,248 @@
       });
     }
 
-    function createNewTask() {
-      const taskTitle = prompt('输入任务标题:');
-      if (!taskTitle || !taskTitle.trim()) {
-        return;
+    // 已完成任务管理
+    let completedTasksData = []; // 存储所有已完成任务数据
+    let completedTasksDisplayed = 0; // 当前显示的已完成任务数量
+    const COMPLETED_TASKS_PER_LOAD = 5; // 每次加载的数量
+    let isCompletedSectionExpanded = false;
+
+    function toggleCompletedTasks() {
+      const section = document.getElementById('completed-tasks-section');
+      const container = document.getElementById('completed-tasks-list');
+      const toggleIcon = document.getElementById('completed-toggle-icon');
+
+      isCompletedSectionExpanded = !isCompletedSectionExpanded;
+
+      if (isCompletedSectionExpanded) {
+        container.classList.add('expanded');
+        toggleIcon.classList.add('expanded');
+        loadMoreCompletedTasks(true); // 首次展开加载
+      } else {
+        container.classList.remove('expanded');
+        toggleIcon.classList.remove('expanded');
+      }
+    }
+
+    function loadMoreCompletedTasks(isFirstLoad = false) {
+      const container = document.getElementById('completed-tasks-list');
+      const loadMoreBtn = document.getElementById('load-more-completed');
+      const loadMoreText = document.getElementById('load-more-text');
+
+      if (isFirstLoad) {
+        // 重置状态
+        completedTasksDisplayed = 0;
+        container.innerHTML = '';
       }
 
-      const taskDescription = prompt('输入任务描述 (可选):') || '';
+      // 获取需要显示的任务
+      const startIndex = completedTasksDisplayed;
+      const endIndex = Math.min(startIndex + COMPLETED_TASKS_PER_LOAD, completedTasksData.length);
+      const tasksToShow = completedTasksData.slice(startIndex, endIndex);
 
-      // Generate unique task ID
-      const taskId = 'task_' + Date.now();
+      // 显示任务
+      tasksToShow.forEach(taskData => {
+        const taskElement = createCompletedTaskElement(taskData);
+        container.appendChild(taskElement);
+      });
 
-      // Create task card
-      const taskList = document.getElementById('task-list');
+      completedTasksDisplayed = endIndex;
+
+      // 更新"加载更多"按钮状态
+      if (completedTasksDisplayed >= completedTasksData.length) {
+        loadMoreBtn.style.display = 'none';
+      } else {
+        loadMoreBtn.style.display = 'block';
+        const remaining = completedTasksData.length - completedTasksDisplayed;
+        loadMoreText.textContent = `加载更多已完成任务 (还有${remaining}个) ↓`;
+      }
+    }
+
+    function createCompletedTaskElement(taskData) {
       const taskCard = document.createElement('div');
-      taskCard.className = 'task-card';
+      taskCard.className = 'task-card completed-task';
+      taskCard.dataset.taskId = taskData.id;
+      taskCard.dataset.projectId = taskData.projectId;
+
       taskCard.innerHTML = `
         <div class="task-header">
           <div class="task-info">
             <div class="task-title">
-              <input type="checkbox" class="task-checkbox" id="${taskId}">
-              <label for="${taskId}">${taskTitle.trim()}</label>
+              <input type="checkbox" class="task-checkbox" id="${taskData.id}" checked onchange="toggleTaskCompletion('${taskData.id}')">
+              <label for="${taskData.id}" style="text-decoration: line-through; opacity: 0.6;">${taskData.title}</label>
             </div>
-            <div class="task-description">${taskDescription.trim()}</div>
+            ${taskData.description ? `<div class="task-description">${taskData.description}</div>` : ''}
             <div class="task-meta">
-              <span class="task-priority priority-medium">🟡 中优先级</span>
-              <span>📅 ${new Date().toLocaleDateString('zh-CN')}</span>
-              <span>🍅 0/3</span>
+              <span class="task-priority ${taskData.priorityClass}">${taskData.priorityText}</span>
+              <span>📅 ${taskData.dateText}</span>
+              <span>🍅 ${taskData.pomodoroText}</span>
+              <span style="font-size: 11px; color: var(--text-disabled);">
+                完成于 ${taskData.completedAt}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="task-actions">
+          <button class="task-pomodoro-btn" disabled style="background: var(--success-color); cursor: not-allowed;">
+            ✅ 已完成
+          </button>
+          <button class="btn btn-small btn-secondary" onclick="editTask('${taskData.id}')">✏️</button>
+          <button class="btn btn-small btn-danger" onclick="deleteTask('${taskData.id}')">🗑️</button>
+        </div>
+      `;
+
+      return taskCard;
+    }
+
+    function moveTaskToCompleted(taskElement) {
+      // 提取任务数据
+      const taskId = taskElement.dataset.taskId;
+      const taskTitle = taskElement.querySelector('label').textContent;
+      const descriptionElement = taskElement.querySelector('.task-description');
+      const priorityElement = taskElement.querySelector('.task-priority');
+      const pomodoroElement = taskElement.querySelector('.task-meta span:last-child');
+
+      const taskData = {
+        id: taskId,
+        projectId: taskElement.dataset.projectId || 'inbox',
+        title: taskTitle,
+        description: descriptionElement ? descriptionElement.textContent : '',
+        priorityClass: priorityElement.className,
+        priorityText: priorityElement.textContent,
+        pomodoroText: pomodoroElement.textContent,
+        dateText: taskElement.querySelector('.task-meta span:nth-child(2)').textContent,
+        completedAt: new Date().toLocaleDateString('zh-CN', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      };
+
+      // 添加到已完成任务列表前端（最新的在前）
+      completedTasksData.unshift(taskData);
+
+      // 从活跃任务中移除
+      taskElement.remove();
+
+      // 更新已完成任务区域
+      updateCompletedTasksSection();
+    }
+
+    function moveTaskToActive(taskId) {
+      // 从已完成任务数据中找到并移除
+      const taskIndex = completedTasksData.findIndex(task => task.id === taskId);
+      if (taskIndex > -1) {
+        completedTasksData.splice(taskIndex, 1);
+
+        // 更新已完成任务显示
+        if (isCompletedSectionExpanded) {
+          loadMoreCompletedTasks(true); // 重新加载显示
+        }
+        updateCompletedTasksSection();
+      }
+    }
+
+    function updateCompletedTasksSection() {
+      const section = document.getElementById('completed-tasks-section');
+      const countElement = document.getElementById('completed-count');
+
+      // 更新计数
+      countElement.textContent = completedTasksData.length;
+
+      // 显示/隐藏区域
+      if (completedTasksData.length > 0) {
+        section.style.display = 'block';
+      } else {
+        section.style.display = 'none';
+        isCompletedSectionExpanded = false;
+      }
+    }
+
+    function createNewTask() {
+      // 清空表单
+      document.getElementById('create-task-title').value = '';
+      document.getElementById('create-task-description').value = '';
+      document.getElementById('create-task-priority').value = 'medium';
+      document.getElementById('create-task-planned-pomodoros').value = '3';
+      document.getElementById('create-task-due-date').value = '';
+
+      // 显示模态框
+      document.getElementById('create-task-modal').classList.remove('hidden');
+      document.getElementById('create-task-title').focus();
+
+      // 添加键盘事件监听
+      document.addEventListener('keydown', handleCreateTaskKeydown);
+    }
+
+    function handleCreateTaskKeydown(event) {
+      if (event.key === 'Escape') {
+        closeCreateTaskModal();
+      } else if (event.key === 'Enter' && event.target.id === 'create-task-title') {
+        event.preventDefault();
+        saveNewTask();
+      }
+    }
+
+    function closeCreateTaskModal() {
+      document.getElementById('create-task-modal').classList.add('hidden');
+      // 移除键盘事件监听
+      document.removeEventListener('keydown', handleCreateTaskKeydown);
+    }
+
+    function saveNewTask() {
+      const taskTitle = document.getElementById('create-task-title').value.trim();
+      if (!taskTitle) {
+        alert('请输入任务标题');
+        document.getElementById('create-task-title').focus();
+        return;
+      }
+
+      const taskDescription = document.getElementById('create-task-description').value.trim();
+      const priority = document.getElementById('create-task-priority').value;
+      const plannedPomodoros = parseInt(document.getElementById('create-task-planned-pomodoros').value) || 3;
+      const dueDate = document.getElementById('create-task-due-date').value;
+
+      // Generate unique task ID
+      const taskId = 'task_' + Date.now();
+
+      // 优先级样式映射
+      const priorityMap = {
+        low: { class: 'priority-low', text: '🟢 低优先级' },
+        medium: { class: 'priority-medium', text: '🟡 中优先级' },
+        high: { class: 'priority-high', text: '🔴 高优先级' },
+        urgent: { class: 'priority-urgent', text: '🟣 紧急' }
+      };
+
+      // 格式化日期显示
+      let dateText = new Date().toLocaleDateString('zh-CN');
+      if (dueDate) {
+        const due = new Date(dueDate);
+        const month = due.getMonth() + 1;
+        const day = due.getDate();
+        dateText = `${month}月${day}日`;
+      }
+
+      // Create task card in active tasks area
+      const activeTasksContainer = document.getElementById('active-tasks');
+      const taskCard = document.createElement('div');
+      taskCard.className = 'task-card';
+      taskCard.draggable = true;
+      taskCard.dataset.taskId = taskId;
+      taskCard.dataset.projectId = currentProject; // 分配到当前项目
+      taskCard.innerHTML = `
+        <span class="drag-handle" style="position: absolute; top: 8px; right: 8px;">⋮⋮</span>
+        <div class="task-header">
+          <div class="task-info">
+            <div class="task-title">
+              <input type="checkbox" class="task-checkbox" id="${taskId}" onchange="toggleTaskCompletion('${taskId}')">
+              <label for="${taskId}">${taskTitle}</label>
+            </div>
+            ${taskDescription ? `<div class="task-description">${taskDescription}</div>` : ''}
+            <div class="task-meta">
+              <span class="task-priority ${priorityMap[priority].class}">${priorityMap[priority].text}</span>
+              <span>📅 ${dateText}</span>
+              <span>🍅 0/${plannedPomodoros}</span>
             </div>
           </div>
         </div>
@@ -2874,10 +3604,21 @@
         </div>
       `;
 
-      taskList.appendChild(taskCard);
+      activeTasksContainer.appendChild(taskCard);
 
-      // Update project task count
-      updateProjectHeader(currentProject);
+      // Initialize drag events for the new task
+      setTimeout(() => {
+        initTaskDragEvents();
+      }, 100);
+
+      // Update project task counts
+      updateProjectTaskCounts();
+
+      // Save task state
+      saveTaskCompletionState();
+
+      // 关闭模态框
+      closeCreateTaskModal();
 
       // Save to localStorage (in a real app, this would save to backend)
       console.log('New task created:', { taskId, title: taskTitle, description: taskDescription, project: currentProject });
@@ -2931,21 +3672,33 @@
 
       // Create project button
       const projectList = document.getElementById('project-list');
-      const projectButton = document.createElement('button');
+      const projectButton = document.createElement('div');
       projectButton.className = 'project-item';
+      projectButton.draggable = true;
+      projectButton.dataset.projectId = projectId;
       projectButton.onclick = () => selectProject(projectId);
       projectButton.innerHTML = `
+        <span class="drag-handle">⋮⋮</span>
         <div class="project-info">
           <span class="project-icon">${selectedIcon}</span>
-          <span class="project-name">${projectName}</span>
+          <span class="project-name" onclick="editProjectNameInline(event, '${projectId}')" title="双击编辑名称">${projectName}</span>
         </div>
         <span class="project-count" id="${projectId}-count">0</span>
       `;
 
       projectList.appendChild(projectButton);
 
+      // Initialize drag events for the new project
+      setTimeout(() => {
+        initProjectDragEvents();
+      }, 100);
+
       // Save to localStorage
       localStorage.setItem('pomodoroProjects', JSON.stringify(projects));
+
+      // Add to project order
+      projectOrder.push(projectId);
+      localStorage.setItem('projectOrder', JSON.stringify(projectOrder));
 
       closeCreateProjectModal();
 
@@ -3312,13 +4065,16 @@
             // Create project button if it's a custom project
             if (projectId.startsWith('project_')) {
               const projectList = document.getElementById('project-list');
-              const projectButton = document.createElement('button');
+              const projectButton = document.createElement('div');
               projectButton.className = 'project-item';
+              projectButton.draggable = true;
+              projectButton.dataset.projectId = projectId;
               projectButton.onclick = () => selectProject(projectId);
               projectButton.innerHTML = `
+                <span class="drag-handle">⋮⋮</span>
                 <div class="project-info">
                   <span class="project-icon">${projects[projectId].icon}</span>
-                  <span class="project-name">${projects[projectId].name}</span>
+                  <span class="project-name" onclick="editProjectNameInline(event, '${projectId}')" title="双击编辑名称">${projects[projectId].name}</span>
                 </div>
                 <span class="project-count" id="${projectId}-count">0</span>
               `;
@@ -3334,6 +4090,9 @@
     document.addEventListener('DOMContentLoaded', function() {
       loadProjects();
       updateProjectHeader(currentProject);
+      updateProjectTaskCounts();
+      loadProjectTasks(currentProject);
+      loadTaskCompletionState();
       console.log('Project-first UI initialized');
     });
 
@@ -3868,12 +4627,15 @@
       const tasksList = document.getElementById('tasks-list');
       const taskItem = document.createElement('div');
       taskItem.className = `task-item fade-in ${task.completed ? 'completed-task' : ''}`;
+      taskItem.draggable = true;
+      taskItem.dataset.taskId = task.id;
 
       const completionStatus = task.completed ?
         '<span style="color: #4caf50; font-weight: bold;">✅ 已完成</span>' :
         '<span style="color: #ff9800; font-weight: bold;">🔄 进行中</span>';
 
       taskItem.innerHTML = `
+        <span class="drag-handle" style="position: absolute; top: 8px; right: 8px;">⋮⋮</span>
         <div class="task-title">${task.name}</div>
         <div class="task-meta">
           ${task.description ? `描述: ${task.description}<br>` : ''}
@@ -3947,6 +4709,11 @@
       tasksList.innerHTML = '';
       tasks.forEach(addTaskToList);
       updateStatistics(); // 更新统计数据
+
+      // 重新初始化拖拽事件
+      setTimeout(() => {
+        initTaskDragEvents();
+      }, 100);
     }
 
     // 更新统计数据
@@ -4468,7 +5235,256 @@
       }
     }
 
-    // 编辑项目名称功能
+    // ========== 拖拽排序系统 ==========
+    let draggedElement = null;
+    let projectOrder = JSON.parse(localStorage.getItem('projectOrder')) || ['inbox', 'work', 'personal', 'study'];
+    let taskOrder = JSON.parse(localStorage.getItem('taskOrder')) || [];
+
+    // 初始化项目拖拽事件
+    function initProjectDragEvents() {
+      const projectItems = document.querySelectorAll('.project-item');
+
+      projectItems.forEach(item => {
+        item.addEventListener('dragstart', handleProjectDragStart);
+        item.addEventListener('dragover', handleProjectDragOver);
+        item.addEventListener('drop', handleProjectDrop);
+        item.addEventListener('dragend', handleProjectDragEnd);
+      });
+    }
+
+    // 初始化任务拖拽事件
+    function initTaskDragEvents() {
+      const taskCards = document.querySelectorAll('.task-card');
+
+      taskCards.forEach(card => {
+        card.addEventListener('dragstart', handleTaskDragStart);
+        card.addEventListener('dragover', handleTaskDragOver);
+        card.addEventListener('drop', handleTaskDrop);
+        card.addEventListener('dragend', handleTaskDragEnd);
+      });
+    }
+
+    // 项目拖拽事件处理器
+    function handleProjectDragStart(e) {
+      draggedElement = this;
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleProjectDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      if (this !== draggedElement) {
+        this.classList.add('drag-over');
+      }
+    }
+
+    function handleProjectDrop(e) {
+      e.preventDefault();
+
+      if (this !== draggedElement) {
+        const projectList = document.getElementById('project-list');
+        const allItems = [...projectList.children];
+        const draggedIndex = allItems.indexOf(draggedElement);
+        const targetIndex = allItems.indexOf(this);
+
+        if (draggedIndex < targetIndex) {
+          this.parentNode.insertBefore(draggedElement, this.nextSibling);
+        } else {
+          this.parentNode.insertBefore(draggedElement, this);
+        }
+      }
+
+      this.classList.remove('drag-over');
+    }
+
+    function handleProjectDragEnd(e) {
+      document.querySelectorAll('.project-item').forEach(item => {
+        item.classList.remove('dragging', 'drag-over');
+      });
+      draggedElement = null;
+    }
+
+    // 任务拖拽事件处理器
+    function handleTaskDragStart(e) {
+      draggedElement = this;
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleTaskDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      if (this !== draggedElement) {
+        this.classList.add('drag-over');
+      }
+    }
+
+    function handleTaskDrop(e) {
+      e.preventDefault();
+
+      if (this !== draggedElement) {
+        const taskList = document.getElementById('task-list');
+        const allCards = [...taskList.children];
+        const draggedIndex = allCards.indexOf(draggedElement);
+        const targetIndex = allCards.indexOf(this);
+
+        if (draggedIndex < targetIndex) {
+          this.parentNode.insertBefore(draggedElement, this.nextSibling);
+        } else {
+          this.parentNode.insertBefore(draggedElement, this);
+        }
+      }
+
+      this.classList.remove('drag-over');
+    }
+
+    function handleTaskDragEnd(e) {
+      document.querySelectorAll('.task-card').forEach(card => {
+        card.classList.remove('dragging', 'drag-over');
+      });
+      draggedElement = null;
+    }
+
+    // 保存排序结果
+    function saveProjectOrder() {
+      const projectList = document.getElementById('project-list');
+      const items = [...projectList.children];
+      const newOrder = items.map(item => item.dataset.projectId);
+
+      projectOrder = newOrder;
+      localStorage.setItem('projectOrder', JSON.stringify(newOrder));
+      console.log('项目排序已保存:', newOrder);
+    }
+
+    function saveTaskOrder() {
+      const taskList = document.getElementById('task-list');
+      const cards = [...taskList.children];
+      const newOrder = cards.map(card => card.dataset.taskId).filter(id => id);
+
+      taskOrder = newOrder;
+      localStorage.setItem('taskOrder', JSON.stringify(newOrder));
+      console.log('任务排序已保存:', newOrder);
+    }
+
+    // 应用保存的排序
+    function applyProjectOrder() {
+      const projectList = document.getElementById('project-list');
+      const items = [...projectList.children];
+
+      projectOrder.forEach((projectId, index) => {
+        const item = items.find(item => item.dataset.projectId === projectId);
+        if (item) {
+          projectList.appendChild(item);
+        }
+      });
+    }
+
+    function applyTaskOrder() {
+      if (taskOrder.length === 0) return;
+
+      const taskList = document.getElementById('task-list');
+      const cards = [...taskList.children];
+
+      taskOrder.forEach((taskId, index) => {
+        const card = cards.find(card => card.dataset.taskId === taskId);
+        if (card) {
+          taskList.appendChild(card);
+        }
+      });
+    }
+
+    // ========== 项目名称编辑系统 ==========
+    let editingProjectId = null;
+
+    // 内联编辑项目名称
+    function editProjectNameInline(event, projectId) {
+      event.stopPropagation(); // 防止触发项目选择
+
+      if (editingProjectId) return; // 防止同时编辑多个项目
+
+      const projectNameElement = event.target;
+      const currentName = projectNameElement.textContent;
+
+      // 创建输入框
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentName;
+      input.className = 'modal-input';
+      input.style.cssText = `
+        width: 100%;
+        padding: 4px 8px;
+        border: 2px solid var(--primary-color);
+        border-radius: 4px;
+        background: white;
+        font-size: inherit;
+        font-family: inherit;
+      `;
+
+      // 替换文本为输入框
+      projectNameElement.style.display = 'none';
+      projectNameElement.parentNode.insertBefore(input, projectNameElement);
+
+      editingProjectId = projectId;
+      input.focus();
+      input.select();
+
+      // 保存编辑
+      function saveEdit() {
+        const newName = input.value.trim();
+
+        if (newName && newName !== currentName) {
+          projectNameElement.textContent = newName;
+
+          // 更新项目数据
+          if (projects[projectId]) {
+            projects[projectId].name = newName;
+            localStorage.setItem('pomodoroProjects', JSON.stringify(projects));
+          }
+
+          // 如果是当前项目，更新标题
+          if (currentProject === projectId) {
+            const titleElement = document.getElementById('current-project-title');
+            const icon = projects[projectId]?.icon || '📋';
+            titleElement.textContent = `${icon} ${newName}`;
+          }
+
+          showToast(`项目名称已更新为: ${newName}`, 'success');
+        } else if (!newName) {
+          showToast('项目名称不能为空', 'error');
+          input.focus();
+          return;
+        }
+
+        // 恢复显示
+        input.remove();
+        projectNameElement.style.display = '';
+        editingProjectId = null;
+      }
+
+      // 取消编辑
+      function cancelEdit() {
+        input.remove();
+        projectNameElement.style.display = '';
+        editingProjectId = null;
+      }
+
+      // 事件监听
+      input.addEventListener('blur', saveEdit);
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveEdit();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelEdit();
+        }
+      });
+    }
+
+    // 编辑项目名称功能（保留原有的模态框方式作为备用）
     function editProjectName() {
       const titleElement = document.getElementById('current-project-title');
       const currentTitle = titleElement.textContent;
@@ -4507,6 +5523,14 @@
       updateTimerDisplay();
       updateCurrentTaskDisplay();
       initializeSettings();
+
+      // 初始化排序功能
+      applyProjectOrder();
+      applyTaskOrder();
+
+      // 初始化拖拽事件 (始终启用)
+      initProjectDragEvents();
+      initTaskDragEvents();
 
       // 请求通知权限
       if ('Notification' in window && Notification.permission === 'default') {
