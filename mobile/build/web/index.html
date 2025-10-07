@@ -3119,6 +3119,9 @@
               updateTaskPomodoroProgress(activeTaskId);
             }
 
+            // Update daily statistics
+            incrementPomodoroStats();
+
             // Show completion notification
             alert('🎉 番茄钟完成！休息一下吧！');
             closePomodoroModal();
@@ -3350,6 +3353,39 @@
       });
     }
 
+    function recalculateStatsFromTasks() {
+      // 重新计算今天的统计数据（从现有任务数据中）
+      const today = new Date().toDateString();
+
+      // 重置统计（保留日期）
+      const currentDate = dailyStats.date;
+      dailyStats = {
+        completedTasks: 0,
+        completedPomodoros: 0,
+        focusTimeMinutes: 0,
+        date: currentDate
+      };
+
+      // 从已完成任务数据中计算
+      completedTasksData.forEach(task => {
+        const taskCompletedDate = new Date(task.completedAt).toDateString();
+        if (taskCompletedDate === today) {
+          dailyStats.completedTasks++;
+
+          // 提取番茄钟数量
+          const match = task.pomodoroText.match(/(\d+)\/(\d+)/);
+          if (match) {
+            const completed = parseInt(match[1]);
+            dailyStats.completedPomodoros += completed;
+            dailyStats.focusTimeMinutes += completed * 25;
+          }
+        }
+      });
+
+      saveDailyStats();
+      updateDailyStatsDisplay();
+    }
+
     // 已完成任务管理
     let completedTasksData = []; // 存储所有已完成任务数据
     let completedTasksDisplayed = 0; // 当前显示的已完成任务数量
@@ -3474,6 +3510,9 @@
       // 从活跃任务中移除
       taskElement.remove();
 
+      // 更新统计数据
+      incrementCompletedTasks();
+
       // 更新已完成任务区域
       updateCompletedTasksSection();
     }
@@ -3483,6 +3522,9 @@
       const taskIndex = completedTasksData.findIndex(task => task.id === taskId);
       if (taskIndex > -1) {
         completedTasksData.splice(taskIndex, 1);
+
+        // 更新统计数据
+        decrementCompletedTasks();
 
         // 更新已完成任务显示
         if (isCompletedSectionExpanded) {
@@ -3505,6 +3547,84 @@
       } else {
         section.style.display = 'none';
         isCompletedSectionExpanded = false;
+      }
+    }
+
+    // 统计数据管理
+    let dailyStats = {
+      completedPomodoros: 0,
+      focusTimeMinutes: 0,
+      completedTasks: 0,
+      date: new Date().toDateString() // 跟踪日期，确保数据是今天的
+    };
+
+    function loadDailyStats() {
+      const saved = localStorage.getItem('dailyStats');
+      const today = new Date().toDateString();
+
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // 如果是今天的数据，加载；否则重置
+        if (parsed.date === today) {
+          dailyStats = parsed;
+        } else {
+          // 新的一天，重置统计
+          dailyStats = {
+            completedPomodoros: 0,
+            focusTimeMinutes: 0,
+            completedTasks: 0,
+            date: today
+          };
+          saveDailyStats();
+        }
+      }
+
+      updateDailyStatsDisplay();
+    }
+
+    function saveDailyStats() {
+      localStorage.setItem('dailyStats', JSON.stringify(dailyStats));
+    }
+
+    function updateDailyStatsDisplay() {
+      // 更新番茄钟数量
+      document.getElementById('daily-pomodoros').textContent = dailyStats.completedPomodoros;
+
+      // 更新专注时间 (转换分钟为小时分钟格式)
+      const hours = Math.floor(dailyStats.focusTimeMinutes / 60);
+      const minutes = dailyStats.focusTimeMinutes % 60;
+      let timeText = '';
+      if (hours > 0) {
+        timeText += `${hours}h `;
+      }
+      if (minutes > 0 || hours === 0) {
+        timeText += `${minutes}m`;
+      }
+      if (timeText === '') timeText = '0m';
+      document.getElementById('daily-focus-time').textContent = timeText;
+
+      // 更新完成任务数量
+      document.getElementById('daily-completed-tasks').textContent = dailyStats.completedTasks;
+    }
+
+    function incrementPomodoroStats() {
+      dailyStats.completedPomodoros++;
+      dailyStats.focusTimeMinutes += 25; // 一个番茄钟25分钟
+      saveDailyStats();
+      updateDailyStatsDisplay();
+    }
+
+    function incrementCompletedTasks() {
+      dailyStats.completedTasks++;
+      saveDailyStats();
+      updateDailyStatsDisplay();
+    }
+
+    function decrementCompletedTasks() {
+      if (dailyStats.completedTasks > 0) {
+        dailyStats.completedTasks--;
+        saveDailyStats();
+        updateDailyStatsDisplay();
       }
     }
 
@@ -4093,6 +4213,13 @@
       updateProjectTaskCounts();
       loadProjectTasks(currentProject);
       loadTaskCompletionState();
+      loadDailyStats(); // 加载今日统计数据
+
+      // 延迟重新计算，确保已完成任务数据已加载
+      setTimeout(() => {
+        recalculateStatsFromTasks();
+      }, 100);
+
       console.log('Project-first UI initialized');
     });
 
