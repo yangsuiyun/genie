@@ -2204,6 +2204,7 @@
     /* 已完成任务区域样式 */
     .completed-section {
       margin-top: 20px;
+      display: none; /* Initially hidden, will be shown when tasks are completed */
     }
 
     .section-divider {
@@ -2454,7 +2455,7 @@
             </div>
             <div id="completed-tasks-section" class="completed-section">
               <div class="section-header" onclick="toggleCompletedTasks()">
-                📋 已完成任务 (0) ▼
+                📋 已完成任务 (<span id="completed-count">0</span>) ▼
               </div>
               <div id="completed-tasks-list"></div>
             </div>
@@ -3329,9 +3330,19 @@
       });
 
       localStorage.setItem('pomodoroTaskStates', JSON.stringify(taskStates));
+
+      // Also save completed tasks data
+      localStorage.setItem('completedTasksData', JSON.stringify(completedTasksData));
     }
 
     function loadTaskCompletionState() {
+      // Load completed tasks data first
+      const savedCompletedTasks = localStorage.getItem('completedTasksData');
+      if (savedCompletedTasks) {
+        completedTasksData = JSON.parse(savedCompletedTasks);
+        updateCompletedTasksSection(); // Update the UI to show completed section
+      }
+
       const savedStates = localStorage.getItem('pomodoroTaskStates');
       if (!savedStates) return;
 
