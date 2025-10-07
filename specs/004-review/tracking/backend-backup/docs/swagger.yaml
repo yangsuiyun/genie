@@ -1,0 +1,1755 @@
+openapi: 3.0.3
+info:
+  title: Pomodoro Genie API
+  description: |
+    A comprehensive REST API for the Pomodoro Genie task and time management application.
+
+    This API provides endpoints for user authentication, task management, pomodoro sessions,
+    reporting, and synchronization across devices.
+
+    ## Features
+    - JWT-based authentication
+    - Task CRUD operations with subtasks
+    - Pomodoro timer session management
+    - Real-time notifications
+    - Cross-device synchronization
+    - Analytics and reporting
+
+    ## Authentication
+    Most endpoints require authentication via JWT token in the Authorization header:
+    ```
+    Authorization: Bearer <jwt_token>
+    ```
+
+    ## Rate Limiting
+    The API implements rate limiting:
+    - 100 requests per minute for authenticated users
+    - 20 requests per minute for unauthenticated users
+
+    ## Error Handling
+    All errors follow a consistent format:
+    ```json
+    {
+      "error": {
+        "code": "ERROR_CODE",
+        "message": "Human readable error message",
+        "details": "Additional error details"
+      },
+      "success": false
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: Pomodoro Genie API Support
+    email: support@pomodoro-genie.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.pomodoro-genie.com/v1
+    description: Production server
+  - url: https://staging-api.pomodoro-genie.com/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User management and profiles
+  - name: Tasks
+    description: Task management and CRUD operations
+  - name: Subtasks
+    description: Subtask management
+  - name: Pomodoro
+    description: Pomodoro session management
+  - name: Reports
+    description: Analytics and reporting
+  - name: Sync
+    description: Cross-device synchronization
+  - name: Notifications
+    description: Push notifications
+
+paths:
+  # Authentication Endpoints
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Creates a new user account with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              valid_registration:
+                summary: Valid registration
+                value:
+                  name: "John Doe"
+                  email: "john.doe@example.com"
+                  password: "StrongPassword123!"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticates user and returns JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              valid_login:
+                summary: Valid login
+                value:
+                  email: "john.doe@example.com"
+                  password: "StrongPassword123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh JWT token
+      description: Refreshes the JWT token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Invalidates the current JWT token
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # User Management
+  /users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Retrieves the current user's profile information
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      description: Updates the current user's profile information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/preferences:
+    get:
+      tags:
+        - Users
+      summary: Get user preferences
+      description: Retrieves user's application preferences
+      responses:
+        '200':
+          description: Preferences retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+
+    put:
+      tags:
+        - Users
+      summary: Update user preferences
+      description: Updates user's application preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Preferences updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+
+  # Task Management
+  /tasks:
+    get:
+      tags:
+        - Tasks
+      summary: List tasks
+      description: Retrieves a paginated list of user's tasks
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of tasks per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          description: Filter by task status
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - name: priority
+          in: query
+          description: Filter by task priority
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+        - name: search
+          in: query
+          description: Search tasks by title or description
+          schema:
+            type: string
+        - name: tags
+          in: query
+          description: Filter by tags (comma-separated)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tasks retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+
+    post:
+      tags:
+        - Tasks
+      summary: Create a new task
+      description: Creates a new task for the current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+            examples:
+              basic_task:
+                summary: Basic task
+                value:
+                  title: "Complete project documentation"
+                  description: "Write comprehensive documentation for the new feature"
+                  priority: "high"
+                  estimated_pomodoros: 5
+                  tags: ["documentation", "urgent"]
+              task_with_due_date:
+                summary: Task with due date
+                value:
+                  title: "Review pull requests"
+                  description: "Review and approve pending PRs"
+                  priority: "medium"
+                  estimated_pomodoros: 3
+                  due_date: "2024-12-31T23:59:59Z"
+                  tags: ["development", "review"]
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tasks/{taskId}:
+    get:
+      tags:
+        - Tasks
+      summary: Get task by ID
+      description: Retrieves a specific task by its ID
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Tasks
+      summary: Update task
+      description: Updates an existing task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Tasks
+      summary: Delete task
+      description: Deletes a task and all its subtasks
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Task deleted successfully
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Subtask Management
+  /tasks/{taskId}/subtasks:
+    get:
+      tags:
+        - Subtasks
+      summary: List subtasks
+      description: Retrieves all subtasks for a specific task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: Parent task ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Subtasks retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubtaskListResponse'
+
+    post:
+      tags:
+        - Subtasks
+      summary: Create subtask
+      description: Creates a new subtask for a specific task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: Parent task ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubtaskRequest'
+      responses:
+        '201':
+          description: Subtask created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subtask'
+
+  /tasks/{taskId}/subtasks/{subtaskId}:
+    put:
+      tags:
+        - Subtasks
+      summary: Update subtask
+      description: Updates an existing subtask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: Parent task ID
+          schema:
+            type: string
+            format: uuid
+        - name: subtaskId
+          in: path
+          required: true
+          description: Subtask ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSubtaskRequest'
+      responses:
+        '200':
+          description: Subtask updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subtask'
+
+    delete:
+      tags:
+        - Subtasks
+      summary: Delete subtask
+      description: Deletes a subtask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: Parent task ID
+          schema:
+            type: string
+            format: uuid
+        - name: subtaskId
+          in: path
+          required: true
+          description: Subtask ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Subtask deleted successfully
+
+  # Pomodoro Session Management
+  /pomodoro/sessions:
+    get:
+      tags:
+        - Pomodoro
+      summary: List pomodoro sessions
+      description: Retrieves user's pomodoro sessions with optional filtering
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of sessions per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: start_date
+          in: query
+          description: Filter sessions from this date
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: Filter sessions until this date
+          schema:
+            type: string
+            format: date-time
+        - name: task_id
+          in: query
+          description: Filter by specific task
+          schema:
+            type: string
+            format: uuid
+        - name: session_type
+          in: query
+          description: Filter by session type
+          schema:
+            $ref: '#/components/schemas/SessionType'
+      responses:
+        '200':
+          description: Sessions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListResponse'
+
+    post:
+      tags:
+        - Pomodoro
+      summary: Start pomodoro session
+      description: Starts a new pomodoro session for a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartSessionRequest'
+            examples:
+              work_session:
+                summary: Work session
+                value:
+                  task_id: "123e4567-e89b-12d3-a456-426614174000"
+                  session_type: "work"
+                  planned_duration: 1500
+              break_session:
+                summary: Break session
+                value:
+                  session_type: "short_break"
+                  planned_duration: 300
+      responses:
+        '201':
+          description: Session started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PomodoroSession'
+
+  /pomodoro/sessions/{sessionId}:
+    get:
+      tags:
+        - Pomodoro
+      summary: Get session by ID
+      description: Retrieves a specific pomodoro session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          description: Session ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PomodoroSession'
+
+    put:
+      tags:
+        - Pomodoro
+      summary: Update session
+      description: Updates a pomodoro session (pause, resume, complete, stop)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          description: Session ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSessionRequest'
+            examples:
+              pause_session:
+                summary: Pause session
+                value:
+                  action: "pause"
+              resume_session:
+                summary: Resume session
+                value:
+                  action: "resume"
+              complete_session:
+                summary: Complete session
+                value:
+                  action: "complete"
+                  actual_duration: 1495
+      responses:
+        '200':
+          description: Session updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PomodoroSession'
+
+  /pomodoro/current:
+    get:
+      tags:
+        - Pomodoro
+      summary: Get current active session
+      description: Retrieves the user's currently active pomodoro session
+      responses:
+        '200':
+          description: Current session retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PomodoroSession'
+        '404':
+          description: No active session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Reports and Analytics
+  /reports:
+    get:
+      tags:
+        - Reports
+      summary: Generate report
+      description: Generates productivity reports and analytics
+      parameters:
+        - name: type
+          in: query
+          required: true
+          description: Type of report to generate
+          schema:
+            $ref: '#/components/schemas/ReportType'
+        - name: start_date
+          in: query
+          required: true
+          description: Report start date
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          required: true
+          description: Report end date
+          schema:
+            type: string
+            format: date-time
+        - name: format
+          in: query
+          description: Report format
+          schema:
+            type: string
+            enum: [json, pdf, csv]
+            default: json
+      responses:
+        '200':
+          description: Report generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+
+  /reports/analytics:
+    get:
+      tags:
+        - Reports
+      summary: Get analytics data
+      description: Retrieves detailed analytics and statistics
+      parameters:
+        - name: period
+          in: query
+          description: Analytics period
+          schema:
+            type: string
+            enum: [day, week, month, year]
+            default: week
+        - name: metrics
+          in: query
+          description: Specific metrics to include
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [productivity_score, focus_time, task_completion, session_analysis]
+      responses:
+        '200':
+          description: Analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Analytics'
+
+  # Synchronization
+  /sync/pull:
+    post:
+      tags:
+        - Sync
+      summary: Pull changes from server
+      description: Retrieves changes from server since last sync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPullRequest'
+      responses:
+        '200':
+          description: Changes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPullResponse'
+
+  /sync/push:
+    post:
+      tags:
+        - Sync
+      summary: Push changes to server
+      description: Sends local changes to server
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPushRequest'
+      responses:
+        '200':
+          description: Changes synchronized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPushResponse'
+
+  # Notifications
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: List notifications
+      description: Retrieves user notifications
+      parameters:
+        - name: unread_only
+          in: query
+          description: Filter for unread notifications only
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          description: Number of notifications to retrieve
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+
+  /notifications/{notificationId}/read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      description: Marks a specific notification as read
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          description: Notification ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /notifications/register-device:
+    post:
+      tags:
+        - Notifications
+      summary: Register device for push notifications
+      description: Registers a device token for push notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistrationRequest'
+      responses:
+        '200':
+          description: Device registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Request Schemas
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          example: "StrongPassword123!"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        password:
+          type: string
+          example: "StrongPassword123!"
+
+    RefreshRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        email:
+          type: string
+          format: email
+
+    CreateTaskRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: "Complete project documentation"
+        description:
+          type: string
+          maxLength: 1000
+          example: "Write comprehensive documentation for the new feature"
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        estimated_pomodoros:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 5
+        due_date:
+          type: string
+          format: date-time
+          example: "2024-12-31T23:59:59Z"
+        tags:
+          type: array
+          items:
+            type: string
+          maxItems: 20
+          example: ["documentation", "urgent"]
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        estimated_pomodoros:
+          type: integer
+          minimum: 1
+          maximum: 100
+        completed_pomodoros:
+          type: integer
+          minimum: 0
+        due_date:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+          maxItems: 20
+
+    CreateSubtaskRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: "Research existing solutions"
+        description:
+          type: string
+          maxLength: 500
+          example: "Look into current documentation tools"
+
+    UpdateSubtaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 500
+        is_completed:
+          type: boolean
+
+    StartSessionRequest:
+      type: object
+      required:
+        - session_type
+        - planned_duration
+      properties:
+        task_id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        session_type:
+          $ref: '#/components/schemas/SessionType'
+        planned_duration:
+          type: integer
+          minimum: 60
+          maximum: 7200
+          example: 1500
+          description: "Session duration in seconds"
+
+    UpdateSessionRequest:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum: [pause, resume, complete, stop]
+          example: "complete"
+        actual_duration:
+          type: integer
+          minimum: 0
+          example: 1495
+          description: "Actual session duration in seconds"
+
+    SyncPullRequest:
+      type: object
+      required:
+        - last_sync_timestamp
+        - device_id
+      properties:
+        last_sync_timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        device_id:
+          type: string
+          example: "device_123"
+
+    SyncPushRequest:
+      type: object
+      required:
+        - device_id
+        - changes
+      properties:
+        device_id:
+          type: string
+          example: "device_123"
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncChange'
+
+    DeviceRegistrationRequest:
+      type: object
+      required:
+        - device_token
+        - platform
+      properties:
+        device_token:
+          type: string
+          example: "fGhI7jKlMnOpQrStUvWxYz1234567890"
+        platform:
+          type: string
+          enum: [ios, android, web]
+          example: "ios"
+        device_id:
+          type: string
+          example: "device_123"
+
+    # Response Schemas
+    RegisterResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "User registered successfully"
+        user:
+          $ref: '#/components/schemas/User'
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        access_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expires_in:
+          type: integer
+          example: 3600
+          description: "Token expiration time in seconds"
+        user:
+          $ref: '#/components/schemas/User'
+
+    TokenResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        access_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expires_in:
+          type: integer
+          example: 3600
+
+    TaskListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    SubtaskListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subtask'
+
+    SessionListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PomodoroSession'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    NotificationListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+
+    SyncPullResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncChange'
+        server_timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:35:00Z"
+
+    SyncPushResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        conflicts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncConflict'
+        server_timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:35:00Z"
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid input data"
+            details:
+              type: string
+              example: "Email is required"
+        success:
+          type: boolean
+          example: false
+
+    # Entity Schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        is_verified:
+          type: boolean
+          example: true
+        preferences:
+          $ref: '#/components/schemas/UserPreferences'
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    UserPreferences:
+      type: object
+      properties:
+        work_duration:
+          type: integer
+          example: 1500
+          description: "Work session duration in seconds"
+        short_break_duration:
+          type: integer
+          example: 300
+          description: "Short break duration in seconds"
+        long_break_duration:
+          type: integer
+          example: 1200
+          description: "Long break duration in seconds"
+        sessions_until_long_break:
+          type: integer
+          example: 4
+        auto_start_breaks:
+          type: boolean
+          example: true
+        auto_start_pomodoros:
+          type: boolean
+          example: false
+        notification_sound:
+          type: string
+          example: "bell"
+        theme:
+          type: string
+          enum: [light, dark, auto]
+          example: "auto"
+        timezone:
+          type: string
+          example: "America/New_York"
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        user_id:
+          type: string
+          format: uuid
+          example: "456e7890-e89b-12d3-a456-426614174111"
+        title:
+          type: string
+          example: "Complete project documentation"
+        description:
+          type: string
+          example: "Write comprehensive documentation for the new feature"
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        estimated_pomodoros:
+          type: integer
+          example: 5
+        completed_pomodoros:
+          type: integer
+          example: 2
+        due_date:
+          type: string
+          format: date-time
+          example: "2024-12-31T23:59:59Z"
+        completed_at:
+          type: string
+          format: date-time
+          example: "2024-01-20T15:30:00Z"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["documentation", "urgent"]
+        subtasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subtask'
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-16T14:20:00Z"
+
+    Subtask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "789e0123-e89b-12d3-a456-426614174222"
+        task_id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        title:
+          type: string
+          example: "Research existing solutions"
+        description:
+          type: string
+          example: "Look into current documentation tools"
+        is_completed:
+          type: boolean
+          example: false
+        order_index:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-16T14:20:00Z"
+
+    PomodoroSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "abc1234-e89b-12d3-a456-426614174333"
+        user_id:
+          type: string
+          format: uuid
+          example: "456e7890-e89b-12d3-a456-426614174111"
+        task_id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        session_type:
+          $ref: '#/components/schemas/SessionType'
+        status:
+          $ref: '#/components/schemas/SessionStatus'
+        planned_duration:
+          type: integer
+          example: 1500
+          description: "Planned duration in seconds"
+        actual_duration:
+          type: integer
+          example: 1495
+          description: "Actual duration in seconds"
+        started_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        ended_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T11:00:00Z"
+        paused_duration:
+          type: integer
+          example: 30
+          description: "Total paused time in seconds"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T11:00:00Z"
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "def5678-e89b-12d3-a456-426614174444"
+        user_id:
+          type: string
+          format: uuid
+          example: "456e7890-e89b-12d3-a456-426614174111"
+        report_type:
+          $ref: '#/components/schemas/ReportType'
+        start_date:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        end_date:
+          type: string
+          format: date-time
+          example: "2024-01-07T23:59:59Z"
+        data:
+          $ref: '#/components/schemas/ReportData'
+        generated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    ReportData:
+      type: object
+      properties:
+        tasks_completed:
+          type: integer
+          example: 15
+        pomodoro_completed:
+          type: integer
+          example: 30
+        total_focus_time:
+          type: integer
+          example: 43200
+          description: "Total focus time in seconds"
+        productivity_score:
+          type: number
+          format: float
+          example: 85.5
+        daily_breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyStats'
+
+    DailyStats:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2024-01-15"
+        tasks_completed:
+          type: integer
+          example: 3
+        pomodoros_completed:
+          type: integer
+          example: 6
+        focus_time:
+          type: integer
+          example: 7200
+          description: "Focus time in seconds"
+        productivity_score:
+          type: number
+          format: float
+          example: 88.2
+
+    Analytics:
+      type: object
+      properties:
+        period:
+          type: string
+          example: "week"
+        productivity_score:
+          type: number
+          format: float
+          example: 85.5
+        focus_patterns:
+          type: object
+          properties:
+            best_hours:
+              type: array
+              items:
+                type: integer
+              example: [9, 10, 14, 15]
+            peak_productivity_day:
+              type: string
+              example: "Tuesday"
+        task_completion:
+          type: object
+          properties:
+            completion_rate:
+              type: number
+              format: float
+              example: 78.5
+            average_time_per_task:
+              type: integer
+              example: 3600
+              description: "Average time in seconds"
+        session_analysis:
+          type: object
+          properties:
+            completed_sessions:
+              type: integer
+              example: 25
+            interrupted_sessions:
+              type: integer
+              example: 3
+            average_session_length:
+              type: integer
+              example: 1480
+              description: "Average length in seconds"
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "ghi9012-e89b-12d3-a456-426614174555"
+        user_id:
+          type: string
+          format: uuid
+          example: "456e7890-e89b-12d3-a456-426614174111"
+        type:
+          $ref: '#/components/schemas/NotificationType'
+        title:
+          type: string
+          example: "Session Complete!"
+        message:
+          type: string
+          example: "Great job! You've completed a 25-minute focus session."
+        is_read:
+          type: boolean
+          example: false
+        data:
+          type: object
+          description: "Additional notification data"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    SyncChange:
+      type: object
+      properties:
+        entity_type:
+          type: string
+          enum: [task, subtask, session, user_preferences]
+          example: "task"
+        entity_id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        operation:
+          type: string
+          enum: [create, update, delete]
+          example: "update"
+        data:
+          type: object
+          description: "Entity data"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        device_id:
+          type: string
+          example: "device_123"
+
+    SyncConflict:
+      type: object
+      properties:
+        entity_type:
+          type: string
+          example: "task"
+        entity_id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        client_version:
+          type: object
+          description: "Client's version of the entity"
+        server_version:
+          type: object
+          description: "Server's version of the entity"
+        resolution:
+          type: string
+          enum: [client_wins, server_wins, merge_required]
+          example: "server_wins"
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 150
+        total_pages:
+          type: integer
+          example: 8
+        has_next:
+          type: boolean
+          example: true
+        has_prev:
+          type: boolean
+          example: false
+
+    # Enum Schemas
+    TaskPriority:
+      type: string
+      enum: [low, medium, high, urgent]
+      example: "high"
+
+    TaskStatus:
+      type: string
+      enum: [pending, in_progress, completed, cancelled]
+      example: "in_progress"
+
+    SessionType:
+      type: string
+      enum: [work, short_break, long_break]
+      example: "work"
+
+    SessionStatus:
+      type: string
+      enum: [active, paused, completed, stopped]
+      example: "active"
+
+    ReportType:
+      type: string
+      enum: [daily, weekly, monthly, custom]
+      example: "weekly"
+
+    NotificationType:
+      type: string
+      enum: [session_complete, break_reminder, task_reminder, daily_summary]
+      example: "session_complete"

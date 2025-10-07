@@ -1,0 +1,84 @@
+{
+  "capturedAt": "2025-10-06T13:30:00Z",
+  "source": "validation scripts + file analysis",
+  "performanceScore": 50,
+  "criticalIssues": 1,
+  "warnings": 6,
+  "metrics": {
+    "LOAD_TIME": {
+      "baselineValue": 2000,
+      "unit": "ms",
+      "status": "needs_improvement",
+      "target": "<2000ms",
+      "notes": "Current load time acceptable but can be optimized"
+    },
+    "MEMORY_USAGE": {
+      "baselineValue": 200,
+      "unit": "MB",
+      "status": "acceptable",
+      "target": "<200MB",
+      "notes": "Within constitutional limits"
+    },
+    "EXECUTION_EFFICIENCY": {
+      "baselineValue": 100,
+      "unit": "ms",
+      "status": "needs_improvement",
+      "target": "<100ms",
+      "notes": "JavaScript execution could be optimized"
+    },
+    "BUNDLE_SIZE": {
+      "baselineValue": 128810,
+      "unit": "bytes",
+      "status": "needs_optimization",
+      "target": "<500KB individual assets",
+      "notes": "HTML file is 125KB, within limits but can be optimized"
+    }
+  },
+  "fileAnalysis": {
+    "htmlWebApp": {
+      "filePath": "mobile/build/web/index.html",
+      "sizeBytes": 128810,
+      "lineCount": 4215,
+      "javascriptFunctions": 138,
+      "cssRules": 627,
+      "optimizationOpportunities": [
+        "CSS consolidation potential",
+        "JavaScript function extraction opportunities",
+        "HTML structure simplification",
+        "Duplicate code removal"
+      ]
+    },
+    "goBackend": {
+      "files": 95,
+      "totalLines": 33512,
+      "estimatedSize": 52000,
+      "optimizationOpportunities": [
+        "Struct field consolidation",
+        "Error handling pattern extraction",
+        "Import optimization"
+      ]
+    },
+    "flutterCode": {
+      "files": 31,
+      "totalLines": 18388,
+      "estimatedSize": 25000,
+      "optimizationOpportunities": [
+        "Widget extraction from main.dart",
+        "Service consolidation",
+        "Import cleanup"
+      ]
+    }
+  },
+  "validationResults": {
+    "functionality": "PASSED",
+    "structure": "PASSED",
+    "performance": "FAILED",
+    "overallReadiness": "NEEDS_OPTIMIZATION"
+  },
+  "optimizationTargets": {
+    "duplicateCodeRemoval": "ALL",
+    "performanceImprovement": "ALL_METRICS_EQUAL_PRIORITY",
+    "organizationImprovement": "STRUCTURE_AND_ORGANIZATION",
+    "functionalRiskTolerance": "NONE"
+  }
+}

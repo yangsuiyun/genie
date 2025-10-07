@@ -1953,6 +1953,67 @@
     .completed-task .task-meta {
       color: var(--text-secondary);
     }
+
+    /* ========== GRADIENT UTILITY CLASSES ========== */
+    .gradient-primary {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    }
+
+    .gradient-success {
+      background: linear-gradient(135deg, var(--success-color) 0%, #45a049 100%);
+    }
+
+    .gradient-warning {
+      background: linear-gradient(135deg, var(--warning-color) 0%, #e68900 100%);
+    }
+
+    .gradient-error {
+      background: linear-gradient(135deg, var(--error-color) 0%, #da190b 100%);
+    }
+
+    .gradient-surface {
+      background: linear-gradient(135deg, var(--surface-color) 0%, #f8f9fa 100%);
+    }
+
+    .gradient-light {
+      background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+    }
+
+    .gradient-green-light {
+      background: linear-gradient(135deg, #e8f5e8 0%, #f0f9f0 100%);
+    }
+
+    /* ========== FLEXBOX UTILITY CLASSES ========== */
+    .flex-center-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .flex-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flex-center-start {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .flex-start-between {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .flex-column-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
   </style>
 </head>
 <body>
@@ -2516,7 +2577,85 @@
     </div>
   </div>
 
+  <!-- 任务编辑模态框 -->
+  <div id="edit-task-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>编辑任务</h2>
+        <button class="close-btn" onclick="closeEditTaskModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 16px;">
+          <label for="edit-task-title" style="display: block; margin-bottom: 8px; font-weight: 500;">任务标题:</label>
+          <input type="text" id="edit-task-title" class="modal-input" placeholder="输入任务标题..." maxlength="100">
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="edit-task-description" style="display: block; margin-bottom: 8px; font-weight: 500;">任务描述:</label>
+          <textarea id="edit-task-description" class="modal-input" placeholder="输入任务描述..." rows="3" style="resize: vertical;"></textarea>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="edit-task-priority" style="display: block; margin-bottom: 8px; font-weight: 500;">优先级:</label>
+          <select id="edit-task-priority" class="modal-input">
+            <option value="low">🟢 低优先级</option>
+            <option value="medium">🟡 中优先级</option>
+            <option value="high">🔴 高优先级</option>
+            <option value="urgent">🟣 紧急</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="edit-task-planned-pomodoros" style="display: block; margin-bottom: 8px; font-weight: 500;">计划番茄钟数量:</label>
+          <input type="number" id="edit-task-planned-pomodoros" class="modal-input" min="1" max="50" value="4">
+          <div style="font-size: 12px; color: #666; margin-top: 4px;">建议每个任务2-8个番茄钟</div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">已完成番茄钟:</label>
+          <div id="edit-task-completed-pomodoros" style="padding: 8px; background: #f5f5f5; border-radius: 4px; color: #666;">
+            0 个 (不可编辑)
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="edit-task-due-date" style="display: block; margin-bottom: 8px; font-weight: 500;">截止日期:</label>
+          <input type="date" id="edit-task-due-date" class="modal-input">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeEditTaskModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveTaskChanges()">保存更改</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // ========== GLOBAL CONSTANTS ==========
+    const TIMER_CONSTANTS = {
+      WORK_DURATION: 25 * 60,
+      SHORT_BREAK: 5 * 60,
+      LONG_BREAK: 15 * 60,
+      POMODOROS_UNTIL_LONG_BREAK: 4
+    };
+
+    const UI_CONSTANTS = {
+      TOAST_DURATION: 3000,
+      ANIMATION_DURATION: 300,
+      AUTO_SAVE_DELAY: 1000,
+      SIDEBAR_WIDTH: 240,
+      MOBILE_BREAKPOINT: 768,
+      HEADER_HEIGHT: 60
+    };
+
+    const TIMER_DISPLAY_CONSTANTS = {
+      WORK_CIRCLE_SIZE: 280,
+      MOBILE_CIRCLE_SIZE: 200,
+      TIMER_FONT_SIZE_DESKTOP: 52,
+      TIMER_FONT_SIZE_MOBILE: 32
+    };
+
+    // ========== GLOBAL STATE ==========
     // Project Management System
     let currentProject = 'inbox';
     let projects = {
@@ -2587,7 +2726,7 @@
     // Task Pomodoro Functions
     let activeTaskId = null;
     let modalTimer = null;
-    let modalTimeLeft = 25 * 60; // 25 minutes in seconds
+    let modalTimeLeft = TIMER_CONSTANTS.WORK_DURATION; // 25 minutes in seconds
     let isModalTimerRunning = false;
 
     function startTaskPomodoro(taskId) {
@@ -2600,7 +2739,7 @@
       document.getElementById('pomodoro-modal').style.display = 'flex';
 
       // Reset timer
-      modalTimeLeft = 25 * 60;
+      modalTimeLeft = TIMER_CONSTANTS.WORK_DURATION;
       updateModalTimer();
     }
 
@@ -2652,7 +2791,7 @@
         modalTimer = null;
       }
       isModalTimerRunning = false;
-      modalTimeLeft = 25 * 60;
+      modalTimeLeft = TIMER_CONSTANTS.WORK_DURATION;
       updateModalTimer();
       document.getElementById('modal-start-btn').textContent = '开始';
     }
@@ -2769,9 +2908,7 @@
       });
     }
 
-    function closeCreateProjectModal() {
-      document.getElementById('create-project-modal').style.display = 'none';
-    }
+    // Consolidated into generic closeModal() function below
 
     function createProject() {
       const projectName = document.getElementById('project-name').value.trim();
@@ -2817,8 +2954,31 @@
     }
 
     // Settings Functions
+    // Consolidated into generic closeModal() function below
+
+    // ========== GENERIC MODAL UTILITIES ==========
+    function closeModal(modalId, hideMethod = 'display') {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        if (hideMethod === 'display') {
+          modal.style.display = 'none';
+        } else if (hideMethod === 'class') {
+          modal.classList.add('hidden');
+        }
+      }
+    }
+
+    // Consolidated modal close functions using generic utility
+    function closeCreateProjectModal() {
+      closeModal('create-project-modal', 'display');
+    }
+
     function closeSettingsModal() {
-      document.getElementById('settings-modal').style.display = 'none';
+      closeModal('settings-modal', 'display');
+    }
+
+    function closeThemeModal() {
+      closeModal('theme-modal', 'class');
     }
 
     function loadSettings() {
@@ -2872,99 +3032,245 @@
 
     // Task Edit/Delete Functions
     function editTask(taskId) {
-      const taskCheckbox = document.getElementById(taskId);
-      if (!taskCheckbox) {
-        console.error('Task not found:', taskId);
-        showToast('任务未找到', 'error');
-        return;
-      }
-
-      const taskCard = taskCheckbox.closest('.task-card');
-      if (!taskCard) {
-        console.error('Task card not found for:', taskId);
-        showToast('任务卡片未找到', 'error');
-        return;
-      }
-
-      const taskTitleLabel = taskCard.querySelector('.task-title label');
-      const taskDescriptionElement = taskCard.querySelector('.task-description');
-
-      if (!taskTitleLabel || !taskDescriptionElement) {
-        console.error('Task elements not found in card');
-        showToast('任务元素未找到', 'error');
-        return;
-      }
-
-      const taskTitle = taskTitleLabel.textContent;
-      const taskDescription = taskDescriptionElement.textContent;
-
-      // 获取当前优先级
-      const priorityElement = taskCard.querySelector('.task-priority');
-      let currentPriority = 'medium';
-      if (priorityElement.classList.contains('priority-high')) currentPriority = 'high';
-      else if (priorityElement.classList.contains('priority-low')) currentPriority = 'low';
-      else if (priorityElement.classList.contains('priority-urgent')) currentPriority = 'urgent';
-
-      console.log('Editing task:', taskId, 'Title:', taskTitle, 'Description:', taskDescription);
-
-      // 编辑标题
-      const newTitle = prompt('编辑任务标题:', taskTitle);
-      if (newTitle && newTitle.trim()) {
-        taskTitleLabel.textContent = newTitle.trim();
-
-        // 编辑描述
-        const newDescription = prompt('编辑任务描述:', taskDescription);
-        if (newDescription !== null) {
-          taskDescriptionElement.textContent = newDescription.trim();
+      // 查找任务数据
+      const task = tasks.find(t => t.id == taskId);
+      if (!task) {
+        // 如果在 tasks 数组中找不到，尝试从 DOM 中获取信息
+        const taskCheckbox = document.getElementById(taskId);
+        if (!taskCheckbox) {
+          console.error('Task not found:', taskId);
+          showToast('任务未找到', 'error');
+          return;
         }
 
-        // 编辑优先级
+        const taskCard = taskCheckbox.closest('.task-card');
+        if (!taskCard) {
+          console.error('Task card not found for:', taskId);
+          showToast('任务卡片未找到', 'error');
+          return;
+        }
+
+        // 从 DOM 创建临时任务对象
+        const taskTitleLabel = taskCard.querySelector('.task-title label');
+        const taskDescriptionElement = taskCard.querySelector('.task-description');
+        const priorityElement = taskCard.querySelector('.task-priority');
+
+        let currentPriority = 'medium';
+        if (priorityElement.classList.contains('priority-high')) currentPriority = 'high';
+        else if (priorityElement.classList.contains('priority-low')) currentPriority = 'low';
+        else if (priorityElement.classList.contains('priority-urgent')) currentPriority = 'urgent';
+
+        // 获取番茄钟进度
+        let completedPomodoros = 0;
+        let plannedPomodoros = 5;
+        const pomodoroText = taskCard.querySelector('.task-meta span:last-child')?.textContent;
+        if (pomodoroText && pomodoroText.includes('/')) {
+          const [completed, planned] = pomodoroText.replace('🍅 ', '').split('/');
+          completedPomodoros = parseInt(completed) || 0;
+          plannedPomodoros = parseInt(planned) || 5;
+        }
+
+        // 获取截止日期
+        const dateElements = taskCard.querySelectorAll('.task-meta span');
+        let dueDate = '';
+        for (let span of dateElements) {
+          if (span.textContent.includes('📅')) {
+            dueDate = span.textContent.replace('📅 ', '');
+            break;
+          }
+        }
+
+        // 创建临时任务对象
+        const tempTask = {
+          id: taskId,
+          name: taskTitleLabel?.textContent || '',
+          description: taskDescriptionElement?.textContent || '',
+          priority: currentPriority,
+          completedPomodoros: completedPomodoros,
+          plannedPomodoros: plannedPomodoros,
+          dueDate: dueDate
+        };
+
+        openEditTaskModal(tempTask);
+      } else {
+        openEditTaskModal(task);
+      }
+    }
+
+    function openEditTaskModal(task) {
+      editingTaskId = task.id;
+
+      // 填充表单
+      document.getElementById('edit-task-title').value = task.name || '';
+      document.getElementById('edit-task-description').value = task.description || '';
+      document.getElementById('edit-task-priority').value = task.priority || 'medium';
+      document.getElementById('edit-task-planned-pomodoros').value = task.plannedPomodoros || 4;
+
+      // 显示已完成的番茄钟数量（不可编辑）
+      const completedCount = task.completedPomodoros || 0;
+      document.getElementById('edit-task-completed-pomodoros').textContent = `${completedCount} 个 (不可编辑)`;
+
+      // 设置截止日期
+      if (task.dueDate) {
+        // 尝试解析日期
+        const dateStr = task.dueDate;
+        if (dateStr.includes('月') && dateStr.includes('日')) {
+          // 解析 "10月8日" 格式
+          const year = new Date().getFullYear();
+          const month = dateStr.match(/(\d+)月/)?.[1];
+          const day = dateStr.match(/(\d+)日/)?.[1];
+          if (month && day) {
+            const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            document.getElementById('edit-task-due-date').value = isoDate;
+          }
+        } else {
+          document.getElementById('edit-task-due-date').value = task.dueDate;
+        }
+      } else {
+        document.getElementById('edit-task-due-date').value = '';
+      }
+
+      // 显示模态框
+      document.getElementById('edit-task-modal').classList.remove('hidden');
+      document.getElementById('edit-task-title').focus();
+    }
+
+    function closeEditTaskModal() {
+      document.getElementById('edit-task-modal').classList.add('hidden');
+      editingTaskId = null;
+
+      // 清空表单
+      document.getElementById('edit-task-title').value = '';
+      document.getElementById('edit-task-description').value = '';
+      document.getElementById('edit-task-priority').value = 'medium';
+      document.getElementById('edit-task-planned-pomodoros').value = '4';
+      document.getElementById('edit-task-due-date').value = '';
+    }
+
+    function saveTaskChanges() {
+      if (!editingTaskId) {
+        showToast('没有选择要编辑的任务', 'error');
+        return;
+      }
+
+      // 获取表单数据
+      const newTitle = document.getElementById('edit-task-title').value.trim();
+      const newDescription = document.getElementById('edit-task-description').value.trim();
+      const newPriority = document.getElementById('edit-task-priority').value;
+      const newPlannedPomodoros = parseInt(document.getElementById('edit-task-planned-pomodoros').value) || 4;
+      const newDueDate = document.getElementById('edit-task-due-date').value;
+
+      if (!newTitle) {
+        showToast('请输入任务标题', 'error');
+        document.getElementById('edit-task-title').focus();
+        return;
+      }
+
+      // 更新 tasks 数组中的任务
+      const taskIndex = tasks.findIndex(t => t.id == editingTaskId);
+      if (taskIndex !== -1) {
+        tasks[taskIndex].name = newTitle;
+        tasks[taskIndex].description = newDescription;
+        tasks[taskIndex].priority = newPriority;
+        tasks[taskIndex].plannedPomodoros = newPlannedPomodoros;
+        tasks[taskIndex].dueDate = newDueDate;
+
+        // 保存到 localStorage
+        saveTasksToStorage();
+
+        // 重新渲染任务列表
+        renderTasks();
+
+        // 如果当前任务正在被编辑，也更新当前任务
+        if (currentTask && currentTask.id == editingTaskId) {
+          currentTask = {...tasks[taskIndex]};
+          updateCurrentTaskDisplay();
+          saveTasksToStorage();
+        }
+      }
+
+      // 更新 DOM 中的任务卡片
+      updateTaskCardInDOM(editingTaskId, {
+        name: newTitle,
+        description: newDescription,
+        priority: newPriority,
+        plannedPomodoros: newPlannedPomodoros,
+        dueDate: newDueDate
+      });
+
+      closeEditTaskModal();
+      showToast('任务更新成功', 'success');
+
+      console.log('Task updated:', {
+        taskId: editingTaskId,
+        title: newTitle,
+        description: newDescription,
+        priority: newPriority,
+        plannedPomodoros: newPlannedPomodoros,
+        dueDate: newDueDate
+      });
+    }
+
+    function updateTaskCardInDOM(taskId, updatedTask) {
+      const taskCheckbox = document.getElementById(taskId);
+      if (!taskCheckbox) return;
+
+      const taskCard = taskCheckbox.closest('.task-card');
+      if (!taskCard) return;
+
+      // 更新标题
+      const taskTitleLabel = taskCard.querySelector('.task-title label');
+      if (taskTitleLabel) {
+        taskTitleLabel.textContent = updatedTask.name;
+      }
+
+      // 更新描述
+      const taskDescriptionElement = taskCard.querySelector('.task-description');
+      if (taskDescriptionElement) {
+        taskDescriptionElement.textContent = updatedTask.description;
+      }
+
+      // 更新优先级
+      const priorityElement = taskCard.querySelector('.task-priority');
+      if (priorityElement) {
         const priorityOptions = {
           'low': '🟢 低优先级',
           'medium': '🟡 中优先级',
           'high': '🔴 高优先级',
           'urgent': '🟣 紧急'
         };
+        priorityElement.className = `task-priority priority-${updatedTask.priority}`;
+        priorityElement.textContent = priorityOptions[updatedTask.priority];
+      }
 
-        const priorityChoice = prompt(`选择优先级:\n1. 低优先级\n2. 中优先级\n3. 高优先级\n4. 紧急\n\n当前: ${priorityOptions[currentPriority]}\n\n请输入数字 (1-4):`,
-          currentPriority === 'low' ? '1' : currentPriority === 'medium' ? '2' : currentPriority === 'high' ? '3' : '4');
-
-        if (priorityChoice && ['1', '2', '3', '4'].includes(priorityChoice)) {
-          const newPriorityMap = {'1': 'low', '2': 'medium', '3': 'high', '4': 'urgent'};
-          const newPriority = newPriorityMap[priorityChoice];
-
-          // 更新优先级样式
-          priorityElement.className = `task-priority priority-${newPriority}`;
-          priorityElement.textContent = priorityOptions[newPriority];
-        }
-
-        // 编辑截止日期
-        const dateElements = taskCard.querySelectorAll('.task-meta span');
-        let dateElement = null;
-        for (let span of dateElements) {
-          if (span.textContent.includes('📅')) {
-            dateElement = span;
-            break;
+      // 更新截止日期
+      const dateElements = taskCard.querySelectorAll('.task-meta span');
+      for (let span of dateElements) {
+        if (span.textContent.includes('📅')) {
+          if (updatedTask.dueDate) {
+            // 转换日期格式为中文显示
+            const date = new Date(updatedTask.dueDate);
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            span.textContent = `📅 ${month}月${day}日`;
+          } else {
+            span.textContent = '📅 未设置';
           }
+          break;
         }
+      }
 
-        if (dateElement) {
-          const currentDate = dateElement.textContent.replace('📅 ', '');
-          const newDate = prompt('编辑截止日期 (格式: MM月DD日):', currentDate);
-          if (newDate && newDate.trim()) {
-            dateElement.textContent = '📅 ' + newDate.trim();
-          }
+      // 更新番茄钟计数
+      const pomodoroElements = taskCard.querySelectorAll('.task-meta span');
+      for (let span of pomodoroElements) {
+        if (span.textContent.includes('🍅')) {
+          // 保持已完成的番茄钟数量，只更新计划数量
+          const currentText = span.textContent;
+          const completedMatch = currentText.match(/🍅 (\d+)\//);
+          const completed = completedMatch ? completedMatch[1] : '0';
+          span.textContent = `🍅 ${completed}/${updatedTask.plannedPomodoros}`;
+          break;
         }
-
-        // 保存更改
-        showToast('任务已更新', 'success');
-        console.log('Task updated:', {
-          taskId,
-          title: newTitle.trim(),
-          description: newDescription?.trim(),
-          priority: newPriority || currentPriority,
-          date: newDate?.trim()
-        });
       }
     }
 
@@ -3034,13 +3340,14 @@
     // 应用状态 (legacy)
     let currentTab = 0;
     let isTimerRunning = false;
-    let timerSeconds = 25 * 60;
+    let timerSeconds = TIMER_CONSTANTS.WORK_DURATION;
     let timerInterval = null;
     let currentMode = 'work';
     let completedPomodoros = 0;
     let tasks = [];
     let currentTask = null;
     let selectedTaskId = null;
+    let editingTaskId = null;
 
     // 设置对象
     const settings = {
@@ -3478,9 +3785,7 @@
       document.getElementById('theme-modal').classList.remove('hidden');
       updateThemeSelection();
     }
-    function closeThemeModal() {
-      document.getElementById('theme-modal').classList.add('hidden');
-    }
+    // Consolidated into generic closeModal() function below
     function updateThemeSelection() {
       document.querySelectorAll('.theme-option').forEach(option => {
         option.classList.remove('selected');
@@ -3523,7 +3828,8 @@
     }
 
     function closeAddTaskModal() {
-      document.getElementById('add-task-modal').classList.add('hidden');
+      closeModal('add-task-modal', 'class');
+      // Reset form fields
       document.getElementById('task-name-input').value = '';
       document.getElementById('task-description-input').value = '';
       document.getElementById('planned-pomodoros-input').value = '4';
@@ -3797,6 +4103,8 @@
       if (e.target.classList.contains('modal')) {
         closeAddTaskModal();
         closeTaskSelector();
+        closeEditTaskModal();
+        closeThemeModal();
       }
     });
 
@@ -3806,7 +4114,7 @@
       const isOpen = sidebar.style.left === '0px';
 
       if (isOpen) {
-        sidebar.style.left = '-240px';
+        sidebar.style.left = `-${UI_CONSTANTS.SIDEBAR_WIDTH}px`;
       } else {
         sidebar.style.left = '0px';
       }
@@ -3815,10 +4123,10 @@
     // 响应式调整
     function handleResize() {
       const sidebar = document.querySelector('.project-sidebar');
-      if (window.innerWidth > 768) {
+      if (window.innerWidth > UI_CONSTANTS.MOBILE_BREAKPOINT) {
         sidebar.style.left = '0px'; // 桌面端始终显示
       } else {
-        sidebar.style.left = '-240px'; // 移动端默认隐藏
+        sidebar.style.left = `-${UI_CONSTANTS.SIDEBAR_WIDTH}px`; // 移动端默认隐藏
       }
     }
 
@@ -3932,6 +4240,10 @@
       closePomodoroModal();
       closeCreateProjectModal();
       closeSettingsModal();
+      closeEditTaskModal();
+      closeAddTaskModal();
+      closeTaskSelector();
+      closeThemeModal();
     }
 
     // Improve mobile menu accessibility
@@ -3941,7 +4253,7 @@
       const isOpen = sidebar.style.left === '0px';
 
       if (isOpen) {
-        sidebar.style.left = '-240px';
+        sidebar.style.left = `-${UI_CONSTANTS.SIDEBAR_WIDTH}px`;
         toggleBtn.setAttribute('aria-expanded', 'false');
       } else {
         sidebar.style.left = '0px';
