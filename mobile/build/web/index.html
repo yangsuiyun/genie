@@ -14,62 +14,63 @@
   <link rel="manifest" href="manifest.json">
   <style>
     :root {
-      /* Primary Colors */
-      --primary-color: #d32f2f;
-      --primary-rgb: 211, 47, 47;
-      --primary-light: #ff6659;
-      --primary-dark: #9a0007;
-      --primary-50: rgba(211, 47, 47, 0.05);
-      --primary-100: rgba(211, 47, 47, 0.1);
-      --primary-200: rgba(211, 47, 47, 0.2);
+      /* n8n Style Color System */
 
-      /* Secondary Colors */
-      --secondary-color: #ff9800;
-      --secondary-light: #ffb74d;
-      --secondary-dark: #f57c00;
+      /* Primary Colors (Tomato Red) */
+      --primary-color: #ff6b47;
+      --primary-rgb: 255, 107, 71;
+      --primary-light: #ff8a65;
+      --primary-dark: #e64a19;
+      --primary-hover: #ff5722;
+      --primary-50: rgba(255, 107, 71, 0.05);
+      --primary-100: rgba(255, 107, 71, 0.1);
+      --primary-200: rgba(255, 107, 71, 0.2);
 
       /* Semantic Colors */
-      --success-color: #4caf50;
-      --success-light: rgba(76, 175, 80, 0.1);
-      --warning-color: #ff9800;
-      --warning-light: rgba(255, 152, 0, 0.1);
-      --error-color: #f44336;
-      --error-light: rgba(244, 67, 54, 0.1);
-      --info-color: #2196f3;
-      --info-light: rgba(33, 150, 243, 0.1);
+      --success-color: #28a745;
+      --success-light: rgba(40, 167, 69, 0.1);
+      --warning-color: #ffc107;
+      --warning-light: rgba(255, 193, 7, 0.1);
+      --error-color: #dc3545;
+      --error-light: rgba(220, 53, 69, 0.1);
+      --info-color: #17a2b8;
+      --info-light: rgba(23, 162, 184, 0.1);
 
-      /* Background Colors */
-      --background-color: #fafafa;
-      --background-secondary: #f5f5f5;
+      /* n8n Style Neutral Colors */
+      --background-color: #ffffff;
+      --background-secondary: #f8f9fa;
       --surface-color: #ffffff;
       --surface-elevated: #ffffff;
       --surface-accent: #f8f9fa;
+      --sidebar-background: #f8f9fa;
+      --content-background: #ffffff;
 
       /* Text Colors */
-      --text-primary: #212121;
-      --text-secondary: #757575;
-      --text-disabled: #bdbdbd;
+      --text-primary: #343a40;
+      --text-secondary: #6c757d;
+      --text-disabled: #adb5bd;
       --text-inverse: #ffffff;
-      --text-success: #2e7d32;
-      --text-error: #c62828;
-      --text-warning: #ef6c00;
+      --text-success: #155724;
+      --text-error: #721c24;
+      --text-warning: #856404;
 
       /* Border & Divider */
-      --border-color: #e0e0e0;
-      --border-light: #f0f0f0;
-      --border-strong: #cccccc;
-      --divider-color: #e8eaed;
+      --border-color: #e9ecef;
+      --border-light: #f1f3f4;
+      --border-strong: #dee2e6;
+      --divider-color: #e9ecef;
 
-      /* Shadows */
-      --shadow-light: 0 1px 3px rgba(0,0,0,0.1);
-      --shadow-medium: 0 4px 12px rgba(0,0,0,0.12);
-      --shadow-heavy: 0 8px 24px rgba(0,0,0,0.15);
-      --shadow-focus: 0 0 0 3px rgba(211, 47, 47, 0.2);
+      /* n8n Style Shadows */
+      --shadow-light: 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-medium: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-heavy: 0 4px 16px rgba(0,0,0,0.08);
+      --shadow-card: 0 1px 2px rgba(0,0,0,0.03);
+      --shadow-focus: 0 0 0 3px rgba(255, 107, 71, 0.2);
 
-      /* Border Radius */
-      --border-radius: 12px;
+      /* n8n Style Border Radius */
+      --border-radius: 8px;
       --border-radius-small: 6px;
-      --border-radius-large: 16px;
+      --border-radius-large: 12px;
       --border-radius-circle: 50%;
 
       /* Spacing Scale */
@@ -184,19 +185,22 @@
 
     .app-container {
       display: grid;
-      grid-template-columns: 220px 1fr;
-      grid-template-rows: 56px 1fr;
+      grid-template-columns: 200px 1fr;
+      grid-template-rows: 60px 1fr;
       grid-template-areas:
         "header header"
         "sidebar main";
       height: 100vh;
-      background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+      background: var(--background-color);
     }
 
     .top-bar {
       grid-area: header;
-      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      background: var(--primary-color);
       color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       padding: 0 16px;
       display: flex;
       align-items: center;
@@ -225,71 +229,96 @@
       100% { left: 100%; }
     }
 
-    /* Project Sidebar Styles */
+    /* n8n Style Sidebar */
     .project-sidebar {
       grid-area: sidebar;
-      background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+      background: var(--sidebar-background);
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
       overflow-y: auto;
-      box-shadow: var(--shadow-light);
     }
 
-    .sidebar-section {
-      padding: 12px 14px 10px;
-      border-bottom: 1px solid var(--border-color);
-    }
+    /* Remove navigation section styles */
 
-    .sidebar-section:last-child {
-      border-bottom: none;
+    /* Projects Section */
+    .projects-section {
       flex: 1;
+      padding: 16px 0;
     }
 
-    .sidebar-section h3 {
-      margin: 0 0 8px 0;
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px 8px 16px;
+    }
+
+    .section-header h4 {
+      margin: 0;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: var(--font-weight-semibold);
       color: var(--text-secondary);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
     }
 
+    .add-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      border-radius: var(--border-radius-small);
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-fast);
+    }
+
+    .add-btn:hover {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .project-list {
+      padding: 0 8px;
+    }
+
+    /* Optimized Project Item Styles */
     .project-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 6px 8px;
-      margin-bottom: 1px;
-      border-radius: var(--border-radius-small);
+      padding: 10px 12px;
+      margin: 0 0 4px 0;
+      border-radius: var(--border-radius);
       cursor: pointer;
-      transition: var(--transition);
+      transition: var(--transition-fast);
       background: transparent;
-      border: none;
+      border: 1px solid transparent;
       width: 100%;
       text-align: left;
-      position: relative;
       color: var(--text-primary);
-    }
-
-    .project-item.dragging {
-      opacity: 0.5;
-      transform: rotate(2deg);
-      z-index: 1000;
-      box-shadow: var(--shadow-heavy);
-    }
-
-    .project-item.drag-over {
-      border-top: 3px solid var(--primary-color);
+      font-size: 14px;
+      font-weight: var(--font-weight-medium);
     }
 
     .project-item:hover {
-      background: var(--background-color);
+      background: var(--background-secondary);
+      border-color: var(--border-light);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-card);
     }
 
     .project-item.active {
-      background: var(--primary-color);
-      color: white;
+      background: linear-gradient(135deg, rgba(255, 107, 71, 0.08) 0%, rgba(255, 107, 71, 0.12) 100%);
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+      box-shadow: var(--shadow-card);
     }
 
     .project-info {
@@ -298,29 +327,43 @@
       flex: 1;
     }
 
+    /* Improved Project Icon & Count Styles */
     .project-icon {
-      font-size: 16px;
-      margin-right: 8px;
-    }
-
-    .project-name {
-      font-weight: 500;
-      font-size: 14px;
-    }
-
-    .project-count {
-      background: var(--text-disabled);
-      color: white;
-      border-radius: 12px;
-      padding: 2px 8px;
-      font-size: 12px;
-      font-weight: 500;
-      min-width: 20px;
+      font-size: 18px;
+      margin-right: 12px;
+      width: 20px;
       text-align: center;
     }
 
+    .project-name {
+      font-weight: var(--font-weight-medium);
+      font-size: 14px;
+      line-height: 20px;
+      height: 20px;
+      flex: 1;
+      display: inline-block;
+    }
+
+    .project-count {
+      background: var(--surface-accent);
+      color: var(--text-secondary);
+      border-radius: var(--border-radius-circle);
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: var(--font-weight-semibold);
+      min-width: 24px;
+      text-align: center;
+      border: 1px solid var(--border-light);
+    }
+
     .project-item.active .project-count {
-      background: rgba(255,255,255,0.3);
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .project-item:hover .project-count {
+      border-color: var(--border-color);
     }
 
     .add-project-btn {
@@ -350,23 +393,7 @@
       margin: 0;
     }
 
-    .daily-stats {
-      background: var(--background-color);
-      border-radius: var(--border-radius);
-      padding: 12px;
-      margin-top: 6px;
-    }
-
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-
-    .stat-row:last-child {
-      margin-bottom: 0;
-    }
+    /* Removed daily stats styles */
 
     .stat-label {
       font-size: 13px;
@@ -381,14 +408,95 @@
       color: var(--text-primary);
     }
 
-    /* Main Content Area */
+    /* n8n Style Main Content */
     .main-content {
       grid-area: main;
-      background: var(--background-color);
-      padding: 16px;
-      overflow-y: auto;
+      background: var(--content-background);
+      padding: 0;
       display: flex;
       flex-direction: column;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      padding: 24px;
+      background: var(--background-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .stat-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      text-align: left;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition-fast);
+    }
+
+    .stat-card:hover {
+      box-shadow: var(--shadow-medium);
+      transform: translateY(-1px);
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: var(--font-weight-bold);
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .stat-period {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .view-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .view-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .view-title {
+      font-size: 24px;
+      font-weight: var(--font-weight-bold);
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .view-actions {
+      display: flex;
+      gap: 12px;
+    }
+      overflow-y: auto;
     }
 
     .nav-bar {
@@ -444,22 +552,22 @@
       border-color: var(--primary-color);
     }
 
+    /* n8n Style Task Cards */
     .task-card {
       background: var(--surface-color);
       border: 1px solid var(--border-color);
-      border-radius: var(--border-radius);
-      padding: 12px;
+      border-radius: var(--border-radius-small);
+      padding: 16px;
       margin-bottom: 8px;
-      box-shadow: var(--shadow-light);
-      transition: var(--transition);
+      box-shadow: var(--shadow-card);
+      transition: var(--transition-fast);
       position: relative;
-      background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
     }
 
     .task-card:hover {
       box-shadow: var(--shadow-medium);
-      transform: translateY(-2px);
-      border-color: var(--primary-color);
+      border-color: rgba(255, 107, 71, 0.3);
+      transform: translateY(-1px);
     }
 
     .task-header {
@@ -959,9 +1067,7 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
-    .project-item:hover {
-      background: rgba(var(--primary-color-rgb), 0.05);
-    }
+    /* Duplicate hover style removed */
 
     /* Progress bar animation */
     .progress-bar {
@@ -1091,7 +1197,7 @@
 
     /* Keyboard navigation indicators */
     .keyboard-navigation .project-item:focus {
-      background: rgba(var(--primary-color-rgb), 0.1);
+      background: rgba(255, 107, 71, 0.1);
       transform: translateX(4px);
     }
 
@@ -1296,60 +1402,63 @@
       flex-wrap: wrap;
     }
 
+    /* n8n Style Buttons */
     .btn {
-      padding: 14px 28px;
-      border: none;
-      border-radius: var(--border-radius);
+      padding: 10px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-small);
       cursor: pointer;
-      font-size: 16px;
-      font-weight: 600;
-      transition: var(--transition);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      box-shadow: var(--shadow-light);
+      font-size: 14px;
+      font-weight: var(--font-weight-medium);
+      transition: var(--transition-fast);
+      background: var(--surface-color);
+      color: var(--text-primary);
       position: relative;
-      overflow: hidden;
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-medium);
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+      background: rgba(255, 107, 71, 0.05);
     }
 
     .btn:active {
-      transform: translateY(0);
+      transform: scale(0.98);
     }
 
-    .btn::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      transition: width 0.3s, height 0.3s, top 0.3s, left 0.3s;
-      transform: translate(-50%, -50%);
-    }
-
-    .btn:active::before {
-      width: 300px;
-      height: 300px;
-    }
+    /* Remove ripple effect for cleaner n8n style */
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--success-color) 0%, #45a049 100%);
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
       color: white;
     }
 
     .btn-secondary {
-      background: linear-gradient(135deg, var(--warning-color) 0%, #e68900 100%);
-      color: white;
+      background: var(--surface-color);
+      color: var(--text-primary);
+      border-color: var(--border-color);
     }
 
     .btn-danger {
-      background: linear-gradient(135deg, var(--error-color) 0%, #da190b 100%);
+      background: var(--error-color);
+      color: white;
+      border-color: var(--error-color);
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+      border-color: #c82333;
       color: white;
     }
 
@@ -1902,35 +2011,43 @@
     }
 
     /* 响应式设计 */
+    /* n8n Style Responsive Design */
     @media (max-width: 768px) {
       .app-container {
         grid-template-columns: 1fr;
-        grid-template-areas:
-          "header"
-          "main";
-      }
-
-      .mobile-menu-toggle {
-        display: block;
+        grid-template-areas: "main";
       }
 
       .project-sidebar {
         position: fixed;
-        top: 60px;
-        left: -240px;
-        height: calc(100vh - 60px);
-        width: 240px;
+        top: 0;
+        left: -200px;
+        height: 100vh;
+        width: 200px;
         z-index: 1500;
         transition: left 0.3s ease;
+        box-shadow: var(--shadow-heavy);
       }
 
       .project-sidebar.open {
         left: 0;
       }
 
-      .content {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 16px;
+        gap: 12px;
+      }
+
+      .stat-card {
         padding: 16px;
       }
+
+      .content-area {
+        padding: 16px;
+      }
+
+      /* Mobile optimizations */
 
       .timer-circle {
         width: 200px;
@@ -2234,194 +2351,113 @@
         <span>🍅 Pomodoro Genie</span>
       </div>
       <div style="display: flex; align-items: center; gap: 16px;">
-        <span id="user-greeting">欢迎回来!</span>
         <button class="btn btn-small" onclick="openSettings()" style="background: rgba(255,255,255,0.2); border: none; color: white;">⚙️</button>
       </div>
     </div>
 
-    <!-- Project Sidebar -->
-    <div class="project-sidebar">
+    <!-- n8n Style Sidebar Navigation -->
+    <div class="project-sidebar n8n-sidebar">
+
       <!-- Projects Section -->
-      <div class="sidebar-section">
-        <div class="project-header">
-          <h3>📋 我的项目</h3>
-          <button class="add-project-btn" onclick="showCreateProjectModal()" title="新建项目">
-            + 新建
+      <div class="projects-section">
+        <div class="section-header">
+          <h4>项目</h4>
+          <button class="add-btn" onclick="showCreateProjectModal()" title="新建项目">
+            +
           </button>
         </div>
-        <div id="project-list">
-          <div class="project-item active" draggable="true" data-project-id="inbox" onclick="selectProject('inbox')">
-            <span class="drag-handle">⋮⋮</span>
+        <div id="project-list" class="project-list">
+          <div class="project-item active" data-project-id="inbox" onclick="selectProject('inbox')" draggable="true">
             <div class="project-info">
               <span class="project-icon">📥</span>
-              <span class="project-name" onclick="editProjectNameInline(event, 'inbox')" title="点击编辑名称">Inbox</span>
+              <span class="project-name" ondblclick="editProjectNameInline(event, 'inbox')" title="双击编辑名称">Inbox</span>
             </div>
             <span class="project-count" id="inbox-count">5</span>
           </div>
-          <div class="project-item" draggable="true" data-project-id="work" onclick="selectProject('work')">
-            <span class="drag-handle">⋮⋮</span>
+          <div class="project-item" data-project-id="work" onclick="selectProject('work')" draggable="true">
             <div class="project-info">
               <span class="project-icon">💼</span>
-              <span class="project-name" onclick="editProjectNameInline(event, 'work')" title="点击编辑名称">工作项目</span>
+              <span class="project-name" ondblclick="editProjectNameInline(event, 'work')" title="双击编辑名称">工作项目</span>
             </div>
             <span class="project-count" id="work-count">12</span>
           </div>
-          <div class="project-item" draggable="true" data-project-id="personal" onclick="selectProject('personal')">
-            <span class="drag-handle">⋮⋮</span>
+          <div class="project-item" data-project-id="personal" onclick="selectProject('personal')" draggable="true">
             <div class="project-info">
               <span class="project-icon">🏠</span>
-              <span class="project-name" onclick="editProjectNameInline(event, 'personal')" title="点击编辑名称">个人项目</span>
+              <span class="project-name" ondblclick="editProjectNameInline(event, 'personal')" title="双击编辑名称">个人项目</span>
             </div>
             <span class="project-count" id="personal-count">3</span>
           </div>
-          <div class="project-item" draggable="true" data-project-id="study" onclick="selectProject('study')">
-            <span class="drag-handle">⋮⋮</span>
+          <div class="project-item" data-project-id="study" onclick="selectProject('study')" draggable="true">
             <div class="project-info">
               <span class="project-icon">📚</span>
-              <span class="project-name" onclick="editProjectNameInline(event, 'study')" title="点击编辑名称">学习项目</span>
+              <span class="project-name" ondblclick="editProjectNameInline(event, 'study')" title="双击编辑名称">学习项目</span>
             </div>
             <span class="project-count" id="study-count">8</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Daily Stats Section -->
-      <div class="sidebar-section">
-        <h3>📊 今日统计</h3>
-        <div class="daily-stats">
-          <div class="stat-row">
-            <span class="stat-label">🍅 完成番茄钟</span>
-            <span class="stat-value" id="daily-pomodoros">6</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">⏱️ 专注时间</span>
-            <span class="stat-value" id="daily-focus-time">2h 30m</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">✅ 完成任务</span>
-            <span class="stat-value" id="daily-completed-tasks">4</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Main Content Area -->
-    <main class="main-content" id="main-content" role="main" aria-label="主要内容区域">
-      <div class="project-header">
-        <h1 class="project-title" id="current-project-title" onclick="editProjectName()" style="cursor: pointer;" title="点击编辑项目名称">📥 Inbox</h1>
-        <div class="project-actions">
-          <button class="btn btn-primary" onclick="createNewTask()">➕ 新建任务</button>
+    <main class="main-content n8n-main" id="main-content" role="main" aria-label="主要内容区域">
+      <!-- Stats Grid Hidden -->
+      <div class="stats-grid" id="stats-grid" style="display: none;">
+        <div class="stat-card">
+          <div class="stat-number" id="daily-pomodoros">0</div>
+          <div class="stat-label">完成番茄钟</div>
+          <div class="stat-period">今日</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="daily-focus-time">0m</div>
+          <div class="stat-label">专注时间</div>
+          <div class="stat-period">今日</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="daily-completed-tasks">0</div>
+          <div class="stat-label">完成任务</div>
+          <div class="stat-period">今日</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">7</div>
+          <div class="stat-label">连续天数</div>
+          <div class="stat-period">本周</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">95%</div>
+          <div class="stat-label">完成率</div>
+          <div class="stat-period">本周</div>
         </div>
       </div>
 
-      <div class="task-filters">
-        <button class="filter-btn active" onclick="filterTasks('all')">全部</button>
-        <button class="filter-btn" onclick="filterTasks('pending')">待开始</button>
-        <button class="filter-btn" onclick="filterTasks('in-progress')">进行中</button>
-        <button class="filter-btn" onclick="filterTasks('completed')">已完成</button>
-      </div>
-
-      <div id="task-list">
-        <!-- 活跃任务区域 -->
-        <div id="active-tasks">
-          <!-- Example task cards -->
-          <div class="task-card" draggable="true" data-task-id="task-1" data-project-id="inbox">
-          <span class="drag-handle" style="position: absolute; top: 8px; right: 8px;">⋮⋮</span>
-          <div class="task-header">
-            <div class="task-info">
-              <div class="task-title">
-                <input type="checkbox" class="task-checkbox" id="task-1" onchange="toggleTaskCompletion('task-1')">
-                <label for="task-1">完成项目架构设计</label>
-              </div>
-              <div class="task-description">设计前端项目优先架构，包括左侧边栏导航和任务管理系统</div>
-              <div class="task-meta">
-                <span class="task-priority priority-high">🔴 高优先级</span>
-                <span>📅 10月8日</span>
-                <span>🍅 2/5</span>
-              </div>
+      <!-- Content Area -->
+      <div class="content-area" id="content-area">
+        <!-- Task Management View (Default) -->
+        <div class="view-container" id="tasks-view">
+          <div class="view-header">
+            <h1 class="view-title" id="current-project-title">📥 Inbox</h1>
+            <div class="view-actions">
+              <button class="btn btn-primary" onclick="createNewTask()">➕ 新建任务</button>
             </div>
           </div>
-          <div class="task-actions">
-            <button class="task-pomodoro-btn" onclick="startTaskPomodoro('task-1')">
-              🍅 开始番茄钟
-              <span class="pomodoro-count">2/5</span>
-            </button>
-            <button class="btn btn-small btn-secondary" onclick="editTask('task-1')">✏️</button>
-            <button class="btn btn-small btn-danger" onclick="deleteTask('task-1')">🗑️</button>
-          </div>
-        </div>
 
-        <div class="task-card" draggable="true" data-task-id="task-2" data-project-id="work">
-          <span class="drag-handle" style="position: absolute; top: 8px; right: 8px;">⋮⋮</span>
-          <div class="task-header">
-            <div class="task-info">
-              <div class="task-title">
-                <input type="checkbox" class="task-checkbox" id="task-2" checked onchange="toggleTaskCompletion('task-2')">
-                <label for="task-2" style="text-decoration: line-through; opacity: 0.6;">编写API文档</label>
-              </div>
-              <div class="task-description">完成后端API接口文档编写</div>
-              <div class="task-meta">
-                <span class="task-priority priority-medium">🟡 中优先级</span>
-                <span>📅 10月7日</span>
-                <span>🍅 5/5</span>
-              </div>
+          <div class="task-filters">
+            <button class="filter-btn active" onclick="filterTasks('all')">全部</button>
+            <button class="filter-btn" onclick="filterTasks('pending')">待开始</button>
+            <button class="filter-btn" onclick="filterTasks('in-progress')">进行中</button>
+            <button class="filter-btn" onclick="filterTasks('completed')">已完成</button>
+          </div>
+
+          <div id="task-list">
+            <div id="active-tasks">
+              <!-- 任务将由JavaScript动态生成 -->
             </div>
-          </div>
-          <div class="task-actions">
-            <button class="task-pomodoro-btn" disabled>
-              ✅ 已完成
-            </button>
-            <button class="btn btn-small btn-secondary" onclick="editTask('task-2')">✏️</button>
-            <button class="btn btn-small btn-danger" onclick="deleteTask('task-2')">🗑️</button>
-          </div>
-        </div>
-
-        <div class="task-card" draggable="true" data-task-id="task-3" data-project-id="personal">
-          <span class="drag-handle" style="position: absolute; top: 8px; right: 8px;">⋮⋮</span>
-          <div class="task-header">
-            <div class="task-info">
-              <div class="task-title">
-                <input type="checkbox" class="task-checkbox" id="task-3" onchange="toggleTaskCompletion('task-3')">
-                <label for="task-3">实现响应式布局</label>
+            <div id="completed-tasks-section" class="completed-section">
+              <div class="section-header" onclick="toggleCompletedTasks()">
+                📋 已完成任务 (0) ▼
               </div>
-              <div class="task-description">适配移动端和平板设备的响应式设计</div>
-              <div class="task-meta">
-                <span class="task-priority priority-low">🟢 低优先级</span>
-                <span>📅 10月10日</span>
-                <span>🍅 0/3</span>
-              </div>
+              <div id="completed-tasks-list"></div>
             </div>
-          </div>
-          <div class="task-actions">
-            <button class="task-pomodoro-btn" onclick="startTaskPomodoro('task-3')">
-              🍅 开始番茄钟
-            </button>
-            <button class="btn btn-small btn-secondary" onclick="editTask('task-3')">✏️</button>
-            <button class="btn btn-small btn-danger" onclick="deleteTask('task-3')">🗑️</button>
-          </div>
-        </div>
-        </div> <!-- end active-tasks -->
-
-        <!-- 已完成任务区域 -->
-        <div id="completed-tasks-section" class="completed-section" style="display: none;">
-          <div class="section-divider">
-            <div class="divider-line"></div>
-            <div class="section-header" onclick="toggleCompletedTasks()">
-              <span class="section-title">📋 已完成任务</span>
-              <span class="section-count" id="completed-count">0</span>
-              <span class="toggle-icon" id="completed-toggle-icon">▼</span>
-            </div>
-            <div class="divider-line"></div>
-          </div>
-
-          <div id="completed-tasks-list" class="completed-tasks-container">
-            <!-- 已完成的任务将通过JavaScript动态加载到这里 -->
-          </div>
-
-          <div id="load-more-completed" class="load-more-btn" onclick="loadMoreCompletedTasks()" style="display: none;">
-            <button class="btn btn-secondary">
-              <span id="load-more-text">加载更多已完成任务 ↓</span>
-            </button>
           </div>
         </div>
       </div>
@@ -2759,12 +2795,7 @@
       </div>
     </div>
 
-    <div class="nav-bar">
-      <div class="nav-item active" onclick="switchTab(0, this)">🍅 番茄钟</div>
-      <div class="nav-item" onclick="switchTab(1, this)">📋 任务</div>
-      <div class="nav-item" onclick="switchTab(2, this)">📊 报告</div>
-      <div class="nav-item" onclick="switchTab(3, this)">⚙️ 设置</div>
-    </div>
+    <!-- Bottom nav-bar removed -->
   </div>
 
   <!-- 任务选择模态框 -->
@@ -2942,6 +2973,9 @@
     };
 
     // ========== GLOBAL STATE ==========
+    // Navigation State
+    let currentView = 'tasks'; // 'pomodoro', 'tasks', 'reports', 'settings'
+
     // Project Management System
     let currentProject = 'inbox';
     let projects = {
@@ -2972,6 +3006,8 @@
     }
 
     const projectManager = new ProjectManager();
+
+    // ========== REMOVED NAVIGATION FUNCTIONS ==========
 
     // Project Management Functions
     function selectProject(projectId) {
@@ -3798,10 +3834,9 @@
       projectButton.dataset.projectId = projectId;
       projectButton.onclick = () => selectProject(projectId);
       projectButton.innerHTML = `
-        <span class="drag-handle">⋮⋮</span>
         <div class="project-info">
           <span class="project-icon">${selectedIcon}</span>
-          <span class="project-name" onclick="editProjectNameInline(event, '${projectId}')" title="双击编辑名称">${projectName}</span>
+          <span class="project-name" ondblclick="editProjectNameInline(event, '${projectId}')" title="双击编辑名称">${projectName}</span>
         </div>
         <span class="project-count" id="${projectId}-count">0</span>
       `;
@@ -4191,10 +4226,9 @@
               projectButton.dataset.projectId = projectId;
               projectButton.onclick = () => selectProject(projectId);
               projectButton.innerHTML = `
-                <span class="drag-handle">⋮⋮</span>
                 <div class="project-info">
                   <span class="project-icon">${projects[projectId].icon}</span>
-                  <span class="project-name" onclick="editProjectNameInline(event, '${projectId}')" title="双击编辑名称">${projects[projectId].name}</span>
+                  <span class="project-name" ondblclick="editProjectNameInline(event, '${projectId}')" title="双击编辑名称">${projects[projectId].name}</span>
                 </div>
                 <span class="project-count" id="${projectId}-count">0</span>
               `;
@@ -4211,16 +4245,17 @@
       loadProjects();
       updateProjectHeader(currentProject);
       updateProjectTaskCounts();
-      loadProjectTasks(currentProject);
       loadTaskCompletionState();
       loadDailyStats(); // 加载今日统计数据
+
+      // 初始化界面
 
       // 延迟重新计算，确保已完成任务数据已加载
       setTimeout(() => {
         recalculateStatsFromTasks();
       }, 100);
 
-      console.log('Project-first UI initialized');
+      console.log('n8n style UI initialized');
     });
 
     // 应用状态 (legacy)
@@ -5542,12 +5577,17 @@
       input.className = 'modal-input';
       input.style.cssText = `
         width: 100%;
-        padding: 4px 8px;
-        border: 2px solid var(--primary-color);
-        border-radius: 4px;
+        height: 20px;
+        padding: 0 4px;
+        margin: 0;
+        border: 1px solid var(--primary-color);
+        border-radius: 3px;
         background: white;
-        font-size: inherit;
+        font-size: 14px;
         font-family: inherit;
+        font-weight: var(--font-weight-medium);
+        line-height: 20px;
+        box-sizing: border-box;
       `;
 
       // 替换文本为输入框
