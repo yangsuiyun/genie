@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart';
 import '../models/pomodoro_session.dart';
 import '../models/task.dart';
+import 'platform_storage.dart';
 
 class SessionService {
   static final SessionService _instance = SessionService._internal();
@@ -11,6 +12,7 @@ class SessionService {
   static const String _storageKey = 'pomodoro_sessions';
   List<PomodoroSession> _sessions = [];
   final List<VoidCallback> _listeners = [];
+  final PlatformStorage _storage = PlatformStorage();
 
   // 获取所有会话
   List<PomodoroSession> get sessions => List.unmodifiable(_sessions);
@@ -327,16 +329,14 @@ class SessionService {
   // 清除所有会话数据
   Future<void> clearAllSessions() async {
     _sessions.clear();
-    final storage = html.window.localStorage;
-    storage.remove(_storageKey);
+    _storage.removeItem(_storageKey);
     _notifyListeners();
   }
 
   // 从本地存储加载
   Future<void> _loadFromStorage() async {
     try {
-      final storage = html.window.localStorage;
-      final sessionsJson = storage[_storageKey];
+      final sessionsJson = _storage.getItem(_storageKey);
 
       if (sessionsJson != null && sessionsJson.isNotEmpty) {
         final List<dynamic> sessionsList = json.decode(sessionsJson);
@@ -353,13 +353,19 @@ class SessionService {
   // 保存到本地存储
   Future<void> _saveToStorage() async {
     try {
-      final storage = html.window.localStorage;
       final sessionsJson = json.encode(
           _sessions.map((session) => session.toJson()).toList());
-      storage[_storageKey] = sessionsJson;
+      _storage.setItem(_storageKey, sessionsJson);
     } catch (e) {
       print('Error saving sessions to storage: $e');
     }
+  }
+
+  // 导入单个会话 (用于兼容性)
+  Future<void> importSession(PomodoroSession session) async {
+    _sessions.add(session);
+    await _saveToStorage();
+    _notifyListeners();
   }
 
   // 导出会话数据

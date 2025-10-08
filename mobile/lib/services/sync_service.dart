@@ -1,10 +1,11 @@
 import 'dart:convert';
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart';
 import '../models/task.dart';
 import '../models/pomodoro_session.dart';
 import '../api_service.dart';
 import 'task_service.dart';
 import 'session_service.dart';
+import 'platform_storage.dart';
 
 /// Service that manages synchronization between local storage and remote API
 class SyncService {
@@ -16,6 +17,7 @@ class SyncService {
 
   final TaskService _taskService = TaskService();
   final SessionService _sessionService = SessionService();
+  final PlatformStorage _storage = PlatformStorage();
 
   bool _isOnline = false;
   DateTime? _lastSyncTime;
@@ -163,8 +165,7 @@ class SyncService {
   /// Load sync state from storage
   Future<void> _loadSyncState() async {
     try {
-      final storage = html.window.localStorage;
-      final lastSyncString = storage[_lastSyncKey];
+      final lastSyncString = _storage.getItem(_lastSyncKey);
       if (lastSyncString != null) {
         _lastSyncTime = DateTime.parse(lastSyncString);
       }
@@ -176,9 +177,8 @@ class SyncService {
   /// Save sync state to storage
   Future<void> _saveSyncState() async {
     try {
-      final storage = html.window.localStorage;
       if (_lastSyncTime != null) {
-        storage[_lastSyncKey] = _lastSyncTime!.toIso8601String();
+        _storage.setItem(_lastSyncKey, _lastSyncTime!.toIso8601String());
       }
     } catch (e) {
       print('Error saving sync state: $e');

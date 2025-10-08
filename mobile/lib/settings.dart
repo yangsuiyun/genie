@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'services/sync_service.dart';
 import 'services/task_service.dart';
 import 'services/session_service.dart';
 import 'models/task.dart';
 import 'models/pomodoro_session.dart';
+// Web-specific imports
+import 'settings_web_stub.dart'
+    if (dart.library.html) 'settings_web.dart' as web_utils;
 
 // 设置数据模型
 class AppSettings {
@@ -63,7 +66,7 @@ class AppSettings {
   }
 
   // 获取主题颜色
-  Color get themeColor {
+  MaterialColor get themeColor {
     switch (theme) {
       case 'red':
         return Colors.red;
@@ -874,14 +877,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
       final bytes = utf8.encode(jsonString);
-      final blob = html.Blob([bytes]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
 
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'pomodoro_genie_backup_${DateTime.now().millisecondsSinceEpoch}.json')
-        ..click();
-
-      html.Url.revokeObjectUrl(url);
+      web_utils.downloadFile(
+        bytes,
+        'pomodoro_genie_backup_${DateTime.now().millisecondsSinceEpoch}.json',
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -900,20 +900,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _importData() async {
-    final html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = '.json';
-    uploadInput.click();
+    try {
+      final content = await web_utils.uploadFile();
+      if (content == null) return;
 
-    uploadInput.onChange.listen((e) async {
-      final files = uploadInput.files;
-      if (files!.isEmpty) return;
-
-      final file = files[0];
-      final reader = html.FileReader();
-
-      reader.onLoadEnd.listen((e) async {
-        try {
-          final content = reader.result as String;
+      try {
           final importData = json.decode(content) as Map<String, dynamic>;
 
           // 验证导入数据格式
@@ -1035,18 +1026,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           );
 
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('导入失败: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      });
-
-      reader.readAsText(file);
-    });
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('导入失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('文件选择失败: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showClearDataConfirmation() {

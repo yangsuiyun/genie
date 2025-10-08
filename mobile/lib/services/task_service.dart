@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart';
 import '../models/task.dart';
+import 'platform_storage.dart';
 
 class TaskService {
   static final TaskService _instance = TaskService._internal();
@@ -10,6 +11,7 @@ class TaskService {
   static const String _storageKey = 'pomodoro_tasks';
   List<Task> _tasks = [];
   final List<VoidCallback> _listeners = [];
+  final PlatformStorage _storage = PlatformStorage();
 
   // 获取所有任务
   List<Task> get tasks => List.unmodifiable(_tasks);
@@ -189,8 +191,7 @@ class TaskService {
   // 从本地存储加载
   Future<void> _loadFromStorage() async {
     try {
-      final storage = html.window.localStorage;
-      final tasksJson = storage[_storageKey];
+      final tasksJson = _storage.getItem(_storageKey);
 
       if (tasksJson != null && tasksJson.isNotEmpty) {
         final List<dynamic> tasksList = json.decode(tasksJson);
@@ -205,9 +206,8 @@ class TaskService {
   // 保存到本地存储
   Future<void> _saveToStorage() async {
     try {
-      final storage = html.window.localStorage;
       final tasksJson = json.encode(_tasks.map((task) => task.toJson()).toList());
-      storage[_storageKey] = tasksJson;
+      _storage.setItem(_storageKey, tasksJson);
     } catch (e) {
       print('Error saving tasks to storage: $e');
     }
@@ -240,9 +240,13 @@ class TaskService {
   // 清除所有数据
   Future<void> clearAllData() async {
     _tasks.clear();
-    final storage = html.window.localStorage;
-    storage.remove(_storageKey);
+    _storage.removeItem(_storageKey);
     _notifyListeners();
+  }
+
+  // 清除所有任务 (别名方法，用于兼容)
+  Future<void> clearAllTasks() async {
+    await clearAllData();
   }
 }
 
