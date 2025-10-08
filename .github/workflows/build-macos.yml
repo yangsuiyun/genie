@@ -1,0 +1,93 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.3'
+          channel: 'stable'
+
+      - name: Enable macOS desktop support
+        run: flutter config --enable-macos-desktop
+
+      - name: Verify Flutter installation
+        run: flutter doctor -v
+
+      - name: Get Flutter dependencies
+        run: |
+          cd mobile
+          flutter pub get
+
+      - name: Create macOS platform files
+        run: |
+          cd mobile
+          flutter create --platforms=macos .
+
+      - name: Analyze Flutter code
+        run: |
+          cd mobile
+          flutter analyze
+        continue-on-error: true  # 分析错误不阻止构建
+
+      - name: Run tests
+        run: |
+          cd mobile
+          flutter test
+        continue-on-error: true  # 测试失败不阻止构建
+
+      - name: Build macOS app (Release)
+        run: |
+          cd mobile
+          flutter build macos --release
+
+      - name: Create DMG installer (Optional)
+        run: |
+          cd mobile/build/macos/Build/Products/Release
+          # 创建临时 DMG 文件夹
+          mkdir -p dmg_temp
+          cp -r pomodoro_genie.app dmg_temp/
+          # 创建 DMG（需要 hdiutil，macOS 自带）
+          hdiutil create -volname "Pomodoro Genie" -srcfolder dmg_temp -ov -format UDZO pomodoro_genie.dmg
+          mv pomodoro_genie.dmg ../../../../../
+        continue-on-error: true
+
+      - name: Upload macOS .app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pomodoro-genie-macos-app
+          path: mobile/build/macos/Build/Products/Release/pomodoro_genie.app
+          retention-days: 30
+
+      - name: Upload DMG installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pomodoro-genie-macos-dmg
+          path: mobile/pomodoro_genie.dmg
+          retention-days: 30
+        if: success()
+
+      - name: Build summary
+        run: |
+          echo "## macOS Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Build Status**: Success" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **App Location**: mobile/build/macos/Build/Products/Release/pomodoro_genie.app" >> $GITHUB_STEP_SUMMARY
+          echo "💾 **DMG Installer**: mobile/pomodoro_genie.dmg" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Download Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- macOS Application (.app)" >> $GITHUB_STEP_SUMMARY
+          echo "- DMG Installer (if available)" >> $GITHUB_STEP_SUMMARY
