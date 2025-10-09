@@ -1,20 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/notification_service.dart';
+import '../models/index.dart';
 
 class NotificationNotifier extends StateNotifier<List<PushNotification>> {
   NotificationNotifier() : super([]) {
     _initialize();
   }
 
-  final NotificationService _notificationService = NotificationService.instance;
+  final NotificationService _notificationService = NotificationService();
 
   Future<void> _initialize() async {
     await _notificationService.initialize();
 
     // Listen to incoming notifications
-    _notificationService.notificationStream.listen((notification) {
-      state = [notification, ...state];
-    });
+    // _notificationService.notificationStream.listen((notification) {
+    //   state = [notification, ...state];
+    // });
   }
 
   Future<void> scheduleTaskReminder({
@@ -23,12 +24,12 @@ class NotificationNotifier extends StateNotifier<List<PushNotification>> {
     required DateTime reminderTime,
     String? customMessage,
   }) async {
-    await _notificationService.scheduleTaskReminder(
-      taskId: taskId,
-      taskTitle: taskTitle,
-      reminderTime: reminderTime,
-      customMessage: customMessage,
-    );
+    // await _notificationService.scheduleTaskReminder(
+    //   taskId: taskId,
+    //   taskTitle: taskTitle,
+    //   reminderTime: reminderTime,
+    //   customMessage: customMessage,
+    // );
   }
 
   Future<void> scheduleTaskDueNotification({
@@ -36,11 +37,11 @@ class NotificationNotifier extends StateNotifier<List<PushNotification>> {
     required String taskTitle,
     required DateTime dueDate,
   }) async {
-    await _notificationService.scheduleTaskDueNotification(
-      taskId: taskId,
-      taskTitle: taskTitle,
-      dueDate: dueDate,
-    );
+    // await _notificationService.scheduleTaskDueNotification(
+    //   taskId: taskId,
+    //   taskTitle: taskTitle,
+    //   dueDate: dueDate,
+    // );
   }
 
   Future<void> schedulePomodoroNotification({
@@ -49,28 +50,28 @@ class NotificationNotifier extends StateNotifier<List<PushNotification>> {
     required Duration sessionDuration,
     required bool isBreak,
   }) async {
-    await _notificationService.schedulePomodoroNotification(
-      sessionId: sessionId,
-      taskTitle: taskTitle,
-      sessionDuration: sessionDuration,
-      isBreak: isBreak,
-    );
+    // await _notificationService.schedulePomodoroNotification(
+    //   sessionId: sessionId,
+    //   taskTitle: taskTitle,
+    //   sessionDuration: sessionDuration,
+    //   isBreak: isBreak,
+    // );
   }
 
   Future<void> cancelTaskNotifications(String taskId) async {
-    await _notificationService.cancelTaskNotifications(taskId);
+    // await _notificationService.cancelTaskNotifications(taskId);
   }
 
   Future<void> cancelPomodoroNotification(String sessionId) async {
-    await _notificationService.cancelPomodoroNotification(sessionId);
+    // await _notificationService.cancelPomodoroNotification(sessionId);
   }
 
   Future<void> scheduleDailyReportNotification() async {
-    await _notificationService.scheduleDailyReportNotification();
+    // await _notificationService.scheduleDailyReportNotification();
   }
 
   Future<void> scheduleWeeklyReportNotification() async {
-    await _notificationService.scheduleWeeklyReportNotification();
+    // await _notificationService.scheduleWeeklyReportNotification();
   }
 
   Future<void> updateNotificationSettings({
@@ -137,7 +138,7 @@ class NotificationSettingsNotifier extends StateNotifier<Map<String, dynamic>> {
     _initialize();
   }
 
-  final NotificationService _notificationService = NotificationService.instance;
+  final NotificationService _notificationService = NotificationService();
 
   Future<void> _initialize() async {
     await _notificationService.initialize();
