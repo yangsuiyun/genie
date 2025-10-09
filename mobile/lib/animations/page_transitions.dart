@@ -131,6 +131,9 @@ class CustomPageRoute<T> extends PageRoute<T> {
   bool get barrierDismissible => true;
 
   @override
+  bool get maintainState => true;
+
+  @override
   Widget buildPage(
     BuildContext context,
     Animation<double> animation,

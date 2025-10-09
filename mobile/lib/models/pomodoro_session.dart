@@ -30,6 +30,7 @@ class PomodoroSession {
     String? taskTitle,
     required int plannedDuration,
     SessionType type = SessionType.work,
+    bool isCompleted = false,
   }) {
     return PomodoroSession(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -38,7 +39,7 @@ class PomodoroSession {
       startTime: DateTime.now(),
       plannedDuration: plannedDuration,
       actualDuration: 0,
-      status: SessionStatus.active,
+      status: isCompleted ? SessionStatus.completed : SessionStatus.active,
       type: type,
     );
   }

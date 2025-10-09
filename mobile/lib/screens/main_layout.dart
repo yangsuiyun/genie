@@ -12,15 +12,6 @@ import '../screens/focus_mode_screen.dart';
 import '../animations/page_transitions.dart';
 import '../animations/micro_animations.dart';
 
-// 时间过滤枚举
-enum TaskTimeFilter {
-  today,
-  tomorrow,
-  thisWeek,
-  planned,
-  completed,
-}
-
 // 主布局组件 - 替换原有的BottomNavigationBar结构
 class MainLayout extends ConsumerStatefulWidget {
   const MainLayout({super.key});

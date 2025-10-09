@@ -418,7 +418,7 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
           ),
           const SizedBox(width: 30),
           _buildControlButton(
-            icon: _showSidebar ? Icons.sidebar : Icons.sidebar_outlined,
+            icon: _showSidebar ? Icons.menu : Icons.menu_open,
             label: 'Sidebar',
             onTap: _toggleSidebar,
             isActive: _showSidebar,

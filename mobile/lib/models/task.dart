@@ -29,19 +29,6 @@ class Task {
     this.completedPomodoros = 0,
   });
 
-  Task({
-    required this.id,
-    required this.title,
-    this.description = '',
-    this.priority = TaskPriority.medium,
-    this.status = TaskStatus.pending,
-    this.dueDate,
-    this.tags = const [],
-    required this.createdAt,
-    required this.updatedAt,
-    this.subtasks = const [],
-  });
-
   // Create a new task
   factory Task.create({
     required String title,
@@ -283,12 +270,15 @@ class Subtask {
 }
 
 enum TaskPriority {
+  urgent,
   high,
   medium,
   low;
 
   String get displayName {
     switch (this) {
+      case TaskPriority.urgent:
+        return '紧急';
       case TaskPriority.high:
         return '高';
       case TaskPriority.medium:

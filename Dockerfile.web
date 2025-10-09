@@ -1,0 +1,77 @@
+# 🌐 Pomodoro Genie Web Frontend Dockerfile
+# Flutter Web应用 + Nginx
+
+# 构建阶段 - Flutter Web
+FROM ubuntu:22.04 AS flutter-builder
+
+# 设置环境变量
+ENV DEBIAN_FRONTEND=noninteractive
+ENV FLUTTER_VERSION=3.24.3
+
+# 安装依赖
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    unzip \
+    xz-utils \
+    zip \
+    libglu1-mesa \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装Flutter
+RUN git clone https://github.com/flutter/flutter.git -b stable /flutter
+ENV PATH="/flutter/bin:/flutter/bin/cache/dart-sdk/bin:${PATH}"
+
+# 验证Flutter安装
+RUN flutter doctor
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制Flutter项目文件
+COPY mobile/pubspec.yaml mobile/pubspec.lock ./
+COPY mobile/lib ./lib
+COPY mobile/web ./web
+COPY mobile/assets ./assets
+
+# 获取依赖
+RUN flutter pub get
+
+# 构建Web应用
+RUN flutter build web --release --web-renderer html --dart-define=FLUTTER_WEB_USE_SKIA=false
+
+# 运行阶段 - Nginx
+FROM nginx:alpine
+
+# 安装必要的包
+RUN apk add --no-cache curl
+
+# 复制构建的Web文件
+COPY --from=flutter-builder /app/build/web /usr/share/nginx/html
+
+# 复制Nginx配置
+COPY nginx-web.conf /etc/nginx/conf.d/default.conf
+
+# 创建非root用户
+RUN adduser -D -s /bin/sh webuser
+
+# 设置权限
+RUN chown -R webuser:webuser /usr/share/nginx/html
+RUN chown -R webuser:webuser /var/cache/nginx
+RUN chown -R webuser:webuser /var/log/nginx
+RUN chown -R webuser:webuser /etc/nginx/conf.d
+RUN touch /var/run/nginx.pid
+RUN chown -R webuser:webuser /var/run/nginx.pid
+
+# 切换到非root用户
+USER webuser
+
+# 暴露端口
+EXPOSE 8080
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/ || exit 1
+
+# 启动Nginx
+CMD ["nginx", "-g", "daemon off;"]

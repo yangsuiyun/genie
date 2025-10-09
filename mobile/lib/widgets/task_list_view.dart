@@ -42,10 +42,10 @@ class TaskListView extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    String emptyMessage;
-    IconData emptyIcon;
+    String emptyMessage = '';
+    IconData emptyIcon = Icons.task;
     
-    switch (filter) {
+    switch (widget.filter) {
       case TaskTimeFilter.today:
         emptyMessage = '今天还没有任务\n点击下方按钮创建第一个任务吧！';
         emptyIcon = Icons.today;

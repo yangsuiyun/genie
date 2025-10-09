@@ -1,0 +1,148 @@
+# 🍅 Pomodoro Genie Production Docker Compose
+# 完整的生产环境部署配置
+
+version: '3.8'
+
+services:
+  # 🗄️ PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: pomodoro_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pomodoro_genie}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - pomodoro_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-pomodoro_genie}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 🚀 Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: pomodoro_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - pomodoro_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # 🔧 后端API服务
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: pomodoro_backend
+    restart: unless-stopped
+    environment:
+      # 数据库配置
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB:-pomodoro_genie}
+      DB_SSLMODE: disable
+      
+      # Redis配置
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      
+      # 服务配置
+      PORT: 8081
+      GIN_MODE: release
+      
+      # JWT配置
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_LIMIT: ${JWT_EXPIRY_LIMIT:-24h}
+      
+      # CORS配置
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:3000}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pomodoro_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 🌐 Web前端服务
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: pomodoro_web
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - pomodoro_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🔄 Nginx 反向代理 (可选)
+  nginx:
+    image: nginx:alpine
+    container_name: pomodoro_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-production.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
+      - backend
+    networks:
+      - pomodoro_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  pomodoro_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

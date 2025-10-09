@@ -134,7 +134,7 @@ class StatisticsCards extends ConsumerWidget {
     TaskTimeFilter filter,
   ) {
     final tasks = taskService.getTasksByTimeFilter(filter);
-    final sessions = sessionService.getSessions();
+    final sessions = sessionService.sessions;
 
     // 计算预计时间
     final estimatedTime = tasks.fold(

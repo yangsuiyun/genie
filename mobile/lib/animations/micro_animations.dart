@@ -214,8 +214,7 @@ class MicroAnimations {
 }
 
 // 动画控制器混入
-mixin AnimationControllerMixin<T extends StatefulWidget> on State<T>
-    with TickerProviderStateMixin {
+mixin AnimationControllerMixin<T extends StatefulWidget> on State<T> {
   late AnimationController _animationController;
   late Animation<double> _animation;
 
