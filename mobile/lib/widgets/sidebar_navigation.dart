@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/index.dart';
 import '../services/task_service.dart';
 import '../services/session_service.dart';
-import 'main_layout.dart';
+import '../screens/main_layout.dart';
 
 // 侧边栏导航组件
 class SidebarNavigation extends ConsumerWidget {

@@ -5,7 +5,7 @@ import '../services/task_service.dart';
 import '../services/session_service.dart';
 import '../services/pomodoro_state.dart';
 import '../services/white_noise_service.dart';
-import '../widgets/main_layout.dart';
+import '../screens/main_layout.dart';
 import '../widgets/white_noise_panel.dart';
 import '../widgets/focus_mode_settings_panel.dart';
 import '../widgets/focus_mode_stats_panel.dart';
