@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/index.dart';
+import '../widgets/main_layout.dart';
 import 'platform_storage.dart';
 
 class TaskService {
@@ -15,6 +16,46 @@ class TaskService {
 
   // 获取所有任务
   List<Task> get tasks => List.unmodifiable(_tasks);
+
+  // 获取所有任务（用于Provider）
+  List<Task> getAllTasks() {
+    return List.unmodifiable(_tasks);
+  }
+
+  // 根据时间过滤器获取任务
+  List<Task> getTasksByTimeFilter(TaskTimeFilter filter) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final weekEnd = today.add(Duration(days: 7 - today.weekday));
+
+    switch (filter) {
+      case TaskTimeFilter.today:
+        return _tasks.where((t) {
+          if (t.dueDate == null) return false;
+          return t.dueDate!.isBefore(tomorrow) && !t.isCompleted;
+        }).toList();
+
+      case TaskTimeFilter.tomorrow:
+        return _tasks.where((t) {
+          if (t.dueDate == null) return false;
+          final dueDay = DateTime(t.dueDate!.year, t.dueDate!.month, t.dueDate!.day);
+          return dueDay.isAtSameMomentAs(tomorrow) && !t.isCompleted;
+        }).toList();
+
+      case TaskTimeFilter.thisWeek:
+        return _tasks.where((t) {
+          if (t.dueDate == null) return false;
+          return t.dueDate!.isBefore(weekEnd) && !t.isCompleted;
+        }).toList();
+
+      case TaskTimeFilter.planned:
+        return _tasks.where((t) => !t.isCompleted).toList();
+
+      case TaskTimeFilter.completed:
+        return _tasks.where((t) => t.isCompleted).toList();
+    }
+  }
 
   // 添加监听器
   void addListener(VoidCallback listener) {
@@ -53,6 +94,7 @@ class TaskService {
         priority: TaskPriority.high,
         dueDate: DateTime.now().add(const Duration(days: 1)),
         tags: ['工作', '文档'],
+        plannedPomodoros: 6,
       ).copyWith(
         subtasks: [
           Subtask.create('编写API文档'),
@@ -66,12 +108,14 @@ class TaskService {
         priority: TaskPriority.medium,
         dueDate: DateTime.now().add(const Duration(days: 3)),
         tags: ['开发', '性能'],
+        plannedPomodoros: 4,
       ),
       Task.create(
         title: '学习Flutter状态管理',
         description: '深入了解Riverpod和Provider',
         priority: TaskPriority.low,
         tags: ['学习', 'Flutter'],
+        plannedPomodoros: 3,
       ),
     ];
   }

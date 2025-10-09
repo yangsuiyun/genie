@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'settings.dart';
 import 'screens/task_screen.dart';
+import 'screens/main_layout.dart';
 import 'services/task_service.dart';
 import 'services/notification_service.dart';
 import 'services/session_service.dart';
@@ -9,7 +11,11 @@ import 'services/sync_service.dart';
 import 'models/index.dart';
 
 void main() {
-  runApp(const PomodoroApp());
+  runApp(
+    const ProviderScope(
+      child: PomodoroApp(),
+    ),
+  );
 }
 
 class PomodoroApp extends StatelessWidget {
@@ -23,8 +29,12 @@ class PomodoroApp extends StatelessWidget {
         primarySwatch: Colors.red,
         useMaterial3: true,
       ),
-      home: MainScreen(),
+      home: const ResponsiveMainLayout(),
       debugShowCheckedModeBanner: false,
+      routes: {
+        '/focus': (context) => const FocusModeScreen(),
+        '/settings': (context) => const SettingsScreen(),
+      },
     );
   }
 }
@@ -498,6 +508,7 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
   final NotificationService _notificationService = NotificationService();
   late AnimationController _controller;
   List<Task> _availableTasks = [];
+  bool _isMinimized = false;
 
   @override
   void initState() {
@@ -744,12 +755,129 @@ class _PomodoroTimerScreenState extends State<PomodoroTimerScreen>
         title: const Text('🍅 Pomodoro Genie'),
         backgroundColor: _settings.themeColor.shade400,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _isMinimized = !_isMinimized;
+              });
+            },
+            icon: Icon(_isMinimized ? Icons.expand_more : Icons.expand_less),
+            tooltip: _isMinimized ? '展开' : '最小化',
+          ),
+        ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 番茄钟计数显示
+      body: _isMinimized ? _buildMinimizedView() : _buildFullView(),
+    );
+  }
+
+  Widget _buildMinimizedView() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Card(
+        elevation: 4,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // 小型计时器显示
+              SizedBox(
+                width: 60,
+                height: 60,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 60,
+                      height: 60,
+                      child: CircularProgressIndicator(
+                        value: _pomodoroState.progress,
+                        strokeWidth: 4,
+                        backgroundColor: Colors.grey.shade300,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _pomodoroState.currentSessionType == SessionType.work
+                              ? Colors.red
+                              : _pomodoroState.currentSessionType == SessionType.shortBreak
+                                  ? Colors.green
+                                  : Colors.blue,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      _pomodoroState.timeDisplay,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              // 任务信息和控制按钮
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_pomodoroState.currentTask != null) ...[
+                      Text(
+                        _pomodoroState.currentTask!.title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    Text(
+                      _pomodoroState.currentSessionType == SessionType.work
+                          ? '工作时间'
+                          : _pomodoroState.currentSessionType == SessionType.shortBreak
+                              ? '短休息'
+                              : '长休息',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 控制按钮
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: _pomodoroState.isRunning ? _pauseTimer : _startTimer,
+                    icon: Icon(
+                      _pomodoroState.isRunning ? Icons.pause : Icons.play_arrow,
+                      color: _settings.themeColor,
+                    ),
+                    tooltip: _pomodoroState.isRunning ? '暂停' : '开始',
+                  ),
+                  IconButton(
+                    onPressed: _resetTimer,
+                    icon: Icon(Icons.refresh, color: Colors.grey.shade600),
+                    tooltip: '重置',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 番茄钟计数显示
             if (_pomodoroState.completedPomodoros > 0)
               Container(
                 margin: const EdgeInsets.only(bottom: 16),

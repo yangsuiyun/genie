@@ -11,6 +11,23 @@ class Task {
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<Subtask> subtasks;
+  final int plannedPomodoros;
+  final int completedPomodoros;
+
+  Task({
+    required this.id,
+    required this.title,
+    this.description = '',
+    this.priority = TaskPriority.medium,
+    this.status = TaskStatus.pending,
+    this.dueDate,
+    this.tags = const [],
+    required this.createdAt,
+    required this.updatedAt,
+    this.subtasks = const [],
+    this.plannedPomodoros = 4,
+    this.completedPomodoros = 0,
+  });
 
   Task({
     required this.id,
@@ -32,6 +49,7 @@ class Task {
     TaskPriority priority = TaskPriority.medium,
     DateTime? dueDate,
     List<String> tags = const [],
+    int plannedPomodoros = 4,
   }) {
     final now = DateTime.now();
     return Task(
@@ -41,6 +59,7 @@ class Task {
       priority: priority,
       dueDate: dueDate,
       tags: tags,
+      plannedPomodoros: plannedPomodoros,
       createdAt: now,
       updatedAt: now,
     );
@@ -55,6 +74,8 @@ class Task {
     DateTime? dueDate,
     List<String>? tags,
     List<Subtask>? subtasks,
+    int? plannedPomodoros,
+    int? completedPomodoros,
   }) {
     return Task(
       id: id,
@@ -67,6 +88,8 @@ class Task {
       createdAt: createdAt,
       updatedAt: DateTime.now(),
       subtasks: subtasks ?? this.subtasks,
+      plannedPomodoros: plannedPomodoros ?? this.plannedPomodoros,
+      completedPomodoros: completedPomodoros ?? this.completedPomodoros,
     );
   }
 
@@ -83,6 +106,8 @@ class Task {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'subtasks': subtasks.map((s) => s.toJson()).toList(),
+      'plannedPomodoros': plannedPomodoros,
+      'completedPomodoros': completedPomodoros,
     };
   }
 
@@ -106,6 +131,8 @@ class Task {
       subtasks: (json['subtasks'] as List<dynamic>?)
           ?.map((s) => Subtask.fromJson(s))
           .toList() ?? [],
+      plannedPomodoros: json['plannedPomodoros'] ?? 4,
+      completedPomodoros: json['completedPomodoros'] ?? 0,
     );
   }
 

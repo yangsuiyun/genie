@@ -10,6 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # State Management
+  flutter_riverpod: ^2.4.9
+
   # HTTP Client for API integration
   http: ^1.1.2
 

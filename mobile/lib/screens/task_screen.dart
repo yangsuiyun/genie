@@ -281,6 +281,16 @@ class _TaskScreenState extends State<TaskScreen> with TickerProviderStateMixin {
                       iconSize: 20,
                       color: _settings.themeColor,
                     ),
+                  // 删除按钮
+                  IconButton(
+                    onPressed: () => _showDeleteConfirmation(task),
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    tooltip: '删除任务',
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    padding: const EdgeInsets.all(4),
+                    iconSize: 20,
+                    color: Colors.red.shade400,
+                  ),
                 ],
               ),
 
@@ -613,6 +623,36 @@ class _TaskScreenState extends State<TaskScreen> with TickerProviderStateMixin {
         onTaskCreated: (task, recurrence) {
           _createRecurringTasks(task, recurrence);
         },
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除任务'),
+        content: Text('确定要删除任务 "${task.title}" 吗？\n此操作无法撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              _taskService.deleteTask(task.id);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('已删除任务 "${task.title}"'),
+                  backgroundColor: Colors.red.shade400,
+                ),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
       ),
     );
   }
