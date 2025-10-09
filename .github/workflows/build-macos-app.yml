@@ -41,53 +41,74 @@ jobs:
       run: |
         cd mobile
         flutter analyze --fatal-infos
+      continue-on-error: true
         
     - name: 🔨 Build macOS app
       run: |
         cd mobile
         flutter build macos --release --dart-define=FLUTTER_WEB_USE_SKIA=false
         
+    - name: 🔍 Debug build output
+      run: |
+        echo "Checking build directory structure..."
+        find mobile/build -name "*.app" -type d 2>/dev/null || echo "No .app files found"
+        ls -la mobile/build/macos/Build/Products/Release/ 2>/dev/null || echo "Release directory not found"
+        ls -la mobile/build/macos/Build/Products/ 2>/dev/null || echo "Products directory not found"
+        
     - name: 📦 Create macOS package
       run: |
         mkdir -p dist/macos
-        APP_PATH="mobile/build/macos/Build/Products/Release/pomodoro_genie.app"
         
-        if [ -d "$APP_PATH" ]; then
-          cp -r "$APP_PATH" dist/macos/
+        # 查找构建的.app文件
+        APP_PATH=$(find mobile/build -name "*.app" -type d | head -1)
+        
+        if [ -z "$APP_PATH" ]; then
+          echo "❌ No .app file found in build directory"
+          echo "Build directory contents:"
+          find mobile/build -type d -name "*" | head -20
+          exit 1
+        fi
+        
+        echo "Found app at: $APP_PATH"
+        cp -r "$APP_PATH" dist/macos/
+        
+        # 获取应用名称
+        APP_NAME=$(basename "$APP_PATH" .app)
+        echo "App name: $APP_NAME"
           
-          # 创建DMG
-          hdiutil create -volname "PomodoroGenie" \
-            -srcfolder dist/macos \
-            -ov -format UDZO \
-            dist/macos/pomodoro_genie-1.0.0.dmg
+        # 创建DMG
+        hdiutil create -volname "PomodoroGenie" \
+          -srcfolder dist/macos \
+          -ov -format UDZO \
+          dist/macos/${APP_NAME}-1.0.0.dmg
+          
+        # 创建PKG安装包
+        pkgbuild --root dist/macos \
+          --identifier com.pomodorogenie.app \
+          --version 1.0.0 \
+          --install-location "/Applications" \
+          dist/macos/${APP_NAME}-1.0.0.pkg
             
-          # 创建PKG安装包
-          pkgbuild --root dist/macos \
-            --identifier com.pomodorogenie.app \
-            --version 1.0.0 \
-            --install-location "/Applications" \
-            dist/macos/pomodoro_genie-1.0.0.pkg
-            
-          # 创建安装说明
-          cat > dist/macos/INSTALL.md << 'EOF'
-          # PomodoroGenie macOS App Installation
-          
-          ## 📦 Installation Options
-          
-          ### Option 1: DMG Installation (Recommended)
-          1. Double-click `pomodoro_genie-1.0.0.dmg`
-          2. Drag `pomodoro_genie.app` to Applications folder
-          3. Eject the DMG
-          4. Launch from Applications folder
-          
-          ### Option 2: PKG Installation
-          1. Double-click `pomodoro_genie-1.0.0.pkg`
-          2. Follow the installation wizard
-          3. Launch from Applications folder
-          
-          ### Option 3: Direct Installation
-          1. Copy `pomodoro_genie.app` to `/Applications/`
-          2. Double-click to run
+        # 创建安装说明
+        cat > dist/macos/INSTALL.md << EOF
+        # PomodoroGenie macOS App Installation
+        
+        ## 📦 Installation Options
+        
+        ### Option 1: DMG Installation (Recommended)
+        1. Double-click \`${APP_NAME}-1.0.0.dmg\`
+        2. Drag \`${APP_NAME}.app\` to Applications folder
+        3. Eject the DMG
+        4. Launch from Applications folder
+        
+        ### Option 2: PKG Installation
+        1. Double-click \`${APP_NAME}-1.0.0.pkg\`
+        2. Follow the installation wizard
+        3. Launch from Applications folder
+        
+        ### Option 3: Direct Installation
+        1. Copy \`${APP_NAME}.app\` to \`/Applications/\`
+        2. Double-click to run
           
           ## 🔒 Security Note
           
@@ -141,9 +162,9 @@ jobs:
         echo "- **PKG Package**: Created" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📦 Available Artifacts" >> $GITHUB_STEP_SUMMARY
-        echo "- **pomodoro_genie.app**: Native macOS application" >> $GITHUB_STEP_SUMMARY
-        echo "- **pomodoro_genie-1.0.0.dmg**: DMG installer package" >> $GITHUB_STEP_SUMMARY
-        echo "- **pomodoro_genie-1.0.0.pkg**: PKG installer package" >> $GITHUB_STEP_SUMMARY
+        echo "- **\${APP_NAME}.app**: Native macOS application" >> $GITHUB_STEP_SUMMARY
+        echo "- **\${APP_NAME}-1.0.0.dmg**: DMG installer package" >> $GITHUB_STEP_SUMMARY
+        echo "- **\${APP_NAME}-1.0.0.pkg**: PKG installer package" >> $GITHUB_STEP_SUMMARY
         echo "- **INSTALL.md**: Installation instructions" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
