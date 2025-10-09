@@ -1,0 +1,149 @@
+name: 🚀 Simple Flutter Web Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build-web:
+    name: 🌐 Build Flutter Web
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🎯 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+        
+    - name: 📦 Install dependencies
+      run: |
+        cd mobile
+        flutter pub get
+        
+    - name: 🔍 Analyze code
+      run: |
+        cd mobile
+        flutter analyze --fatal-infos
+        
+    - name: 🔨 Build Flutter Web
+      run: |
+        cd mobile
+        flutter build web --release --web-renderer html --dart-define=FLUTTER_WEB_USE_SKIA=false
+        
+    - name: 📦 Create deployment package
+      run: |
+        mkdir -p dist/web
+        cp -r mobile/build/web/* dist/web/
+        
+        # 创建部署脚本
+        cat > dist/web/deploy.sh << 'EOF'
+        #!/bin/bash
+        echo "🚀 Deploying PomodoroGenie Web App..."
+        echo "📁 Copying files to /Applications/PomodoroGenie/"
+        
+        # 创建应用目录
+        sudo mkdir -p /Applications/PomodoroGenie
+        sudo cp -r * /Applications/PomodoroGenie/
+        sudo chown -R $(whoami):staff /Applications/PomodoroGenie
+        
+        # 创建启动脚本
+        cat > /Applications/PomodoroGenie/start.sh << 'EOF2'
+        #!/bin/bash
+        cd /Applications/PomodoroGenie
+        python3 -m http.server 3001 --bind 0.0.0.0
+        EOF2
+        chmod +x /Applications/PomodoroGenie/start.sh
+        
+        # 创建停止脚本
+        cat > /Applications/PomodoroGenie/stop.sh << 'EOF2'
+        #!/bin/bash
+        pkill -f "python3 -m http.server 3001"
+        EOF2
+        chmod +x /Applications/PomodoroGenie/stop.sh
+        
+        echo "✅ Deployment complete!"
+        echo "🚀 Start: /Applications/PomodoroGenie/start.sh"
+        echo "🛑 Stop: /Applications/PomodoroGenie/stop.sh"
+        echo "🌐 Access: http://localhost:3001"
+        EOF
+        chmod +x dist/web/deploy.sh
+        
+        # 创建README
+        cat > dist/web/README.md << 'EOF'
+        # PomodoroGenie Web App
+        
+        ## 🚀 Quick Start
+        
+        1. **Deploy**:
+           ```bash
+           ./deploy.sh
+           ```
+        
+        2. **Start**:
+           ```bash
+           /Applications/PomodoroGenie/start.sh
+           ```
+        
+        3. **Access**:
+           - Local: http://localhost:3001
+           - Network: http://[your-ip]:3001
+        
+        ## 📋 Features
+        
+        - ✅ Pomodoro Timer
+        - ✅ Task Management
+        - ✅ Statistics Dashboard
+        - ✅ White Noise
+        - ✅ Focus Mode
+        - ✅ Cross-platform Support
+        
+        ## 🔧 System Requirements
+        
+        - Modern web browser
+        - Python 3.7+ (for local server)
+        - 2GB free disk space
+        
+        ## 📞 Support
+        
+        - GitHub Issues: https://github.com/your-username/pomodoro-genie/issues
+        - Documentation: https://github.com/your-username/pomodoro-genie/wiki
+        EOF
+        
+    - name: 📤 Upload Web artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-app-${{ github.sha }}
+        path: dist/web/
+        retention-days: 30
+        
+    - name: 📊 Build Summary
+      run: |
+        echo "## 🌐 Flutter Web Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Build Information" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Time**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### ✅ Build Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: Success" >> $GITHUB_STEP_SUMMARY
+        echo "- **Web App**: Built successfully" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployment Script**: Created" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Available Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- **Web App**: Flutter Web application" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deploy Script**: Automated deployment script" >> $GITHUB_STEP_SUMMARY
+        echo "- **README**: Installation and usage guide" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. Download artifacts from Actions tab" >> $GITHUB_STEP_SUMMARY
+        echo "2. Extract the web-app archive" >> $GITHUB_STEP_SUMMARY
+        echo "3. Run \`./deploy.sh\` to deploy" >> $GITHUB_STEP_SUMMARY
+        echo "4. Start the server and access at http://localhost:3001" >> $GITHUB_STEP_SUMMARY
