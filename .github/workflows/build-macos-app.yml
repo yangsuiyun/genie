@@ -1,0 +1,148 @@
+name: 🍎 Build macOS App
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    name: 🍎 Build macOS App
+    runs-on: macos-latest
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🎯 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+        
+    - name: 📦 Install dependencies
+      run: |
+        cd mobile
+        flutter pub get
+        
+    - name: 🔧 Enable macOS desktop
+      run: |
+        cd mobile
+        flutter config --enable-macos-desktop
+        
+    - name: 🔍 Analyze code
+      run: |
+        cd mobile
+        flutter analyze --fatal-infos
+        
+    - name: 🔨 Build macOS app
+      run: |
+        cd mobile
+        flutter build macos --release --dart-define=FLUTTER_WEB_USE_SKIA=false
+        
+    - name: 📦 Create macOS package
+      run: |
+        mkdir -p dist/macos
+        APP_PATH="mobile/build/macos/Build/Products/Release/PomodoroGenie.app"
+        
+        if [ -d "$APP_PATH" ]; then
+          cp -r "$APP_PATH" dist/macos/
+          
+          # 创建DMG
+          hdiutil create -volname "PomodoroGenie" \
+            -srcfolder dist/macos \
+            -ov -format UDZO \
+            dist/macos/PomodoroGenie-1.0.0.dmg
+            
+          # 创建PKG安装包
+          pkgbuild --root dist/macos \
+            --identifier com.pomodorogenie.app \
+            --version 1.0.0 \
+            --install-location "/Applications" \
+            dist/macos/PomodoroGenie-1.0.0.pkg
+            
+          # 创建安装说明
+          cat > dist/macos/INSTALL.md << 'EOF'
+          # PomodoroGenie macOS App Installation
+          
+          ## 📦 Installation Options
+          
+          ### Option 1: DMG Installation (Recommended)
+          1. Double-click `PomodoroGenie-1.0.0.dmg`
+          2. Drag `PomodoroGenie.app` to Applications folder
+          3. Eject the DMG
+          4. Launch from Applications folder
+          
+          ### Option 2: PKG Installation
+          1. Double-click `PomodoroGenie-1.0.0.pkg`
+          2. Follow the installation wizard
+          3. Launch from Applications folder
+          
+          ### Option 3: Direct Installation
+          1. Copy `PomodoroGenie.app` to `/Applications/`
+          2. Double-click to run
+          
+          ## 🔒 Security Note
+          
+          If macOS shows a security warning:
+          1. Go to System Preferences > Security & Privacy
+          2. Click "Open Anyway" for PomodoroGenie
+          
+          ## 🚀 First Launch
+          
+          The app will start automatically after installation.
+          Access it from Applications folder or Launchpad.
+          
+          ## 📋 System Requirements
+          
+          - macOS 10.15 (Catalina) or later
+          - Intel or Apple Silicon processor
+          - 4GB RAM minimum
+          - 2GB free disk space
+          
+          ## 📞 Support
+          
+          - GitHub Issues: https://github.com/your-username/pomodoro-genie/issues
+          - Documentation: https://github.com/your-username/pomodoro-genie/wiki
+          EOF
+          
+        else
+          echo "❌ macOS app build failed"
+          exit 1
+        fi
+        
+    - name: 📤 Upload macOS artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-app-${{ github.sha }}
+        path: dist/macos/
+        retention-days: 30
+        
+    - name: 📊 Build Summary
+      run: |
+        echo "## 🍎 macOS App Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Build Information" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Time**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### ✅ Build Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: Success" >> $GITHUB_STEP_SUMMARY
+        echo "- **macOS App**: Built successfully" >> $GITHUB_STEP_SUMMARY
+        echo "- **DMG Package**: Created" >> $GITHUB_STEP_SUMMARY
+        echo "- **PKG Package**: Created" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Available Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- **PomodoroGenie.app**: Native macOS application" >> $GITHUB_STEP_SUMMARY
+        echo "- **PomodoroGenie-1.0.0.dmg**: DMG installer package" >> $GITHUB_STEP_SUMMARY
+        echo "- **PomodoroGenie-1.0.0.pkg**: PKG installer package" >> $GITHUB_STEP_SUMMARY
+        echo "- **INSTALL.md**: Installation instructions" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. Download artifacts from Actions tab" >> $GITHUB_STEP_SUMMARY
+        echo "2. Extract the macos-app archive" >> $GITHUB_STEP_SUMMARY
+        echo "3. Follow INSTALL.md instructions" >> $GITHUB_STEP_SUMMARY
+        echo "4. Install and test the macOS app" >> $GITHUB_STEP_SUMMARY
