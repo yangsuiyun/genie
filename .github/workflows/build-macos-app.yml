@@ -32,6 +32,11 @@ jobs:
         cd mobile
         flutter config --enable-macos-desktop
         
+    - name: 📱 Create macOS platform files
+      run: |
+        cd mobile
+        flutter create --platforms=macos .
+        
     - name: 🔍 Analyze code
       run: |
         cd mobile
@@ -45,7 +50,7 @@ jobs:
     - name: 📦 Create macOS package
       run: |
         mkdir -p dist/macos
-        APP_PATH="mobile/build/macos/Build/Products/Release/PomodoroGenie.app"
+        APP_PATH="mobile/build/macos/Build/Products/Release/pomodoro_genie.app"
         
         if [ -d "$APP_PATH" ]; then
           cp -r "$APP_PATH" dist/macos/
@@ -54,14 +59,14 @@ jobs:
           hdiutil create -volname "PomodoroGenie" \
             -srcfolder dist/macos \
             -ov -format UDZO \
-            dist/macos/PomodoroGenie-1.0.0.dmg
+            dist/macos/pomodoro_genie-1.0.0.dmg
             
           # 创建PKG安装包
           pkgbuild --root dist/macos \
             --identifier com.pomodorogenie.app \
             --version 1.0.0 \
             --install-location "/Applications" \
-            dist/macos/PomodoroGenie-1.0.0.pkg
+            dist/macos/pomodoro_genie-1.0.0.pkg
             
           # 创建安装说明
           cat > dist/macos/INSTALL.md << 'EOF'
@@ -70,18 +75,18 @@ jobs:
           ## 📦 Installation Options
           
           ### Option 1: DMG Installation (Recommended)
-          1. Double-click `PomodoroGenie-1.0.0.dmg`
-          2. Drag `PomodoroGenie.app` to Applications folder
+          1. Double-click `pomodoro_genie-1.0.0.dmg`
+          2. Drag `pomodoro_genie.app` to Applications folder
           3. Eject the DMG
           4. Launch from Applications folder
           
           ### Option 2: PKG Installation
-          1. Double-click `PomodoroGenie-1.0.0.pkg`
+          1. Double-click `pomodoro_genie-1.0.0.pkg`
           2. Follow the installation wizard
           3. Launch from Applications folder
           
           ### Option 3: Direct Installation
-          1. Copy `PomodoroGenie.app` to `/Applications/`
+          1. Copy `pomodoro_genie.app` to `/Applications/`
           2. Double-click to run
           
           ## 🔒 Security Note
@@ -136,9 +141,9 @@ jobs:
         echo "- **PKG Package**: Created" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📦 Available Artifacts" >> $GITHUB_STEP_SUMMARY
-        echo "- **PomodoroGenie.app**: Native macOS application" >> $GITHUB_STEP_SUMMARY
-        echo "- **PomodoroGenie-1.0.0.dmg**: DMG installer package" >> $GITHUB_STEP_SUMMARY
-        echo "- **PomodoroGenie-1.0.0.pkg**: PKG installer package" >> $GITHUB_STEP_SUMMARY
+        echo "- **pomodoro_genie.app**: Native macOS application" >> $GITHUB_STEP_SUMMARY
+        echo "- **pomodoro_genie-1.0.0.dmg**: DMG installer package" >> $GITHUB_STEP_SUMMARY
+        echo "- **pomodoro_genie-1.0.0.pkg**: PKG installer package" >> $GITHUB_STEP_SUMMARY
         echo "- **INSTALL.md**: Installation instructions" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
