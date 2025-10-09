@@ -1,0 +1,430 @@
+name: 🚀 Multi-Platform Build Matrix
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Target platforms'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - web
+        - macos
+        - windows
+        - linux
+      build_mode:
+        description: 'Build mode'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+        - release
+        - debug
+        - profile
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+  APP_NAME: 'PomodoroGenie'
+  APP_VERSION: '1.0.0'
+
+jobs:
+  # 🌐 Web平台构建
+  build-web:
+    name: 🌐 Web Build
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'web' || github.event.inputs.platforms == '' }}
+    strategy:
+      matrix:
+        web-renderer: [html, canvaskit]
+        include:
+          - web-renderer: html
+            renderer-name: HTML
+          - web-renderer: canvaskit
+            renderer-name: CanvasKit
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🎯 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+        
+    - name: 📦 Install dependencies
+      run: |
+        cd mobile
+        flutter pub get
+        
+    - name: 🔨 Build Flutter Web (${{ matrix.renderer-name }})
+      run: |
+        cd mobile
+        flutter build web \
+          --${{ github.event.inputs.build_mode || 'release' }} \
+          --web-renderer ${{ matrix.web-renderer }} \
+          --dart-define=FLUTTER_WEB_USE_SKIA=false
+        
+    - name: 📦 Package Web App
+      run: |
+        mkdir -p dist/web-${{ matrix.web-renderer }}
+        cp -r mobile/build/web/* dist/web-${{ matrix.web-renderer }}/
+        
+        # 创建部署脚本
+        cat > dist/web-${{ matrix.web-renderer }}/deploy.sh << 'EOF'
+        #!/bin/bash
+        echo "🚀 Deploying PomodoroGenie Web App (${{ matrix.renderer-name }})..."
+        sudo mkdir -p /Applications/PomodoroGenie-${{ matrix.web-renderer }}
+        sudo cp -r * /Applications/PomodoroGenie-${{ matrix.web-renderer }}/
+        sudo chown -R $(whoami):staff /Applications/PomodoroGenie-${{ matrix.web-renderer }}
+        echo "✅ Deployment complete!"
+        echo "🌐 Access: http://localhost:3001"
+        EOF
+        chmod +x dist/web-${{ matrix.web-renderer }}/deploy.sh
+        
+    - name: 📤 Upload Web Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-${{ matrix.web-renderer }}-${{ github.sha }}
+        path: dist/web-${{ matrix.web-renderer }}/
+        retention-days: 30
+
+  # 🍎 macOS平台构建
+  build-macos:
+    name: 🍎 macOS Build
+    runs-on: macos-latest
+    if: ${{ github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos' || github.event.inputs.platforms == '' }}
+    strategy:
+      matrix:
+        architecture: [x64, arm64]
+        include:
+          - architecture: x64
+            arch-name: Intel
+          - architecture: arm64
+            arch-name: Apple Silicon
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🎯 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+        
+    - name: 📦 Install dependencies
+      run: |
+        cd mobile
+        flutter pub get
+        
+    - name: 🔧 Enable macOS desktop
+      run: |
+        cd mobile
+        flutter config --enable-macos-desktop
+        
+    - name: 🔨 Build macOS App (${{ matrix.arch-name }})
+      run: |
+        cd mobile
+        flutter build macos \
+          --${{ github.event.inputs.build_mode || 'release' }} \
+          --target-platform darwin-${{ matrix.architecture }} \
+          --dart-define=FLUTTER_WEB_USE_SKIA=false
+        
+    - name: 📦 Package macOS App
+      run: |
+        mkdir -p dist/macos-${{ matrix.architecture }}
+        APP_PATH="mobile/build/macos/Build/Products/${{ github.event.inputs.build_mode || 'Release' }}/${APP_NAME}.app"
+        
+        if [ -d "$APP_PATH" ]; then
+          cp -r "$APP_PATH" dist/macos-${{ matrix.architecture }}/
+          
+          # 创建DMG
+          hdiutil create -volname "${APP_NAME}-${{ matrix.arch-name }}" \
+            -srcfolder dist/macos-${{ matrix.architecture }} \
+            -ov -format UDZO \
+            dist/macos-${{ matrix.architecture }}/${APP_NAME}-${{ matrix.arch-name }}-${APP_VERSION}.dmg
+            
+          # 创建安装说明
+          cat > dist/macos-${{ matrix.architecture }}/README.md << EOF
+          # PomodoroGenie macOS App (${{ matrix.arch-name }})
+          
+          ## 📦 Installation
+          
+          1. **DMG Installation**:
+             - Double-click \`${APP_NAME}-${{ matrix.arch-name }}-${APP_VERSION}.dmg\`
+             - Drag \`${APP_NAME}.app\` to Applications folder
+          
+          2. **Direct Installation**:
+             - Copy \`${APP_NAME}.app\` to \`/Applications/\`
+             - Double-click to run
+          
+          ## 🔒 Security
+          
+          If macOS shows security warnings:
+          1. Go to System Preferences > Security & Privacy
+          2. Click "Open Anyway" for PomodoroGenie
+          
+          ## 📋 System Requirements
+          
+          - macOS 10.15 (Catalina) or later
+          - ${{ matrix.arch-name }} processor
+          - 4GB RAM minimum
+          - 2GB free disk space
+          EOF
+          
+        else
+          echo "❌ macOS app build failed for ${{ matrix.architecture }}"
+          exit 1
+        fi
+        
+    - name: 📤 Upload macOS Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-${{ matrix.architecture }}-${{ github.sha }}
+        path: dist/macos-${{ matrix.architecture }}/
+        retention-days: 30
+
+  # 🪟 Windows平台构建
+  build-windows:
+    name: 🪟 Windows Build
+    runs-on: windows-latest
+    if: ${{ github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows' || github.event.inputs.platforms == '' }}
+    strategy:
+      matrix:
+        architecture: [x64, x86]
+        include:
+          - architecture: x64
+            arch-name: 64-bit
+          - architecture: x86
+            arch-name: 32-bit
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🎯 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+        
+    - name: 📦 Install dependencies
+      run: |
+        cd mobile
+        flutter pub get
+        
+    - name: 🔧 Enable Windows desktop
+      run: |
+        cd mobile
+        flutter config --enable-windows-desktop
+        
+    - name: 🔨 Build Windows App (${{ matrix.arch-name }})
+      run: |
+        cd mobile
+        flutter build windows \
+          --${{ github.event.inputs.build_mode || 'release' }} \
+          --target-platform windows-${{ matrix.architecture }} \
+          --dart-define=FLUTTER_WEB_USE_SKIA=false
+        
+    - name: 📦 Package Windows App
+      run: |
+        mkdir dist\windows-${{ matrix.architecture }}
+        xcopy "mobile\build\windows\${{ github.event.inputs.build_mode || 'Release' }}\runner\*" "dist\windows-${{ matrix.architecture }}\" /E /I
+        
+        # 创建安装说明
+        echo # PomodoroGenie Windows App (${{ matrix.arch-name }}) > dist\windows-${{ matrix.architecture }}\README.md
+        echo. >> dist\windows-${{ matrix.architecture }}\README.md
+        echo ## 📦 Installation >> dist\windows-${{ matrix.architecture }}\README.md
+        echo. >> dist\windows-${{ matrix.architecture }}\README.md
+        echo 1. Extract all files to a folder >> dist\windows-${{ matrix.architecture }}\README.md
+        echo 2. Run \`PomodoroGenie.exe\` >> dist\windows-${{ matrix.architecture }}\README.md
+        echo. >> dist\windows-${{ matrix.architecture }}\README.md
+        echo ## 📋 System Requirements >> dist\windows-${{ matrix.architecture }}\README.md
+        echo. >> dist\windows-${{ matrix.architecture }}\README.md
+        echo - Windows 10 or later >> dist\windows-${{ matrix.architecture }}\README.md
+        echo - ${{ matrix.arch-name }} processor >> dist\windows-${{ matrix.architecture }}\README.md
+        echo - 4GB RAM minimum >> dist\windows-${{ matrix.architecture }}\README.md
+        echo - 2GB free disk space >> dist\windows-${{ matrix.architecture }}\README.md
+        
+    - name: 📤 Upload Windows Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-${{ matrix.architecture }}-${{ github.sha }}
+        path: dist/windows-${{ matrix.architecture }}/
+        retention-days: 30
+
+  # 🐧 Linux平台构建
+  build-linux:
+    name: 🐧 Linux Build
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux' || github.event.inputs.platforms == '' }}
+    strategy:
+      matrix:
+        architecture: [x64, arm64]
+        include:
+          - architecture: x64
+            arch-name: x86_64
+          - architecture: arm64
+            arch-name: ARM64
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🎯 Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+        
+    - name: 📦 Install dependencies
+      run: |
+        cd mobile
+        flutter pub get
+        
+    - name: 🔧 Enable Linux desktop
+      run: |
+        cd mobile
+        flutter config --enable-linux-desktop
+        
+    - name: 🔨 Build Linux App (${{ matrix.arch-name }})
+      run: |
+        cd mobile
+        flutter build linux \
+          --${{ github.event.inputs.build_mode || 'release' }} \
+          --target-platform linux-${{ matrix.architecture }} \
+          --dart-define=FLUTTER_WEB_USE_SKIA=false
+        
+    - name: 📦 Package Linux App
+      run: |
+        mkdir -p dist/linux-${{ matrix.architecture }}
+        cp -r mobile/build/linux/${{ github.event.inputs.build_mode || 'release' }}/bundle/* dist/linux-${{ matrix.architecture }}/
+        
+        # 创建安装脚本
+        cat > dist/linux-${{ matrix.architecture }}/install.sh << 'EOF'
+        #!/bin/bash
+        echo "🚀 Installing PomodoroGenie Linux App..."
+        
+        # 创建应用目录
+        sudo mkdir -p /opt/pomodoro-genie
+        sudo cp -r * /opt/pomodoro-genie/
+        
+        # 创建桌面快捷方式
+        cat > ~/.local/share/applications/pomodoro-genie.desktop << 'EOF2'
+        [Desktop Entry]
+        Version=1.0
+        Type=Application
+        Name=PomodoroGenie
+        Comment=Focus and productivity management tool
+        Exec=/opt/pomodoro-genie/pomodoro_genie
+        Icon=/opt/pomodoro-genie/data/flutter_assets/assets/icons/app_icon.png
+        Terminal=false
+        Categories=Productivity;
+        EOF2
+        
+        chmod +x ~/.local/share/applications/pomodoro-genie.desktop
+        
+        echo "✅ Installation complete!"
+        echo "🚀 Launch from Applications menu or run: /opt/pomodoro-genie/pomodoro_genie"
+        EOF
+        chmod +x dist/linux-${{ matrix.architecture }}/install.sh
+        
+        # 创建README
+        cat > dist/linux-${{ matrix.architecture }}/README.md << EOF
+        # PomodoroGenie Linux App (${{ matrix.arch-name }})
+        
+        ## 📦 Installation
+        
+        1. **Automatic Installation**:
+           \`\`\`bash
+           ./install.sh
+           \`\`\`
+        
+        2. **Manual Installation**:
+           - Copy files to \`/opt/pomodoro-genie/\`
+           - Run \`./pomodoro_genie\`
+        
+        ## 📋 System Requirements
+        
+        - Ubuntu 18.04+ or compatible Linux distribution
+        - ${{ matrix.arch-name }} processor
+        - 4GB RAM minimum
+        - 2GB free disk space
+        - GTK 3.0+ (for GUI)
+        EOF
+        
+    - name: 📤 Upload Linux Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-${{ matrix.architecture }}-${{ github.sha }}
+        path: dist/linux-${{ matrix.architecture }}/
+        retention-days: 30
+
+  # 📊 构建汇总报告
+  build-summary:
+    name: 📊 Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-web, build-macos, build-windows, build-linux]
+    if: always()
+    steps:
+    - name: 📊 Generate Build Summary
+      run: |
+        echo "## 🚀 Multi-Platform Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Build Information" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Mode**: ${{ github.event.inputs.build_mode || 'release' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Target Platforms**: ${{ github.event.inputs.platforms || 'all' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### 🎯 Build Results" >> $GITHUB_STEP_SUMMARY
+        
+        # Web builds
+        if [ "${{ needs.build-web.result }}" = "success" ]; then
+          echo "✅ **Web Platform**: Built successfully (HTML + CanvasKit)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Web Platform**: Build failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # macOS builds
+        if [ "${{ needs.build-macos.result }}" = "success" ]; then
+          echo "✅ **macOS Platform**: Built successfully (Intel + Apple Silicon)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **macOS Platform**: Build failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Windows builds
+        if [ "${{ needs.build-windows.result }}" = "success" ]; then
+          echo "✅ **Windows Platform**: Built successfully (32-bit + 64-bit)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Windows Platform**: Build failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Linux builds
+        if [ "${{ needs.build-linux.result }}" = "success" ]; then
+          echo "✅ **Linux Platform**: Built successfully (x86_64 + ARM64)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Linux Platform**: Build failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Available Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- **Web Apps**: HTML and CanvasKit renderers" >> $GITHUB_STEP_SUMMARY
+        echo "- **macOS Apps**: Intel and Apple Silicon versions" >> $GITHUB_STEP_SUMMARY
+        echo "- **Windows Apps**: 32-bit and 64-bit versions" >> $GITHUB_STEP_SUMMARY
+        echo "- **Linux Apps**: x86_64 and ARM64 versions" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. Download artifacts from Actions tab" >> $GITHUB_STEP_SUMMARY
+        echo "2. Test each platform build" >> $GITHUB_STEP_SUMMARY
+        echo "3. Deploy to target systems" >> $GITHUB_STEP_SUMMARY
+        echo "4. Create release if all tests pass" >> $GITHUB_STEP_SUMMARY
