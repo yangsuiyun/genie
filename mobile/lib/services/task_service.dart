@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import '../models/task.dart';
+import '../models/index.dart';
 import 'platform_storage.dart';
 
 class TaskService {

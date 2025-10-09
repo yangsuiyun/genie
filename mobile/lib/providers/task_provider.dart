@@ -1,12 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_client.dart';
 import '../services/local_storage.dart';
+import '../models/index.dart';
 
-enum TaskStatus { pending, inProgress, completed, cancelled }
-
-enum TaskPriority { low, medium, high, urgent }
-
-class Task {
+// Use the Task model from models/task.dart instead of defining a new one
   final String id;
   final String title;
   final String? description;

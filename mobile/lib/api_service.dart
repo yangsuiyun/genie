@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'models/task.dart';
-import 'models/pomodoro_session.dart';
+import 'models/index.dart';
 
 class ApiService {
   static const String _baseUrl = 'http://localhost:8081';

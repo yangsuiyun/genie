@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
-import '../../models/task.dart';
+import '../../models/index.dart';
 import '../../providers/tasks_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/tasks/task_card.dart';

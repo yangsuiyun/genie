@@ -6,8 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wakelock/wakelock.dart';
 
-import '../../models/task.dart';
-import '../../models/pomodoro_session.dart';
+import '../../models/index.dart';
 import '../../providers/pomodoro_provider.dart';
 import '../../providers/tasks_provider.dart';
 import '../../providers/settings_provider.dart';

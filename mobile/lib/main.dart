@@ -6,7 +6,7 @@ import 'services/task_service.dart';
 import 'services/notification_service.dart';
 import 'services/session_service.dart';
 import 'services/sync_service.dart';
-import 'models/pomodoro_session.dart';
+import 'models/index.dart';
 
 void main() {
   runApp(const PomodoroApp());

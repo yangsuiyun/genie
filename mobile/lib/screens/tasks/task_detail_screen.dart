@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../models/task.dart';
+import '../../models/index.dart';
 import '../../models/subtask.dart';
 import '../../models/note.dart';
 import '../../models/pomodoro_session.dart';

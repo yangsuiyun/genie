@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import '../models/task.dart';
-import '../models/pomodoro_session.dart';
+import '../models/index.dart';
 import '../api_service.dart';
 import 'task_service.dart';
 import 'session_service.dart';

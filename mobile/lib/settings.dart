@@ -5,8 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'services/sync_service.dart';
 import 'services/task_service.dart';
 import 'services/session_service.dart';
-import 'models/task.dart';
-import 'models/pomodoro_session.dart';
+import 'models/index.dart';
 // Web-specific imports
 import 'settings_web_stub.dart'
     if (dart.library.html) 'settings_web.dart' as web_utils;
