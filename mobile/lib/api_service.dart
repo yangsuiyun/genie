@@ -63,8 +63,9 @@ class ApiService {
     try {
       final responseBody = await _makeRequest('GET', '/v1/tasks/');
       final data = json.decode(responseBody);
-      final List<dynamic> tasksJson = data['data'] ?? data['tasks'] ?? [];
-      return tasksJson.map((json) => Task.fromApiJson(json)).toList();
+      final tasksData = data['data'] ?? data['tasks'] ?? [];
+      final List<dynamic> tasksJson = tasksData is List ? tasksData : [];
+      return tasksJson.map((json) => Task.fromApiJson(json as Map<String, dynamic>)).toList();
     } catch (e) {
       print('Error getting tasks: $e');
       return [];
@@ -76,7 +77,8 @@ class ApiService {
     try {
       final responseBody = await _makeRequest('POST', '/v1/tasks/', body: task.toApiJson());
       final data = json.decode(responseBody);
-      return Task.fromApiJson(data['data'] ?? data);
+      final taskData = data['data'] ?? data;
+      return Task.fromApiJson(taskData as Map<String, dynamic>);
     } catch (e) {
       print('Error creating task: $e');
       return null;
@@ -99,7 +101,8 @@ class ApiService {
     try {
       final responseBody = await _makeRequest('PUT', '/v1/tasks/${task.id}', body: task.toApiJson());
       final data = json.decode(responseBody);
-      return Task.fromApiJson(data['data'] ?? data);
+      final taskData = data['data'] ?? data;
+      return Task.fromApiJson(taskData as Map<String, dynamic>);
     } catch (e) {
       print('Error updating task: $e');
       return null;
@@ -129,7 +132,8 @@ class ApiService {
 
       final responseBody = await _makeRequest('POST', '/v1/pomodoro/sessions/', body: sessionData);
       final data = json.decode(responseBody);
-      return PomodoroSession.fromApiJson(data['data'] ?? data);
+      final sessionData2 = data['data'] ?? data;
+      return PomodoroSession.fromApiJson(sessionData2 as Map<String, dynamic>);
     } catch (e) {
       print('Error starting session: $e');
       return null;
@@ -141,7 +145,8 @@ class ApiService {
     try {
       final responseBody = await _makeRequest('PUT', '/v1/pomodoro/sessions/${session.id}', body: session.toApiJson());
       final data = json.decode(responseBody);
-      return PomodoroSession.fromApiJson(data['data'] ?? data);
+      final sessionData = data['data'] ?? data;
+      return PomodoroSession.fromApiJson(sessionData as Map<String, dynamic>);
     } catch (e) {
       print('Error updating session: $e');
       return null;
@@ -158,8 +163,9 @@ class ApiService {
 
       final responseBody = await _makeRequest('GET', path);
       final data = json.decode(responseBody);
-      final List<dynamic> sessionsJson = data['data'] ?? data['sessions'] ?? [];
-      return sessionsJson.map((json) => PomodoroSession.fromApiJson(json)).toList();
+      final sessionsData = data['data'] ?? data['sessions'] ?? [];
+      final List<dynamic> sessionsJson = sessionsData is List ? sessionsData : [];
+      return sessionsJson.map((json) => PomodoroSession.fromApiJson(json as Map<String, dynamic>)).toList();
     } catch (e) {
       print('Error getting sessions: $e');
       return [];
@@ -207,7 +213,7 @@ class ApiService {
     try {
       final responseBody = await _makeRequest('GET', '/v1/time');
       final data = json.decode(responseBody);
-      return DateTime.parse(data['time']);
+      return DateTime.parse(data['time'] as String);
     } catch (e) {
       print('Error getting server time: $e');
       return null;
@@ -218,7 +224,7 @@ class ApiService {
   static Future<Map<String, dynamic>?> backupData() async {
     try {
       final responseBody = await _makeRequest('GET', '/v1/user/backup');
-      return json.decode(responseBody);
+      return json.decode(responseBody) as Map<String, dynamic>;
     } catch (e) {
       print('Error backing up data: $e');
       return null;

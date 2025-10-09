@@ -232,12 +232,4 @@ class ReportsScreen extends StatelessWidget {
   }
 }
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
-  
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('设置页面'));
-  }
-}
 

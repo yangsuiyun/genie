@@ -201,10 +201,11 @@ class MicroAnimations {
     return AnimatedBuilder(
       animation: AlwaysStoppedAnimation(shouldShake ? 1.0 : 0.0),
       builder: (context, animation) {
+        final animValue = animation?.value ?? 0.0;
         return Transform.translate(
           offset: Offset(
-            shouldShake ? (animation.value * intensity * (0.5 - (animation.value * 0.5))) : 0.0,
-            0.0,
+            shouldShake ? (animValue * intensity * (0.5 - (animValue * 0.5))) : 0.0,
+            0,
           ),
           child: child,
         );
@@ -214,7 +215,7 @@ class MicroAnimations {
 }
 
 // 动画控制器混入
-mixin AnimationControllerMixin<T extends StatefulWidget> on State<T> {
+mixin AnimationControllerMixin<T extends StatefulWidget> on State<T>, TickerProviderStateMixin<T> {
   late AnimationController _animationController;
   late Animation<double> _animation;
 

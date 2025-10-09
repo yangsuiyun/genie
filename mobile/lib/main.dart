@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'screens/main_layout.dart';
+
 import 'screens/focus_mode_screen.dart';
+import 'screens/main_layout.dart';
 import 'settings.dart';
 
 void main() {
