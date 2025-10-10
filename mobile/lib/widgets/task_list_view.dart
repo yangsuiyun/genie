@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/index.dart';
+import '../providers/app_providers.dart';
 import '../services/task_service.dart';
 import '../screens/main_layout.dart';
 import 'task_card.dart';
@@ -45,7 +46,7 @@ class TaskListView extends ConsumerWidget {
     String emptyMessage = '';
     IconData emptyIcon = Icons.task;
     
-    switch (widget.filter) {
+    switch (filter) {
       case TaskTimeFilter.today:
         emptyMessage = '今天还没有任务\n点击下方按钮创建第一个任务吧！';
         emptyIcon = Icons.today;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/index.dart';
+import '../providers/app_providers.dart';
 import '../services/task_service.dart';
 import '../services/session_service.dart';
 import '../screens/main_layout.dart';

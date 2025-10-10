@@ -1,4 +1,6 @@
 // Subtask model
+import 'task.dart';
+
 class Subtask {
   final String id;
   final String taskId;
@@ -55,6 +57,19 @@ class Subtask {
     };
   }
 
+  factory Subtask.create(String title, {String? taskId, String? description}) {
+    final now = DateTime.now();
+    return Subtask(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      taskId: taskId ?? '',
+      title: title,
+      description: description,
+      status: TaskStatus.pending,
+      createdAt: now,
+      updatedAt: now,
+    );
+  }
+
   factory Subtask.fromJson(Map<String, dynamic> json) {
     return Subtask(
       id: json['id'],
@@ -69,6 +84,28 @@ class Subtask {
       updatedAt: DateTime.parse(json['updatedAt']),
       completedAt: json['completedAt'] != null 
           ? DateTime.parse(json['completedAt']) 
+          : null,
+    );
+  }
+
+  factory Subtask.fromApiJson(Map<String, dynamic> json) {
+    return Subtask(
+      id: json['id'].toString(),
+      taskId: json['task_id']?.toString() ?? '',
+      title: json['title'],
+      description: json['description'],
+      status: TaskStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => TaskStatus.pending,
+      ),
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at']) 
+          : DateTime.now(),
+      completedAt: json['completed_at'] != null 
+          ? DateTime.parse(json['completed_at']) 
           : null,
     );
   }

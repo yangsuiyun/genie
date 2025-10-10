@@ -16,6 +16,9 @@ class SessionService {
   // 获取所有会话
   List<PomodoroSession> get sessions => List.unmodifiable(_sessions);
 
+  // 获取所有会话（方法形式）
+  List<PomodoroSession> getSessions() => List.unmodifiable(_sessions);
+
   // 添加监听器
   void addListener(VoidCallback listener) {
     _listeners.add(listener);

@@ -585,6 +585,8 @@ class _TaskScreenState extends State<TaskScreen> with TickerProviderStateMixin {
 
   Color _getPriorityColor(TaskPriority priority) {
     switch (priority) {
+      case TaskPriority.urgent:
+        return Colors.purple;
       case TaskPriority.high:
         return Colors.red;
       case TaskPriority.medium:
@@ -832,18 +834,20 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 ..._subtasks.map((subtask) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Checkbox(
-                    value: subtask.isCompleted,
+                    value: subtask.status == TaskStatus.completed,
                     onChanged: (value) {
                       setState(() {
                         final index = _subtasks.indexOf(subtask);
-                        _subtasks[index] = subtask.copyWith(isCompleted: value);
+                        _subtasks[index] = subtask.copyWith(
+                          status: value == true ? TaskStatus.completed : TaskStatus.pending,
+                        );
                       });
                     },
                   ),
                   title: Text(
                     subtask.title,
                     style: TextStyle(
-                      decoration: subtask.isCompleted ? TextDecoration.lineThrough : null,
+                      decoration: subtask.status == TaskStatus.completed ? TextDecoration.lineThrough : null,
                     ),
                   ),
                   trailing: IconButton(
@@ -1148,18 +1152,20 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
               ..._subtasks.map((subtask) => ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Checkbox(
-                  value: subtask.isCompleted,
+                  value: subtask.status == TaskStatus.completed,
                   onChanged: (value) {
                     setState(() {
                       final index = _subtasks.indexOf(subtask);
-                      _subtasks[index] = subtask.copyWith(isCompleted: value);
+                      _subtasks[index] = subtask.copyWith(
+                        status: value == true ? TaskStatus.completed : TaskStatus.pending,
+                      );
                     });
                   },
                 ),
                 title: Text(
                   subtask.title,
                   style: TextStyle(
-                    decoration: subtask.isCompleted ? TextDecoration.lineThrough : null,
+                    decoration: subtask.status == TaskStatus.completed ? TextDecoration.lineThrough : null,
                   ),
                 ),
                 trailing: IconButton(

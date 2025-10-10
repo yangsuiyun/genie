@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/index.dart';
+import '../providers/app_providers.dart';
 import '../services/session_service.dart';
 
 // 专注模式统计面板
@@ -28,8 +29,8 @@ class FocusModeStatsPanel extends ConsumerWidget {
       (sum, session) => sum + Duration(seconds: session.actualDuration ?? 0),
     );
     
-    final completedPomodoros = todaySessions.where((s) => s.sessionType == SessionType.work).length;
-    final completedBreaks = todaySessions.where((s) => s.sessionType != SessionType.work).length;
+    final completedPomodoros = todaySessions.where((s) => s.type == SessionType.work).length;
+    final completedBreaks = todaySessions.where((s) => s.type != SessionType.work).length;
     
     return Container(
       padding: const EdgeInsets.all(20),

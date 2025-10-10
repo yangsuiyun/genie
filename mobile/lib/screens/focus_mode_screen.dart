@@ -8,6 +8,7 @@ import '../services/white_noise_service.dart';
 import '../screens/main_layout.dart';
 import '../widgets/white_noise_panel.dart';
 import '../widgets/focus_mode_settings_panel.dart';
+import '../providers/app_providers.dart';
 import '../widgets/focus_mode_stats_panel.dart';
 
 // 全屏专注模式组件

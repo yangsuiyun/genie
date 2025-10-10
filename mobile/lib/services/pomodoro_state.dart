@@ -87,7 +87,8 @@ class PomodoroState {
     // 创建会话
     _currentSession = PomodoroSession.create(
       taskId: task?.id,
-      sessionType: _currentSessionType,
+      type: _currentSessionType,
+      plannedDuration: _totalSeconds,
     );
 
     _isRunning = true;
@@ -156,7 +157,7 @@ class PomodoroState {
     if (_currentSession != null) {
       _currentSession = _currentSession!.copyWith(
         endTime: DateTime.now(),
-        isCompleted: true,
+        status: SessionStatus.completed,
         actualDuration: _totalSeconds - _remainingSeconds,
       );
     }

@@ -126,6 +126,7 @@ class _PomodoroScreenState extends ConsumerState<PomodoroScreen>
         }
         break;
       case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
         break;
     }
   }

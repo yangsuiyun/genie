@@ -196,7 +196,11 @@ class TaskService {
     final task = _tasks.firstWhere((t) => t.id == taskId);
     final newSubtasks = task.subtasks.map((subtask) {
       if (subtask.id == subtaskId) {
-        return subtask.copyWith(isCompleted: !subtask.isCompleted);
+        return subtask.copyWith(
+          status: subtask.status == TaskStatus.completed 
+            ? TaskStatus.pending 
+            : TaskStatus.completed,
+        );
       }
       return subtask;
     }).toList();

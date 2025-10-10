@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'subtask.dart';
 
 class Task {
   final String id;
@@ -182,11 +183,13 @@ class Task {
       dueDate!.isBefore(DateTime.now()) &&
       !isCompleted;
 
-  int get completedSubtasks => subtasks.where((s) => s.isCompleted).length;
+  int get completedSubtasks => subtasks.where((s) => s.status == TaskStatus.completed).length;
   double get progress => subtasks.isEmpty ? 0.0 : completedSubtasks / subtasks.length;
 
   String get priorityEmoji {
     switch (priority) {
+      case TaskPriority.urgent:
+        return '🚨';
       case TaskPriority.high:
         return '🔴';
       case TaskPriority.medium:
@@ -205,67 +208,6 @@ class Task {
       case TaskStatus.completed:
         return '✅';
     }
-  }
-}
-
-class Subtask {
-  final String id;
-  final String title;
-  final bool isCompleted;
-  final DateTime createdAt;
-
-  Subtask({
-    required this.id,
-    required this.title,
-    this.isCompleted = false,
-    required this.createdAt,
-  });
-
-  factory Subtask.create(String title) {
-    return Subtask(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: title,
-      createdAt: DateTime.now(),
-    );
-  }
-
-  Subtask copyWith({
-    String? title,
-    bool? isCompleted,
-  }) {
-    return Subtask(
-      id: id,
-      title: title ?? this.title,
-      isCompleted: isCompleted ?? this.isCompleted,
-      createdAt: createdAt,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'title': title,
-      'isCompleted': isCompleted,
-      'createdAt': createdAt.toIso8601String(),
-    };
-  }
-
-  factory Subtask.fromJson(Map<String, dynamic> json) {
-    return Subtask(
-      id: json['id'],
-      title: json['title'],
-      isCompleted: json['isCompleted'] ?? false,
-      createdAt: DateTime.parse(json['createdAt']),
-    );
-  }
-
-  factory Subtask.fromApiJson(Map<String, dynamic> json) {
-    return Subtask(
-      id: json['id'].toString(),
-      title: json['title'],
-      isCompleted: json['completed'] ?? json['is_completed'] ?? false,
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
-    );
   }
 }
 
