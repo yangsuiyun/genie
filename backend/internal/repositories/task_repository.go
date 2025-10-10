@@ -37,27 +37,27 @@ type TaskRepository interface {
 
 // TaskFilter represents filters for task queries
 type TaskFilter struct {
-	ProjectID    *uuid.UUID      `json:"project_id,omitempty"`
-	IsCompleted  *bool           `json:"is_completed,omitempty"`
+	ProjectID    *uuid.UUID           `json:"project_id,omitempty"`
+	IsCompleted  *bool                `json:"is_completed,omitempty"`
 	Priority     *models.TaskPriority `json:"priority,omitempty"`
-	SearchQuery  string          `json:"search_query,omitempty"`
-	DueBefore    *time.Time      `json:"due_before,omitempty"`
-	DueAfter     *time.Time      `json:"due_after,omitempty"`
-	Tags         []string        `json:"tags,omitempty"`
-	ParentTaskID *uuid.UUID      `json:"parent_task_id,omitempty"`
-	SortBy       string          `json:"sort_by,omitempty"`    // "title", "priority", "due_date", "created_at", "updated_at"
-	SortOrder    string          `json:"sort_order,omitempty"` // "asc", "desc"
-	Page         int             `json:"page"`
-	Limit        int             `json:"limit"`
+	SearchQuery  string               `json:"search_query,omitempty"`
+	DueBefore    *time.Time           `json:"due_before,omitempty"`
+	DueAfter     *time.Time           `json:"due_after,omitempty"`
+	Tags         []string             `json:"tags,omitempty"`
+	ParentTaskID *uuid.UUID           `json:"parent_task_id,omitempty"`
+	SortBy       string               `json:"sort_by,omitempty"`    // "title", "priority", "due_date", "created_at", "updated_at"
+	SortOrder    string               `json:"sort_order,omitempty"` // "asc", "desc"
+	Page         int                  `json:"page"`
+	Limit        int                  `json:"limit"`
 }
 
 // TaskProjectStats represents task statistics for a project
 type TaskProjectStats struct {
 	ProjectID      uuid.UUID `json:"project_id"`
-	TotalTasks     int       `json:"total_tasks"`
-	CompletedTasks int       `json:"completed_tasks"`
-	PendingTasks   int       `json:"pending_tasks"`
-	OverdueTasks   int       `json:"overdue_tasks"`
+	TotalTasks     int64     `json:"total_tasks"`
+	CompletedTasks int64     `json:"completed_tasks"`
+	PendingTasks   int64     `json:"pending_tasks"`
+	OverdueTasks   int64     `json:"overdue_tasks"`
 }
 
 // taskRepository implements TaskRepository using GORM

@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"backend/internal/models"
+	"pomodoro-backend/internal/models"
 )
 
 // PomodoroRepository defines the interface for Pomodoro session data access
@@ -34,7 +34,7 @@ type PomodoroService struct {
 type PomodoroFilter struct {
 	TaskID      *uuid.UUID                 `json:"task_id,omitempty"`
 	SessionType *models.PomodoroSessionType `json:"session_type,omitempty"`
-	Status      *models.SessionStatus       `json:"status,omitempty"`
+	Status      *models.PomodoroStatus       `json:"status,omitempty"`
 	StartDate   *time.Time                 `json:"start_date,omitempty"`
 	EndDate     *time.Time                 `json:"end_date,omitempty"`
 	Limit       int                        `json:"limit"`
@@ -53,7 +53,7 @@ type StartSessionRequest struct {
 
 // UpdateSessionRequest represents a request to update a session
 type UpdateSessionRequest struct {
-	Status             *models.SessionStatus `json:"status,omitempty" validate:"omitempty,oneof=active paused completed interrupted"`
+	Status             *models.PomodoroStatus `json:"status,omitempty" validate:"omitempty,oneof=active paused completed interrupted"`
 	ActualDuration     *int                  `json:"actual_duration,omitempty" validate:"omitempty,min=0"`
 	InterruptionCount  *int                  `json:"interruption_count,omitempty" validate:"omitempty,min=0"`
 	InterruptionReason *string               `json:"interruption_reason,omitempty"`
@@ -86,7 +86,7 @@ type SessionTimerInfo struct {
 	SessionID       uuid.UUID                   `json:"session_id"`
 	TaskID          uuid.UUID                   `json:"task_id"`
 	SessionType     models.PomodoroSessionType  `json:"session_type"`
-	Status          models.SessionStatus        `json:"status"`
+	Status          models.PomodoroStatus        `json:"status"`
 	PlannedDuration int                         `json:"planned_duration"`
 	ElapsedTime     int                         `json:"elapsed_time"`
 	RemainingTime   int                         `json:"remaining_time"`
@@ -148,7 +148,7 @@ func (s *PomodoroService) StartSession(userID uuid.UUID, req StartSessionRequest
 		UserID:          userID,
 		TaskID:          req.TaskID,
 		SessionType:     req.SessionType,
-		Status:          models.SessionStatusActive,
+		Status:          models.PomodoroStatusActive,
 		PlannedDuration: req.PlannedDuration,
 		StartedAt:       time.Now(),
 		CreatedAt:       time.Now(),
@@ -209,29 +209,29 @@ func (s *PomodoroService) UpdateSession(userID, sessionID uuid.UUID, req UpdateS
 	// Apply updates based on status change
 	if req.Status != nil {
 		switch *req.Status {
-		case models.SessionStatusCompleted:
+		case models.SessionTaskStatusCompleted:
 			err = s.completeSession(session, req)
 			if err != nil {
 				return nil, err
 			}
 
-		case models.SessionStatusPaused:
-			if session.Status != models.SessionStatusActive {
+		case models.PomodoroStatusPaused:
+			if session.Status != models.PomodoroStatusActive {
 				return nil, models.ErrInvalidStateTransition
 			}
 			now := time.Now()
 			session.PausedAt = &now
-			session.Status = models.SessionStatusPaused
+			session.Status = models.PomodoroStatusPaused
 
-		case models.SessionStatusActive:
-			if session.Status != models.SessionStatusPaused {
+		case models.PomodoroStatusActive:
+			if session.Status != models.PomodoroStatusPaused {
 				return nil, models.ErrInvalidStateTransition
 			}
 			session.ResumedAt = &time.Time{} // Set to current time
-			session.Status = models.SessionStatusActive
+			session.Status = models.PomodoroStatusActive
 			session.PausedAt = nil
 
-		case models.SessionStatusInterrupted:
+		case models.PomodoroStatusInterrupted:
 			err = s.interruptSession(session, req)
 			if err != nil {
 				return nil, err
@@ -283,20 +283,20 @@ func (s *PomodoroService) GetSessionTimer(userID, sessionID uuid.UUID) (*Session
 		return nil, err
 	}
 
-	if session.Status != models.SessionStatusActive && session.Status != models.SessionStatusPaused {
+	if session.Status != models.PomodoroStatusActive && session.Status != models.PomodoroStatusPaused {
 		return nil, fmt.Errorf("session is not active")
 	}
 
 	now := time.Now()
 	var elapsedTime time.Duration
 
-	if session.Status == models.SessionStatusActive {
+	if session.Status == models.PomodoroStatusActive {
 		elapsedTime = now.Sub(session.StartedAt)
 		// Subtract any paused time if there was a pause
 		if session.PausedDuration != nil {
 			elapsedTime -= *session.PausedDuration
 		}
-	} else if session.Status == models.SessionStatusPaused && session.PausedAt != nil {
+	} else if session.Status == models.PomodoroStatusPaused && session.PausedAt != nil {
 		elapsedTime = session.PausedAt.Sub(session.StartedAt)
 		if session.PausedDuration != nil {
 			elapsedTime -= *session.PausedDuration
@@ -421,7 +421,7 @@ func (s *PomodoroService) SuggestNextSession(userID uuid.UUID) (models.PomodoroS
 	// Get recent completed work sessions to determine pattern
 	filter := PomodoroFilter{
 		SessionType: &[]models.PomodoroSessionType{models.SessionTypeWork}[0],
-		Status:      &[]models.SessionStatus{models.SessionStatusCompleted}[0],
+		Status:      &[]models.PomodoroStatus{models.SessionTaskStatusCompleted}[0],
 		Limit:       longBreakInterval,
 		SortBy:      "started_at",
 		SortOrder:   "desc",
@@ -463,7 +463,7 @@ func (s *PomodoroService) SuggestNextSession(userID uuid.UUID) (models.PomodoroS
 // completeSession handles session completion logic
 func (s *PomodoroService) completeSession(session *models.PomodoroSession, req UpdateSessionRequest) error {
 	now := time.Now()
-	session.Status = models.SessionStatusCompleted
+	session.Status = models.SessionTaskStatusCompleted
 	session.EndedAt = &now
 
 	// Set actual duration
@@ -506,7 +506,7 @@ func (s *PomodoroService) completeSession(session *models.PomodoroSession, req U
 // interruptSession handles session interruption logic
 func (s *PomodoroService) interruptSession(session *models.PomodoroSession, req UpdateSessionRequest) error {
 	now := time.Now()
-	session.Status = models.SessionStatusInterrupted
+	session.Status = models.PomodoroStatusInterrupted
 	session.EndedAt = &now
 
 	// Calculate actual duration up to interruption
@@ -526,20 +526,20 @@ func (s *PomodoroService) interruptSession(session *models.PomodoroSession, req 
 }
 
 // isValidStateTransition checks if a state transition is valid
-func (s *PomodoroService) isValidStateTransition(from, to models.SessionStatus) bool {
-	validTransitions := map[models.SessionStatus][]models.SessionStatus{
-		models.SessionStatusActive: {
-			models.SessionStatusPaused,
-			models.SessionStatusCompleted,
-			models.SessionStatusInterrupted,
+func (s *PomodoroService) isValidStateTransition(from, to models.PomodoroStatus) bool {
+	validTransitions := map[models.PomodoroStatus][]models.PomodoroStatus{
+		models.PomodoroStatusActive: {
+			models.PomodoroStatusPaused,
+			models.SessionTaskStatusCompleted,
+			models.PomodoroStatusInterrupted,
 		},
-		models.SessionStatusPaused: {
-			models.SessionStatusActive,
-			models.SessionStatusCompleted,
-			models.SessionStatusInterrupted,
+		models.PomodoroStatusPaused: {
+			models.PomodoroStatusActive,
+			models.SessionTaskStatusCompleted,
+			models.PomodoroStatusInterrupted,
 		},
-		models.SessionStatusCompleted:  {}, // Terminal state
-		models.SessionStatusInterrupted: {}, // Terminal state
+		models.SessionTaskStatusCompleted:  {}, // Terminal state
+		models.PomodoroStatusInterrupted: {}, // Terminal state
 	}
 
 	allowedStates, exists := validTransitions[from]

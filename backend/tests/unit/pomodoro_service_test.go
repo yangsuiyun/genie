@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"backend/internal/models"
-	"backend/internal/services"
+	"pomodoro-backend/internal/models"
+	"pomodoro-backend/internal/services"
 )
 
 // MockPomodoroRepository is a mock implementation of PomodoroRepository
@@ -104,7 +104,7 @@ func (suite *PomodoroServiceTestSuite) SetupTest() {
 		UserID:          suite.testUserID,
 		TaskID:          suite.testTaskID,
 		SessionType:     models.SessionTypeWork,
-		Status:          models.SessionStatusActive,
+		Status:          models.PomodoroStatusActive,
 		PlannedDuration: 25 * 60, // 25 minutes
 		ActualDuration:  0,
 		StartedAt:       time.Now(),
@@ -131,7 +131,7 @@ func (suite *PomodoroServiceTestSuite) TestStartSession_Success() {
 		UserID:          suite.testUserID,
 		TaskID:          req.TaskID,
 		SessionType:     req.SessionType,
-		Status:          models.SessionStatusActive,
+		Status:          models.PomodoroStatusActive,
 		PlannedDuration: req.PlannedDuration,
 		StartedAt:       time.Now(),
 		CreatedAt:       time.Now(),
@@ -150,7 +150,7 @@ func (suite *PomodoroServiceTestSuite) TestStartSession_Success() {
 	assert.NotNil(suite.T(), session)
 	assert.Equal(suite.T(), req.TaskID, session.TaskID)
 	assert.Equal(suite.T(), req.SessionType, session.SessionType)
-	assert.Equal(suite.T(), models.SessionStatusActive, session.Status)
+	assert.Equal(suite.T(), models.PomodoroStatusActive, session.Status)
 }
 
 func (suite *PomodoroServiceTestSuite) TestStartSession_ActiveSessionExists() {
@@ -191,7 +191,7 @@ func (suite *PomodoroServiceTestSuite) TestStartSession_InvalidDuration() {
 // Test PauseSession method
 func (suite *PomodoroServiceTestSuite) TestPauseSession_Success() {
 	pausedSession := *suite.testSession
-	pausedSession.Status = models.SessionStatusPaused
+	pausedSession.Status = models.PomodoroStatusPaused
 	pausedAt := time.Now()
 	pausedSession.PausedAt = &pausedAt
 
@@ -205,13 +205,13 @@ func (suite *PomodoroServiceTestSuite) TestPauseSession_Success() {
 	// Assert
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), session)
-	assert.Equal(suite.T(), models.SessionStatusPaused, session.Status)
+	assert.Equal(suite.T(), models.PomodoroStatusPaused, session.Status)
 	assert.NotNil(suite.T(), session.PausedAt)
 }
 
 func (suite *PomodoroServiceTestSuite) TestPauseSession_NotActive() {
 	pausedSession := *suite.testSession
-	pausedSession.Status = models.SessionStatusPaused
+	pausedSession.Status = models.PomodoroStatusPaused
 
 	// Mock expectations
 	suite.mockRepo.On("GetByID", suite.testSession.ID).Return(&pausedSession, nil)
@@ -228,12 +228,12 @@ func (suite *PomodoroServiceTestSuite) TestPauseSession_NotActive() {
 // Test ResumeSession method
 func (suite *PomodoroServiceTestSuite) TestResumeSession_Success() {
 	pausedSession := *suite.testSession
-	pausedSession.Status = models.SessionStatusPaused
+	pausedSession.Status = models.PomodoroStatusPaused
 	pausedAt := time.Now().Add(-5 * time.Minute)
 	pausedSession.PausedAt = &pausedAt
 
 	resumedSession := pausedSession
-	resumedSession.Status = models.SessionStatusActive
+	resumedSession.Status = models.PomodoroStatusActive
 	resumedSession.PausedAt = nil
 
 	// Mock expectations
@@ -246,7 +246,7 @@ func (suite *PomodoroServiceTestSuite) TestResumeSession_Success() {
 	// Assert
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), session)
-	assert.Equal(suite.T(), models.SessionStatusActive, session.Status)
+	assert.Equal(suite.T(), models.PomodoroStatusActive, session.Status)
 	assert.Nil(suite.T(), session.PausedAt)
 }
 
@@ -266,7 +266,7 @@ func (suite *PomodoroServiceTestSuite) TestResumeSession_NotPaused() {
 // Test CompleteSession method
 func (suite *PomodoroServiceTestSuite) TestCompleteSession_Success() {
 	completedSession := *suite.testSession
-	completedSession.Status = models.SessionStatusCompleted
+	completedSession.Status = models.SessionTaskStatusCompleted
 	completedAt := time.Now()
 	completedSession.CompletedAt = &completedAt
 	completedSession.ActualDuration = 25 * 60 // Full duration
@@ -281,14 +281,14 @@ func (suite *PomodoroServiceTestSuite) TestCompleteSession_Success() {
 	// Assert
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), session)
-	assert.Equal(suite.T(), models.SessionStatusCompleted, session.Status)
+	assert.Equal(suite.T(), models.SessionTaskStatusCompleted, session.Status)
 	assert.NotNil(suite.T(), session.CompletedAt)
 	assert.Greater(suite.T(), session.ActualDuration, 0)
 }
 
 func (suite *PomodoroServiceTestSuite) TestCompleteSession_AlreadyCompleted() {
 	completedSession := *suite.testSession
-	completedSession.Status = models.SessionStatusCompleted
+	completedSession.Status = models.SessionTaskStatusCompleted
 	completedAt := time.Now().Add(-1 * time.Hour)
 	completedSession.CompletedAt = &completedAt
 
@@ -308,7 +308,7 @@ func (suite *PomodoroServiceTestSuite) TestCompleteSession_AlreadyCompleted() {
 func (suite *PomodoroServiceTestSuite) TestInterruptSession_Success() {
 	reason := "Urgent meeting"
 	interruptedSession := *suite.testSession
-	interruptedSession.Status = models.SessionStatusInterrupted
+	interruptedSession.Status = models.PomodoroStatusInterrupted
 	interruptedSession.InterruptionCount = 1
 	interruptedSession.InterruptionReason = &reason
 	interruptedAt := time.Now()
@@ -324,7 +324,7 @@ func (suite *PomodoroServiceTestSuite) TestInterruptSession_Success() {
 	// Assert
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), session)
-	assert.Equal(suite.T(), models.SessionStatusInterrupted, session.Status)
+	assert.Equal(suite.T(), models.PomodoroStatusInterrupted, session.Status)
 	assert.Equal(suite.T(), 1, session.InterruptionCount)
 	assert.Equal(suite.T(), &reason, session.InterruptionReason)
 }
@@ -341,7 +341,7 @@ func (suite *PomodoroServiceTestSuite) TestGetActiveSession_Success() {
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), session)
 	assert.Equal(suite.T(), suite.testSession.ID, session.ID)
-	assert.Equal(suite.T(), models.SessionStatusActive, session.Status)
+	assert.Equal(suite.T(), models.PomodoroStatusActive, session.Status)
 }
 
 func (suite *PomodoroServiceTestSuite) TestGetActiveSession_NoActiveSession() {
@@ -552,7 +552,7 @@ func TestPomodoroService_EdgeCases(t *testing.T) {
 		testSession := &models.PomodoroSession{
 			ID:     sessionID,
 			UserID: userID,
-			Status: models.SessionStatusActive,
+			Status: models.PomodoroStatusActive,
 		}
 
 		notes := "Good session"

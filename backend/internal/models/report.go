@@ -65,9 +65,9 @@ const (
 type ReportStatus string
 
 const (
-	ReportStatusPending   ReportStatus = "pending"
+	ReportTaskStatusPending   ReportStatus = "pending"
 	ReportStatusGenerating ReportStatus = "generating"
-	ReportStatusCompleted ReportStatus = "completed"
+	ReportTaskStatusCompleted ReportStatus = "completed"
 	ReportStatusFailed    ReportStatus = "failed"
 	ReportStatusExpired   ReportStatus = "expired"
 )
@@ -318,7 +318,7 @@ func NewReport(userID string, reportType ReportType, period ReportPeriod, startD
 		Filters:     ReportFilters{},
 		GeneratedAt: now,
 		IsPrivate:   true,
-		Status:      ReportStatusPending,
+		Status:      ReportTaskStatusPending,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -379,7 +379,7 @@ func (r *Report) MarkAsGenerating() {
 
 // MarkAsCompleted marks the report as completed
 func (r *Report) MarkAsCompleted() {
-	r.Status = ReportStatusCompleted
+	r.Status = ReportTaskStatusCompleted
 	r.UpdatedAt = time.Now()
 }
 

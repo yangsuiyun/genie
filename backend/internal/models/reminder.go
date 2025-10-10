@@ -9,35 +9,35 @@ import (
 
 // Reminder represents a reminder for tasks or events
 type Reminder struct {
-	ID              string         `json:"id" db:"id"`
-	UserID          string         `json:"user_id" db:"user_id"`
-	TaskID          *string        `json:"task_id,omitempty" db:"task_id"`
-	Title           string         `json:"title" db:"title"`
-	Message         string         `json:"message" db:"message"`
-	ReminderTime    time.Time      `json:"reminder_time" db:"reminder_time"`
-	ReminderType    ReminderType   `json:"reminder_type" db:"reminder_type"`
-	DeliveryMethod  DeliveryMethod `json:"delivery_method" db:"delivery_method"`
-	IsRecurring     bool           `json:"is_recurring" db:"is_recurring"`
-	RecurrenceRule  *RecurrenceRule `json:"recurrence_rule,omitempty" db:"recurrence_rule"`
-	Status          ReminderStatus `json:"status" db:"status"`
-	SentAt          *time.Time     `json:"sent_at,omitempty" db:"sent_at"`
-	AcknowledgedAt  *time.Time     `json:"acknowledged_at,omitempty" db:"acknowledged_at"`
-	SnoozeUntil     *time.Time     `json:"snooze_until,omitempty" db:"snooze_until"`
-	SnoozeCount     int            `json:"snooze_count" db:"snooze_count"`
-	MaxSnoozes      int            `json:"max_snoozes" db:"max_snoozes"`
-	Priority        ReminderPriority `json:"priority" db:"priority"`
-	Tags            []string       `json:"tags" db:"tags"`
-	CreatedAt       time.Time      `json:"created_at" db:"created_at"`
-	UpdatedAt       time.Time      `json:"updated_at" db:"updated_at"`
-	SyncVersion     int64          `json:"sync_version" db:"sync_version"`
-	IsDeleted       bool           `json:"is_deleted" db:"is_deleted"`
-	DeletedAt       *time.Time     `json:"deleted_at,omitempty" db:"deleted_at"`
+	ID             string           `json:"id" db:"id"`
+	UserID         string           `json:"user_id" db:"user_id"`
+	TaskID         *string          `json:"task_id,omitempty" db:"task_id"`
+	Title          string           `json:"title" db:"title"`
+	Message        string           `json:"message" db:"message"`
+	ReminderTime   time.Time        `json:"reminder_time" db:"reminder_time"`
+	ReminderType   ReminderType     `json:"reminder_type" db:"reminder_type"`
+	DeliveryMethod DeliveryMethod   `json:"delivery_method" db:"delivery_method"`
+	IsRecurring    bool             `json:"is_recurring" db:"is_recurring"`
+	RecurrenceRule *RecurrenceRule  `json:"recurrence_rule,omitempty" db:"recurrence_rule"`
+	Status         ReminderStatus   `json:"status" db:"status"`
+	SentAt         *time.Time       `json:"sent_at,omitempty" db:"sent_at"`
+	AcknowledgedAt *time.Time       `json:"acknowledged_at,omitempty" db:"acknowledged_at"`
+	SnoozeUntil    *time.Time       `json:"snooze_until,omitempty" db:"snooze_until"`
+	SnoozeCount    int              `json:"snooze_count" db:"snooze_count"`
+	MaxSnoozes     int              `json:"max_snoozes" db:"max_snoozes"`
+	Priority       ReminderPriority `json:"priority" db:"priority"`
+	Tags           []string         `json:"tags" db:"tags"`
+	CreatedAt      time.Time        `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time        `json:"updated_at" db:"updated_at"`
+	SyncVersion    int64            `json:"sync_version" db:"sync_version"`
+	IsDeleted      bool             `json:"is_deleted" db:"is_deleted"`
+	DeletedAt      *time.Time       `json:"deleted_at,omitempty" db:"deleted_at"`
 
 	// Computed fields (not stored in DB)
-	TimeTo          string         `json:"time_to" db:"-"`          // Human readable time until reminder
-	IsOverdue       bool           `json:"is_overdue" db:"-"`
-	CanSnooze       bool           `json:"can_snooze" db:"-"`
-	NextOccurrence  *time.Time     `json:"next_occurrence,omitempty" db:"-"`
+	TimeTo         string     `json:"time_to" db:"-"` // Human readable time until reminder
+	IsOverdue      bool       `json:"is_overdue" db:"-"`
+	CanSnooze      bool       `json:"can_snooze" db:"-"`
+	NextOccurrence *time.Time `json:"next_occurrence,omitempty" db:"-"`
 }
 
 // ReminderType represents different types of reminders
@@ -60,26 +60,26 @@ const (
 type DeliveryMethod string
 
 const (
-	DeliveryPush        DeliveryMethod = "push"
-	DeliveryEmail       DeliveryMethod = "email"
-	DeliveryInApp       DeliveryMethod = "in_app"
-	DeliveryDesktop     DeliveryMethod = "desktop"
-	DeliverySMS         DeliveryMethod = "sms"
-	DeliverySlack       DeliveryMethod = "slack"
-	DeliveryDiscord     DeliveryMethod = "discord"
-	DeliveryWebhook     DeliveryMethod = "webhook"
+	DeliveryPush    DeliveryMethod = "push"
+	DeliveryEmail   DeliveryMethod = "email"
+	DeliveryInApp   DeliveryMethod = "in_app"
+	DeliveryDesktop DeliveryMethod = "desktop"
+	DeliverySMS     DeliveryMethod = "sms"
+	DeliverySlack   DeliveryMethod = "slack"
+	DeliveryDiscord DeliveryMethod = "discord"
+	DeliveryWebhook DeliveryMethod = "webhook"
 )
 
 // ReminderStatus represents the current status of a reminder
 type ReminderStatus string
 
 const (
-	StatusPending      ReminderStatus = "pending"
-	StatusSent         ReminderStatus = "sent"
-	StatusAcknowledged ReminderStatus = "acknowledged"
-	StatusSnoozed      ReminderStatus = "snoozed"
-	StatusCancelled    ReminderStatus = "cancelled"
-	StatusExpired      ReminderStatus = "expired"
+	ReminderStatusPending      ReminderStatus = "pending"
+	ReminderStatusSent         ReminderStatus = "sent"
+	ReminderStatusAcknowledged ReminderStatus = "acknowledged"
+	ReminderStatusSnoozed      ReminderStatus = "snoozed"
+	ReminderStatusCancelled    ReminderStatus = "cancelled"
+	ReminderStatusExpired      ReminderStatus = "expired"
 )
 
 // ReminderPriority represents the priority level of a reminder
@@ -104,7 +104,7 @@ func NewReminder(userID, title, message string, reminderTime time.Time, reminder
 		ReminderType:   reminderType,
 		DeliveryMethod: deliveryMethod,
 		IsRecurring:    false,
-		Status:         StatusPending,
+		Status:         ReminderStatusPending,
 		SnoozeCount:    0,
 		MaxSnoozes:     3, // Default max snoozes
 		Priority:       ReminderPriorityMedium,
@@ -133,12 +133,12 @@ func NewRecurringReminder(userID, title, message string, reminderTime time.Time,
 
 // Send marks the reminder as sent
 func (r *Reminder) Send() error {
-	if r.Status != StatusPending && r.Status != StatusSnoozed {
+	if r.Status != ReminderStatusPending && r.Status != ReminderStatusSnoozed {
 		return NewValidationError("status", "can only send pending or snoozed reminders")
 	}
 
 	now := time.Now()
-	r.Status = StatusSent
+	r.Status = ReminderStatusSent
 	r.SentAt = &now
 	r.UpdatedAt = now
 	r.SyncVersion++
@@ -148,12 +148,12 @@ func (r *Reminder) Send() error {
 
 // Acknowledge marks the reminder as acknowledged
 func (r *Reminder) Acknowledge() error {
-	if r.Status != StatusSent {
+	if r.Status != ReminderStatusSent {
 		return NewValidationError("status", "can only acknowledge sent reminders")
 	}
 
 	now := time.Now()
-	r.Status = StatusAcknowledged
+	r.Status = ReminderStatusAcknowledged
 	r.AcknowledgedAt = &now
 	r.UpdatedAt = now
 	r.SyncVersion++
@@ -163,7 +163,7 @@ func (r *Reminder) Acknowledge() error {
 
 // Snooze snoozes the reminder for a specified duration
 func (r *Reminder) Snooze(duration time.Duration) error {
-	if r.Status != StatusSent {
+	if r.Status != ReminderStatusSent {
 		return NewValidationError("status", "can only snooze sent reminders")
 	}
 
@@ -174,7 +174,7 @@ func (r *Reminder) Snooze(duration time.Duration) error {
 	now := time.Now()
 	snoozeUntil := now.Add(duration)
 
-	r.Status = StatusSnoozed
+	r.Status = ReminderStatusSnoozed
 	r.SnoozeUntil = &snoozeUntil
 	r.SnoozeCount++
 	r.UpdatedAt = now
@@ -186,7 +186,7 @@ func (r *Reminder) Snooze(duration time.Duration) error {
 // Cancel cancels the reminder
 func (r *Reminder) Cancel() {
 	now := time.Now()
-	r.Status = StatusCancelled
+	r.Status = ReminderStatusCancelled
 	r.UpdatedAt = now
 	r.SyncVersion++
 }
@@ -194,7 +194,7 @@ func (r *Reminder) Cancel() {
 // Expire marks the reminder as expired
 func (r *Reminder) Expire() {
 	now := time.Now()
-	r.Status = StatusExpired
+	r.Status = ReminderStatusExpired
 	r.UpdatedAt = now
 	r.SyncVersion++
 }
@@ -202,7 +202,7 @@ func (r *Reminder) Expire() {
 // Reschedule reschedules the reminder to a new time
 func (r *Reminder) Reschedule(newTime time.Time) {
 	r.ReminderTime = newTime
-	r.Status = StatusPending
+	r.Status = ReminderStatusPending
 	r.SnoozeUntil = nil
 	r.SnoozeCount = 0
 	r.UpdatedAt = time.Now()
@@ -260,14 +260,14 @@ func (r *Reminder) Restore() {
 
 // IsDue returns true if the reminder is due
 func (r *Reminder) IsDue() bool {
-	if r.Status != StatusPending {
+	if r.Status != ReminderStatusPending {
 		return false
 	}
 
 	now := time.Now()
 
 	// Check if snoozed and snooze time has passed
-	if r.Status == StatusSnoozed && r.SnoozeUntil != nil {
+	if r.Status == ReminderStatusSnoozed && r.SnoozeUntil != nil {
 		return now.After(*r.SnoozeUntil)
 	}
 
@@ -276,7 +276,7 @@ func (r *Reminder) IsDue() bool {
 
 // IsOverdueComputed checks if the reminder is overdue
 func (r *Reminder) IsOverdueComputed() bool {
-	if r.Status != StatusPending && r.Status != StatusSent {
+	if r.Status != ReminderStatusPending && r.Status != ReminderStatusSent {
 		return false
 	}
 
@@ -286,7 +286,7 @@ func (r *Reminder) IsOverdueComputed() bool {
 
 // CanSnoozeComputed checks if the reminder can be snoozed
 func (r *Reminder) CanSnoozeComputed() bool {
-	return r.Status == StatusSent && r.SnoozeCount < r.MaxSnoozes
+	return r.Status == ReminderStatusSent && r.SnoozeCount < r.MaxSnoozes
 }
 
 // GetTimeTo returns a human-readable string for time until reminder
@@ -453,51 +453,51 @@ func formatDurationFuture(d time.Duration) string {
 
 // ReminderFilter represents filters for reminder queries
 type ReminderFilter struct {
-	UserID         string           `json:"user_id"`
-	TaskID         *string          `json:"task_id,omitempty"`
-	ReminderType   *ReminderType    `json:"reminder_type,omitempty"`
-	DeliveryMethod *DeliveryMethod  `json:"delivery_method,omitempty"`
-	Status         *ReminderStatus  `json:"status,omitempty"`
+	UserID         string            `json:"user_id"`
+	TaskID         *string           `json:"task_id,omitempty"`
+	ReminderType   *ReminderType     `json:"reminder_type,omitempty"`
+	DeliveryMethod *DeliveryMethod   `json:"delivery_method,omitempty"`
+	Status         *ReminderStatus   `json:"status,omitempty"`
 	Priority       *ReminderPriority `json:"priority,omitempty"`
-	IsRecurring    *bool            `json:"is_recurring,omitempty"`
-	DueBefore      *time.Time       `json:"due_before,omitempty"`
-	DueAfter       *time.Time       `json:"due_after,omitempty"`
-	Tags           []string         `json:"tags,omitempty"`
-	IsDeleted      bool             `json:"is_deleted"`
-	Limit          int              `json:"limit"`
-	Offset         int              `json:"offset"`
-	SortBy         string           `json:"sort_by"`
-	SortOrder      string           `json:"sort_order"`
+	IsRecurring    *bool             `json:"is_recurring,omitempty"`
+	DueBefore      *time.Time        `json:"due_before,omitempty"`
+	DueAfter       *time.Time        `json:"due_after,omitempty"`
+	Tags           []string          `json:"tags,omitempty"`
+	IsDeleted      bool              `json:"is_deleted"`
+	Limit          int               `json:"limit"`
+	Offset         int               `json:"offset"`
+	SortBy         string            `json:"sort_by"`
+	SortOrder      string            `json:"sort_order"`
 }
 
 // ReminderSummary represents a summary of reminders for a user
 type ReminderSummary struct {
-	UserID            string                      `json:"user_id"`
-	TotalReminders    int                         `json:"total_reminders"`
-	PendingReminders  int                         `json:"pending_reminders"`
-	OverdueReminders  int                         `json:"overdue_reminders"`
-	SnoozedReminders  int                         `json:"snoozed_reminders"`
-	TodaysReminders   int                         `json:"todays_reminders"`
-	ThisWeekReminders int                         `json:"this_week_reminders"`
-	RemindersByType   map[ReminderType]int        `json:"reminders_by_type"`
-	RemindersByPriority map[ReminderPriority]int  `json:"reminders_by_priority"`
-	DeliveryStats     map[DeliveryMethod]int      `json:"delivery_stats"`
-	AcknowledgmentRate float64                   `json:"acknowledgment_rate"`
-	SnoozeRate        float64                    `json:"snooze_rate"`
-	LastUpdated       time.Time                  `json:"last_updated"`
+	UserID              string                   `json:"user_id"`
+	TotalReminders      int                      `json:"total_reminders"`
+	PendingReminders    int                      `json:"pending_reminders"`
+	OverdueReminders    int                      `json:"overdue_reminders"`
+	SnoozedReminders    int                      `json:"snoozed_reminders"`
+	TodaysReminders     int                      `json:"todays_reminders"`
+	ThisWeekReminders   int                      `json:"this_week_reminders"`
+	RemindersByType     map[ReminderType]int     `json:"reminders_by_type"`
+	RemindersByPriority map[ReminderPriority]int `json:"reminders_by_priority"`
+	DeliveryStats       map[DeliveryMethod]int   `json:"delivery_stats"`
+	AcknowledgmentRate  float64                  `json:"acknowledgment_rate"`
+	SnoozeRate          float64                  `json:"snooze_rate"`
+	LastUpdated         time.Time                `json:"last_updated"`
 }
 
 // ReminderDeliveryLog represents a log of reminder delivery attempts
 type ReminderDeliveryLog struct {
-	ID          string         `json:"id" db:"id"`
-	ReminderID  string         `json:"reminder_id" db:"reminder_id"`
-	DeliveryMethod DeliveryMethod `json:"delivery_method" db:"delivery_method"`
-	Status      string         `json:"status" db:"status"` // "sent", "failed", "pending"
-	AttemptedAt time.Time      `json:"attempted_at" db:"attempted_at"`
-	DeliveredAt *time.Time     `json:"delivered_at,omitempty" db:"delivered_at"`
-	ErrorMessage *string       `json:"error_message,omitempty" db:"error_message"`
-	RetryCount  int            `json:"retry_count" db:"retry_count"`
-	MaxRetries  int            `json:"max_retries" db:"max_retries"`
-	NextRetryAt *time.Time     `json:"next_retry_at,omitempty" db:"next_retry_at"`
-	Metadata    map[string]interface{} `json:"metadata" db:"metadata"` // Platform-specific delivery data
+	ID             string                 `json:"id" db:"id"`
+	ReminderID     string                 `json:"reminder_id" db:"reminder_id"`
+	DeliveryMethod DeliveryMethod         `json:"delivery_method" db:"delivery_method"`
+	Status         string                 `json:"status" db:"status"` // "sent", "failed", "pending"
+	AttemptedAt    time.Time              `json:"attempted_at" db:"attempted_at"`
+	DeliveredAt    *time.Time             `json:"delivered_at,omitempty" db:"delivered_at"`
+	ErrorMessage   *string                `json:"error_message,omitempty" db:"error_message"`
+	RetryCount     int                    `json:"retry_count" db:"retry_count"`
+	MaxRetries     int                    `json:"max_retries" db:"max_retries"`
+	NextRetryAt    *time.Time             `json:"next_retry_at,omitempty" db:"next_retry_at"`
+	Metadata       map[string]interface{} `json:"metadata" db:"metadata"` // Platform-specific delivery data
 }

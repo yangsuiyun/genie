@@ -9,8 +9,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 
-	"backend/internal/services"
-	"backend/internal/models"
+	"pomodoro-backend/internal/services"
+	"pomodoro-backend/internal/models"
 )
 
 // ReportsHandler handles reports and analytics-related HTTP requests

@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"backend/internal/models"
+	"pomodoro-backend/internal/models"
 )
 
 // ReportRepository defines the interface for report data access

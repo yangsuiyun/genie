@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"backend/internal/models"
+	"pomodoro-backend/internal/models"
 )
 
 // AuthService handles authentication and authorization
@@ -34,10 +36,10 @@ type RegisterRequest struct {
 
 // AuthResponse represents the authentication response
 type AuthResponse struct {
-	User        *models.User `json:"user"`
-	AccessToken string       `json:"access_token"`
-	ExpiresIn   int64        `json:"expires_in"`
-	TokenType   string       `json:"token_type"`
+	User        interface{} `json:"user"`
+	AccessToken string      `json:"access_token"`
+	ExpiresIn   int64       `json:"expires_in"`
+	TokenType   string      `json:"token_type"`
 }
 
 // TokenClaims represents JWT token claims
@@ -91,7 +93,6 @@ func (s *AuthService) Register(req RegisterRequest) (*AuthResponse, error) {
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
 		Preferences:  models.DefaultUserPreferences(),
-		IsVerified:   false, // Email verification required
 	}
 
 	if req.Name != "" {
@@ -114,7 +115,11 @@ func (s *AuthService) Register(req RegisterRequest) (*AuthResponse, error) {
 	// err = s.emailService.SendVerificationEmail(createdUser.Email, verificationToken)
 
 	return &AuthResponse{
-		User:        createdUser.Sanitized(),
+		User: gin.H{
+			"id":    createdUser.ID,
+			"email": createdUser.Email,
+			"name":  createdUser.Name,
+		},
 		AccessToken: accessToken,
 		ExpiresIn:   int64(s.tokenTTL.Seconds()),
 		TokenType:   "Bearer",
@@ -133,8 +138,8 @@ func (s *AuthService) Login(req AuthRequest) (*AuthResponse, error) {
 	}
 
 	// Check if user is active
-	if !user.IsVerified {
-		return nil, models.ErrUserNotVerified
+	if !user.IsActive {
+		return nil, models.ErrUserInactive
 	}
 
 	// Verify password
@@ -144,10 +149,15 @@ func (s *AuthService) Login(req AuthRequest) (*AuthResponse, error) {
 	}
 
 	// Update last login time
-	err = s.userService.UpdateLastLogin(user.ID)
+	userUUID, err := uuid.Parse(user.ID)
 	if err != nil {
-		// Log error but don't fail the login
-		fmt.Printf("Warning: failed to update last login time: %v\n", err)
+		fmt.Printf("Warning: invalid user ID format: %v\n", err)
+	} else {
+		err = s.userService.UpdateLastLogin(userUUID)
+		if err != nil {
+			// Log error but don't fail the login
+			fmt.Printf("Warning: failed to update last login time: %v\n", err)
+		}
 	}
 
 	// Generate access token
@@ -157,7 +167,11 @@ func (s *AuthService) Login(req AuthRequest) (*AuthResponse, error) {
 	}
 
 	return &AuthResponse{
-		User:        user.Sanitized(),
+		User: gin.H{
+			"id":    user.ID,
+			"email": user.Email,
+			"name":  user.Name,
+		},
 		AccessToken: accessToken,
 		ExpiresIn:   int64(s.tokenTTL.Seconds()),
 		TokenType:   "Bearer",
@@ -296,14 +310,14 @@ func (s *AuthService) generateAccessToken(user *models.User) (string, error) {
 	expiresAt := now.Add(s.tokenTTL)
 
 	claims := TokenClaims{
-		UserID: user.ID.String(),
+		UserID: user.ID,
 		Email:  user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
 			Issuer:    "pomodoro-app",
-			Subject:   user.ID.String(),
+			Subject:   user.ID,
 		},
 	}
 

@@ -1,13 +1,13 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 
-	"backend/internal/models"
+	"pomodoro-backend/internal/models"
+	"pomodoro-backend/internal/repositories"
 )
 
 // SyncRepository defines the interface for sync data access
@@ -26,39 +26,39 @@ type SyncRepository interface {
 // SyncService handles data synchronization between devices
 type SyncService struct {
 	repo            SyncRepository
-	taskRepo        TaskRepository
+	taskRepo        repositories.TaskRepository
 	pomodoroRepo    PomodoroRepository
 	conflictHandler ConflictHandler
 }
 
 // SyncRequest represents a synchronization request from a client
 type SyncRequest struct {
-	DeviceID       string                      `json:"device_id" validate:"required"`
-	LastSyncTime   *time.Time                  `json:"last_sync_time,omitempty"`
-	ChangedTasks   []*models.Task              `json:"changed_tasks,omitempty"`
-	ChangedSessions []*models.PomodoroSession  `json:"changed_sessions,omitempty"`
-	DeletedItems   []SyncDeletedItem           `json:"deleted_items,omitempty"`
-	DeviceInfo     SyncDeviceInfo              `json:"device_info"`
+	DeviceID        string                    `json:"device_id" validate:"required"`
+	LastSyncTime    *time.Time                `json:"last_sync_time,omitempty"`
+	ChangedTasks    []*models.Task            `json:"changed_tasks,omitempty"`
+	ChangedSessions []*models.PomodoroSession `json:"changed_sessions,omitempty"`
+	DeletedItems    []SyncDeletedItem         `json:"deleted_items,omitempty"`
+	DeviceInfo      SyncDeviceInfo            `json:"device_info"`
 }
 
 // SyncResponse represents the response to a synchronization request
 type SyncResponse struct {
-	Success        bool                        `json:"success"`
-	LastSyncTime   time.Time                   `json:"last_sync_time"`
-	ChangedTasks   []*models.Task              `json:"changed_tasks,omitempty"`
-	ChangedSessions []*models.PomodoroSession  `json:"changed_sessions,omitempty"`
-	DeletedItems   []SyncDeletedItem           `json:"deleted_items,omitempty"`
-	Conflicts      []SyncConflict              `json:"conflicts,omitempty"`
-	ConflictCount  int                         `json:"conflict_count"`
-	Message        string                      `json:"message,omitempty"`
+	Success         bool                      `json:"success"`
+	LastSyncTime    time.Time                 `json:"last_sync_time"`
+	ChangedTasks    []*models.Task            `json:"changed_tasks,omitempty"`
+	ChangedSessions []*models.PomodoroSession `json:"changed_sessions,omitempty"`
+	DeletedItems    []SyncDeletedItem         `json:"deleted_items,omitempty"`
+	Conflicts       []SyncConflict            `json:"conflicts,omitempty"`
+	ConflictCount   int                       `json:"conflict_count"`
+	Message         string                    `json:"message,omitempty"`
 }
 
 // SyncDeletedItem represents a deleted item for sync purposes
 type SyncDeletedItem struct {
-	ID         uuid.UUID `json:"id"`
-	Type       string    `json:"type"` // "task", "session", "note", etc.
-	DeletedAt  time.Time `json:"deleted_at"`
-	DeviceID   string    `json:"device_id"`
+	ID        uuid.UUID `json:"id"`
+	Type      string    `json:"type"` // "task", "session", "note", etc.
+	DeletedAt time.Time `json:"deleted_at"`
+	DeviceID  string    `json:"device_id"`
 }
 
 // SyncConflict represents a synchronization conflict
@@ -77,15 +77,15 @@ type SyncConflict struct {
 
 // SyncDevice represents a device registered for synchronization
 type SyncDevice struct {
-	ID           string         `json:"id"`
-	UserID       uuid.UUID      `json:"user_id"`
-	DeviceName   string         `json:"device_name"`
-	DeviceType   string         `json:"device_type"` // "mobile", "desktop", "web"
-	Platform     string         `json:"platform"`    // "ios", "android", "windows", "macos", "web"
-	AppVersion   string         `json:"app_version"`
-	LastSeen     time.Time      `json:"last_seen"`
-	IsActive     bool           `json:"is_active"`
-	RegisteredAt time.Time      `json:"registered_at"`
+	ID           string    `json:"id"`
+	UserID       uuid.UUID `json:"user_id"`
+	DeviceName   string    `json:"device_name"`
+	DeviceType   string    `json:"device_type"` // "mobile", "desktop", "web"
+	Platform     string    `json:"platform"`    // "ios", "android", "windows", "macos", "web"
+	AppVersion   string    `json:"app_version"`
+	LastSeen     time.Time `json:"last_seen"`
+	IsActive     bool      `json:"is_active"`
+	RegisteredAt time.Time `json:"registered_at"`
 }
 
 // SyncDeviceInfo represents device information sent during sync
@@ -107,17 +107,17 @@ type LastWriteWinsHandler struct{}
 
 // SyncStats represents synchronization statistics
 type SyncStats struct {
-	LastSyncTime    *time.Time `json:"last_sync_time"`
-	TotalSyncs      int        `json:"total_syncs"`
-	SuccessfulSyncs int        `json:"successful_syncs"`
-	ConflictsTotal  int        `json:"conflicts_total"`
-	ConflictsResolved int      `json:"conflicts_resolved"`
-	DeviceCount     int        `json:"device_count"`
-	LastConflictAt  *time.Time `json:"last_conflict_at"`
+	LastSyncTime      *time.Time `json:"last_sync_time"`
+	TotalSyncs        int        `json:"total_syncs"`
+	SuccessfulSyncs   int        `json:"successful_syncs"`
+	ConflictsTotal    int        `json:"conflicts_total"`
+	ConflictsResolved int        `json:"conflicts_resolved"`
+	DeviceCount       int        `json:"device_count"`
+	LastConflictAt    *time.Time `json:"last_conflict_at"`
 }
 
 // NewSyncService creates a new sync service
-func NewSyncService(repo SyncRepository, taskRepo TaskRepository, pomodoroRepo PomodoroRepository) *SyncService {
+func NewSyncService(repo SyncRepository, taskRepo repositories.TaskRepository, pomodoroRepo PomodoroRepository) *SyncService {
 	return &SyncService{
 		repo:            repo,
 		taskRepo:        taskRepo,

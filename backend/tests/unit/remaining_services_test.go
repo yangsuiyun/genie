@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"backend/internal/models"
-	"backend/internal/services"
+	"pomodoro-backend/internal/models"
+	"pomodoro-backend/internal/services"
 )
 
 // Mock repositories for remaining services

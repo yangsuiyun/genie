@@ -8,7 +8,7 @@ import (
 	"firebase.google.com/go/v4/messaging"
 	"github.com/google/uuid"
 
-	"backend/internal/models"
+	"pomodoro-backend/internal/models"
 )
 
 // NotificationRepository defines the interface for notification data access
@@ -80,7 +80,7 @@ const (
 type NotificationStatus string
 
 const (
-	NotificationStatusPending   NotificationStatus = "pending"
+	NotificationTaskStatusPending   NotificationStatus = "pending"
 	NotificationStatusSent      NotificationStatus = "sent"
 	NotificationStatusDelivered NotificationStatus = "delivered"
 	NotificationStatusFailed    NotificationStatus = "failed"
@@ -166,7 +166,7 @@ func (s *NotificationService) SendNotification(req NotificationRequest) error {
 		Data:      req.Data,
 		IsRead:    false,
 		CreatedAt: time.Now(),
-		Status:    NotificationStatusPending,
+		Status:    NotificationTaskStatusPending,
 	}
 
 	err = s.repo.StoreNotification(storedNotification)

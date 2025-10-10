@@ -93,14 +93,14 @@ func main() {
 			"version":     "1.0.0",
 			"features":    []string{"Projects", "Tasks", "Pomodoro Sessions", "Analytics"},
 			"endpoints": gin.H{
-				"health":     "/health",
-				"api_v1":     "/v1",
-				"auth":       "/v1/auth",
-				"projects":   "/v1/projects",
-				"tasks":      "/v1/tasks",
-				"sessions":   "/v1/sessions",
-				"reports":    "/v1/reports",
-				"docs":       "/docs",
+				"health":   "/health",
+				"api_v1":   "/v1",
+				"auth":     "/v1/auth",
+				"projects": "/v1/projects",
+				"tasks":    "/v1/tasks",
+				"sessions": "/v1/sessions",
+				"reports":  "/v1/reports",
+				"docs":     "/docs",
 			},
 		})
 	})
@@ -133,7 +133,7 @@ func main() {
 			projects.POST("/:id/complete", projectHandler.ToggleProjectCompletion)
 		}
 
-		// Task routes (to be implemented)
+		// Task routes (mock for now)
 		tasks := protected.Group("/tasks")
 		{
 			tasks.GET("/", handleMockGetTasks)
@@ -143,7 +143,7 @@ func main() {
 			tasks.DELETE("/:id", handleMockDeleteTask)
 		}
 
-		// Session routes (to be implemented)
+		// Session routes (mock for now)
 		sessions := protected.Group("/sessions")
 		{
 			sessions.GET("/", handleMockGetSessions)
@@ -195,7 +195,7 @@ func main() {
 	// Get port
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8081" // Changed from 8080 to avoid conflicts
+		port = "8081"
 	}
 
 	log.Printf("🚀 Pomodoro Genie API starting on port %s", port)
@@ -215,7 +215,7 @@ func initDatabase() (*gorm.DB, error) {
 	dbHost := getEnv("DB_HOST", "localhost")
 	dbPort := getEnv("DB_PORT", "5432")
 	dbUser := getEnv("DB_USER", "postgres")
-	dbPassword := getEnv("DB_PASSWORD", "postgres")
+	dbPassword := getEnv("DB_PASSWORD", "postgres123")
 	dbName := getEnv("DB_NAME", "pomodoro_genie")
 	dbSSLMode := getEnv("DB_SSLMODE", "disable")
 

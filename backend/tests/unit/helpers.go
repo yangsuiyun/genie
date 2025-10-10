@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"backend/internal/models"
+	"pomodoro-backend/internal/models"
 )
 
 // TestHelpers provides utility functions for tests
@@ -33,7 +33,7 @@ func CreateTestTask(userID uuid.UUID) *models.Task {
 		Title:              "Test Task",
 		Description:        "Test Description",
 		Priority:           models.PriorityMedium,
-		Status:             models.StatusPending,
+		Status:             models.TaskStatusPending,
 		EstimatedPomodoros: 3,
 		CompletedPomodoros: 0,
 		Tags:               []string{"test", "important"},
@@ -49,7 +49,7 @@ func CreateTestPomodoroSession(userID, taskID uuid.UUID) *models.PomodoroSession
 		UserID:          userID,
 		TaskID:          taskID,
 		SessionType:     models.SessionTypeWork,
-		Status:          models.SessionStatusActive,
+		Status:          models.PomodoroStatusActive,
 		PlannedDuration: 25 * 60, // 25 minutes
 		ActualDuration:  0,
 		StartedAt:       time.Now(),

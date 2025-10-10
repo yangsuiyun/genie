@@ -10,30 +10,30 @@ import (
 
 // PomodoroSession represents a Pomodoro session
 type PomodoroSession struct {
-	ID                uuid.UUID           `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID            uuid.UUID           `json:"user_id" gorm:"type:uuid;not null;index"`
-	ProjectID         uuid.UUID           `json:"project_id" gorm:"type:uuid;not null;index"` // Required field
-	TaskID            *uuid.UUID          `json:"task_id,omitempty" gorm:"type:uuid;index"`   // Optional for free pomodoros
-	SessionType       PomodoroSessionType `json:"session_type" gorm:"type:varchar(20);not null"`
-	Status            PomodoroStatus      `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
-	PlannedDuration   int                 `json:"planned_duration" gorm:"not null"`     // in seconds
-	ActualDuration    *int                `json:"actual_duration,omitempty"`           // in seconds
-	StartedAt         time.Time           `json:"started_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
-	PausedAt          *time.Time          `json:"paused_at,omitempty"`
-	ResumedAt         *time.Time          `json:"resumed_at,omitempty"`
-	CompletedAt       *time.Time          `json:"completed_at,omitempty"`
-	CancelledAt       *time.Time          `json:"cancelled_at,omitempty"`
-	InterruptionCount int                 `json:"interruption_count" gorm:"not null;default:0"`
-	InterruptionReason *string            `json:"interruption_reason,omitempty" gorm:"type:text"`
-	Notes             *string             `json:"notes,omitempty" gorm:"type:text"`
-	CreatedAt         time.Time           `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt         time.Time           `json:"updated_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
-	SyncVersion       int64               `json:"sync_version" gorm:"not null;default:1"`
+	ID                 uuid.UUID           `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID             uuid.UUID           `json:"user_id" gorm:"type:uuid;not null;index"`
+	ProjectID          uuid.UUID           `json:"project_id" gorm:"type:uuid;not null;index"` // Required field
+	TaskID             *uuid.UUID          `json:"task_id,omitempty" gorm:"type:uuid;index"`   // Optional for free pomodoros
+	SessionType        PomodoroSessionType `json:"session_type" gorm:"type:varchar(20);not null"`
+	Status             PomodoroStatus      `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
+	PlannedDuration    int                 `json:"planned_duration" gorm:"not null"` // in seconds
+	ActualDuration     *int                `json:"actual_duration,omitempty"`        // in seconds
+	StartedAt          time.Time           `json:"started_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	PausedAt           *time.Time          `json:"paused_at,omitempty"`
+	ResumedAt          *time.Time          `json:"resumed_at,omitempty"`
+	CompletedAt        *time.Time          `json:"completed_at,omitempty"`
+	CancelledAt        *time.Time          `json:"cancelled_at,omitempty"`
+	InterruptionCount  int                 `json:"interruption_count" gorm:"not null;default:0"`
+	InterruptionReason *string             `json:"interruption_reason,omitempty" gorm:"type:text"`
+	Notes              *string             `json:"notes,omitempty" gorm:"type:text"`
+	CreatedAt          time.Time           `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt          time.Time           `json:"updated_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	SyncVersion        int64               `json:"sync_version" gorm:"not null;default:1"`
 
 	// Relationships
-	User    User     `json:"-" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	Project Project  `json:"project,omitempty" gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
-	Task    *Task    `json:"task,omitempty" gorm:"foreignKey:TaskID;constraint:OnDelete:CASCADE"`
+	User    User    `json:"-" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	Project Project `json:"project,omitempty" gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
+	Task    *Task   `json:"task,omitempty" gorm:"foreignKey:TaskID;constraint:OnDelete:CASCADE"`
 
 	// Computed fields (not stored in DB)
 	ElapsedTime     int     `json:"elapsed_time" gorm:"-"`     // in seconds
@@ -48,19 +48,19 @@ type PomodoroSession struct {
 type PomodoroSessionType string
 
 const (
-	SessionTypeWork      PomodoroSessionType = "work"
+	SessionTypeWork       PomodoroSessionType = "work"
 	SessionTypeShortBreak PomodoroSessionType = "short_break"
-	SessionTypeLongBreak PomodoroSessionType = "long_break"
+	SessionTypeLongBreak  PomodoroSessionType = "long_break"
 )
 
 // PomodoroStatus represents the current status of a Pomodoro session
 type PomodoroStatus string
 
 const (
-	StatusActive    PomodoroStatus = "active"
-	StatusPaused    PomodoroStatus = "paused"
-	StatusCompleted PomodoroStatus = "completed"
-	StatusCancelled PomodoroStatus = "cancelled"
+	PomodoroStatusActive    PomodoroStatus = "active"
+	PomodoroStatusPaused    PomodoroStatus = "paused"
+	PomodoroStatusCompleted PomodoroStatus = "completed"
+	PomodoroStatusCancelled PomodoroStatus = "cancelled"
 )
 
 // NewPomodoroSession creates a new Pomodoro session
@@ -72,7 +72,7 @@ func NewPomodoroSession(userID, projectID uuid.UUID, taskID *uuid.UUID, sessionT
 		ProjectID:         projectID,
 		TaskID:            taskID,
 		SessionType:       sessionType,
-		Status:            StatusActive,
+		Status:            PomodoroStatusActive,
 		PlannedDuration:   plannedDuration,
 		StartedAt:         now,
 		InterruptionCount: 0,
@@ -104,10 +104,10 @@ type StateMachine struct {
 func NewStateMachine() *StateMachine {
 	return &StateMachine{
 		validTransitions: map[PomodoroStatus][]PomodoroStatus{
-			StatusActive:    {StatusPaused, StatusCompleted, StatusCancelled},
-			StatusPaused:    {StatusActive, StatusCompleted, StatusCancelled},
-			StatusCompleted: {}, // Terminal state
-			StatusCancelled: {}, // Terminal state
+			PomodoroStatusActive:    {PomodoroStatusPaused, PomodoroStatusCompleted, PomodoroStatusCancelled},
+			PomodoroStatusPaused:    {PomodoroStatusActive, PomodoroStatusCompleted, PomodoroStatusCancelled},
+			PomodoroStatusCompleted: {}, // Terminal state
+			PomodoroStatusCancelled: {}, // Terminal state
 		},
 	}
 }
@@ -130,12 +130,12 @@ func (sm *StateMachine) CanTransition(from, to PomodoroStatus) bool {
 // Pause pauses the session
 func (ps *PomodoroSession) Pause() error {
 	sm := NewStateMachine()
-	if !sm.CanTransition(ps.Status, StatusPaused) {
+	if !sm.CanTransition(ps.Status, PomodoroStatusPaused) {
 		return NewValidationError("status", "cannot pause session in current state: "+string(ps.Status))
 	}
 
 	now := time.Now()
-	ps.Status = StatusPaused
+	ps.Status = PomodoroStatusPaused
 	ps.PausedAt = &now
 	ps.UpdatedAt = now
 	ps.SyncVersion++
@@ -146,12 +146,12 @@ func (ps *PomodoroSession) Pause() error {
 // Resume resumes a paused session
 func (ps *PomodoroSession) Resume() error {
 	sm := NewStateMachine()
-	if !sm.CanTransition(ps.Status, StatusActive) {
+	if !sm.CanTransition(ps.Status, PomodoroStatusActive) {
 		return NewValidationError("status", "cannot resume session in current state: "+string(ps.Status))
 	}
 
 	now := time.Now()
-	ps.Status = StatusActive
+	ps.Status = PomodoroStatusActive
 	ps.ResumedAt = &now
 	ps.UpdatedAt = now
 	ps.SyncVersion++
@@ -162,12 +162,12 @@ func (ps *PomodoroSession) Resume() error {
 // Complete completes the session
 func (ps *PomodoroSession) Complete(actualDuration *int) error {
 	sm := NewStateMachine()
-	if !sm.CanTransition(ps.Status, StatusCompleted) {
+	if !sm.CanTransition(ps.Status, PomodoroStatusCompleted) {
 		return NewValidationError("status", "cannot complete session in current state: "+string(ps.Status))
 	}
 
 	now := time.Now()
-	ps.Status = StatusCompleted
+	ps.Status = PomodoroStatusCompleted
 	ps.CompletedAt = &now
 	ps.UpdatedAt = now
 	ps.SyncVersion++
@@ -186,12 +186,12 @@ func (ps *PomodoroSession) Complete(actualDuration *int) error {
 // Cancel cancels the session
 func (ps *PomodoroSession) Cancel() error {
 	sm := NewStateMachine()
-	if !sm.CanTransition(ps.Status, StatusCancelled) {
+	if !sm.CanTransition(ps.Status, PomodoroStatusCancelled) {
 		return NewValidationError("status", "cannot cancel session in current state: "+string(ps.Status))
 	}
 
 	now := time.Now()
-	ps.Status = StatusCancelled
+	ps.Status = PomodoroStatusCancelled
 	ps.CancelledAt = &now
 	ps.UpdatedAt = now
 	ps.SyncVersion++
@@ -225,11 +225,11 @@ func (ps *PomodoroSession) UpdateDuration(duration int) {
 
 // CalculateElapsedTime calculates the elapsed time since session start
 func (ps *PomodoroSession) CalculateElapsedTime() int {
-	if ps.Status == StatusCompleted && ps.ActualDuration != nil {
+	if ps.Status == PomodoroStatusCompleted && ps.ActualDuration != nil {
 		return *ps.ActualDuration
 	}
 
-	if ps.Status == StatusCancelled {
+	if ps.Status == PomodoroStatusCancelled {
 		if ps.CancelledAt != nil {
 			return int(ps.CancelledAt.Sub(ps.StartedAt).Seconds())
 		}
@@ -237,7 +237,7 @@ func (ps *PomodoroSession) CalculateElapsedTime() int {
 	}
 
 	now := time.Now()
-	if ps.Status == StatusPaused && ps.PausedAt != nil {
+	if ps.Status == PomodoroStatusPaused && ps.PausedAt != nil {
 		return int(ps.PausedAt.Sub(ps.StartedAt).Seconds())
 	}
 
@@ -280,13 +280,13 @@ func (ps *PomodoroSession) CalculateEfficiencyScore() float64 {
 
 	// Deduct points for not completing
 	completionBonus := 0.0
-	if ps.Status == StatusCompleted {
+	if ps.Status == PomodoroStatusCompleted {
 		completionBonus = 20.0
 	}
 
 	// Bonus for completing close to planned duration
 	durationBonus := 0.0
-	if ps.ActualDuration != nil && ps.Status == StatusCompleted {
+	if ps.ActualDuration != nil && ps.Status == PomodoroStatusCompleted {
 		ratio := float64(*ps.ActualDuration) / float64(ps.PlannedDuration)
 		if ratio >= 0.8 && ratio <= 1.2 { // Within 20% of planned duration
 			durationBonus = 10.0
@@ -305,22 +305,22 @@ func (ps *PomodoroSession) CalculateEfficiencyScore() float64 {
 
 // IsActive returns true if the session is currently active
 func (ps *PomodoroSession) IsActive() bool {
-	return ps.Status == StatusActive
+	return ps.Status == PomodoroStatusActive
 }
 
 // IsPaused returns true if the session is paused
 func (ps *PomodoroSession) IsPaused() bool {
-	return ps.Status == StatusPaused
+	return ps.Status == PomodoroStatusPaused
 }
 
 // IsCompleted returns true if the session is completed
 func (ps *PomodoroSession) IsCompleted() bool {
-	return ps.Status == StatusCompleted
+	return ps.Status == PomodoroStatusCompleted
 }
 
 // IsCancelled returns true if the session is cancelled
 func (ps *PomodoroSession) IsCancelled() bool {
-	return ps.Status == StatusCancelled
+	return ps.Status == PomodoroStatusCancelled
 }
 
 // IsFinished returns true if the session is completed or cancelled
@@ -344,9 +344,9 @@ func (ps *PomodoroSession) GetDurationText() string {
 func (ps *PomodoroSession) Validate() error {
 	// Validate session type
 	validTypes := map[PomodoroSessionType]bool{
-		SessionTypeWork:      true,
+		SessionTypeWork:       true,
 		SessionTypeShortBreak: true,
-		SessionTypeLongBreak: true,
+		SessionTypeLongBreak:  true,
 	}
 	if !validTypes[ps.SessionType] {
 		return NewValidationError("session_type", "invalid session type")
@@ -377,52 +377,52 @@ func (ps *PomodoroSession) Validate() error {
 
 // PomodoroSessionFilter represents filters for session queries
 type PomodoroSessionFilter struct {
-	UserID      string              `json:"user_id"`
-	TaskID      *string             `json:"task_id,omitempty"`
-	SessionType *PomodoroSessionType `json:"session_type,omitempty"`
-	Status      *PomodoroStatus     `json:"status,omitempty"`
-	StartedAfter *time.Time         `json:"started_after,omitempty"`
-	StartedBefore *time.Time        `json:"started_before,omitempty"`
-	CompletedAfter *time.Time       `json:"completed_after,omitempty"`
-	CompletedBefore *time.Time      `json:"completed_before,omitempty"`
-	MinDuration *int               `json:"min_duration,omitempty"`
-	MaxDuration *int               `json:"max_duration,omitempty"`
-	Limit       int                `json:"limit"`
-	Offset      int                `json:"offset"`
-	SortBy      string             `json:"sort_by"`
-	SortOrder   string             `json:"sort_order"`
+	UserID          string               `json:"user_id"`
+	TaskID          *string              `json:"task_id,omitempty"`
+	SessionType     *PomodoroSessionType `json:"session_type,omitempty"`
+	Status          *PomodoroStatus      `json:"status,omitempty"`
+	StartedAfter    *time.Time           `json:"started_after,omitempty"`
+	StartedBefore   *time.Time           `json:"started_before,omitempty"`
+	CompletedAfter  *time.Time           `json:"completed_after,omitempty"`
+	CompletedBefore *time.Time           `json:"completed_before,omitempty"`
+	MinDuration     *int                 `json:"min_duration,omitempty"`
+	MaxDuration     *int                 `json:"max_duration,omitempty"`
+	Limit           int                  `json:"limit"`
+	Offset          int                  `json:"offset"`
+	SortBy          string               `json:"sort_by"`
+	SortOrder       string               `json:"sort_order"`
 }
 
 // PomodoroStats represents Pomodoro session statistics
 type PomodoroStats struct {
-	UserID               string    `json:"user_id"`
-	TotalSessions        int       `json:"total_sessions"`
-	CompletedSessions    int       `json:"completed_sessions"`
-	CancelledSessions    int       `json:"cancelled_sessions"`
-	TotalWorkTime        int       `json:"total_work_time"`        // in seconds
-	TotalBreakTime       int       `json:"total_break_time"`       // in seconds
-	AverageSessionLength float64   `json:"average_session_length"` // in seconds
-	CompletionRate       float64   `json:"completion_rate"`        // percentage
-	AverageInterruptions float64   `json:"average_interruptions"`
-	TotalInterruptions   int       `json:"total_interruptions"`
-	CurrentStreak        int       `json:"current_streak"`         // consecutive days with sessions
-	LongestStreak        int       `json:"longest_streak"`
-	BestFocusScore       float64   `json:"best_focus_score"`
-	AverageFocusScore    float64   `json:"average_focus_score"`
-	ProductivityScore    float64   `json:"productivity_score"`     // overall score 0-100
+	UserID               string     `json:"user_id"`
+	TotalSessions        int        `json:"total_sessions"`
+	CompletedSessions    int        `json:"completed_sessions"`
+	CancelledSessions    int        `json:"cancelled_sessions"`
+	TotalWorkTime        int        `json:"total_work_time"`        // in seconds
+	TotalBreakTime       int        `json:"total_break_time"`       // in seconds
+	AverageSessionLength float64    `json:"average_session_length"` // in seconds
+	CompletionRate       float64    `json:"completion_rate"`        // percentage
+	AverageInterruptions float64    `json:"average_interruptions"`
+	TotalInterruptions   int        `json:"total_interruptions"`
+	CurrentStreak        int        `json:"current_streak"` // consecutive days with sessions
+	LongestStreak        int        `json:"longest_streak"`
+	BestFocusScore       float64    `json:"best_focus_score"`
+	AverageFocusScore    float64    `json:"average_focus_score"`
+	ProductivityScore    float64    `json:"productivity_score"` // overall score 0-100
 	LastSessionAt        *time.Time `json:"last_session_at,omitempty"`
-	LastUpdated          time.Time `json:"last_updated"`
+	LastUpdated          time.Time  `json:"last_updated"`
 }
 
 // PomodoroPattern represents patterns in Pomodoro usage
 type PomodoroPattern struct {
-	UserID           string `json:"user_id"`
-	BestTimeOfDay    string `json:"best_time_of_day"`    // "morning", "afternoon", "evening"
-	MostProductiveDay string `json:"most_productive_day"` // day of week
-	AverageSessionsPerDay float64 `json:"average_sessions_per_day"`
-	PreferredBreakLength  int     `json:"preferred_break_length"` // in seconds
-	OptimalWorkLength     int     `json:"optimal_work_length"`    // in seconds
-	InterruptionTrends    map[string]int `json:"interruption_trends"` // reason -> count
+	UserID                string         `json:"user_id"`
+	BestTimeOfDay         string         `json:"best_time_of_day"`    // "morning", "afternoon", "evening"
+	MostProductiveDay     string         `json:"most_productive_day"` // day of week
+	AverageSessionsPerDay float64        `json:"average_sessions_per_day"`
+	PreferredBreakLength  int            `json:"preferred_break_length"` // in seconds
+	OptimalWorkLength     int            `json:"optimal_work_length"`    // in seconds
+	InterruptionTrends    map[string]int `json:"interruption_trends"`    // reason -> count
 	SessionDistribution   struct {
 		Morning   int `json:"morning"`   // 6-12
 		Afternoon int `json:"afternoon"` // 12-18

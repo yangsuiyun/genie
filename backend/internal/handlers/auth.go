@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 
-	"backend/internal/services"
-	"backend/internal/models"
+	"pomodoro-backend/internal/models"
+	"pomodoro-backend/internal/services"
 )
 
 // AuthHandler handles authentication-related HTTP requests

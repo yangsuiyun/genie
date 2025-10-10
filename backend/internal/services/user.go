@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"backend/internal/models"
+	"pomodoro-backend/internal/models"
 )
 
 // UserRepository defines the interface for user data access

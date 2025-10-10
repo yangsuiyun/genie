@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/crypto/bcrypt"
 
-	"backend/internal/models"
-	"backend/internal/services"
+	"pomodoro-backend/internal/models"
+	"pomodoro-backend/internal/services"
 )
 
 // MockUserService is a mock implementation of UserService

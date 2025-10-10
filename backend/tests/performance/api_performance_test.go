@@ -15,9 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"backend/internal/handlers"
-	"backend/internal/middleware"
-	"backend/internal/models"
+	"pomodoro-backend/internal/handlers"
+	"pomodoro-backend/internal/middleware"
+	"pomodoro-backend/internal/models"
 	"backend/tests/unit"
 )
 

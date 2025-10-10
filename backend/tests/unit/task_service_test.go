@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"backend/internal/models"
-	"backend/internal/services"
+	"pomodoro-backend/internal/models"
+	"pomodoro-backend/internal/services"
 )
 
 // MockTaskRepository is a mock implementation of TaskRepository
@@ -117,7 +117,7 @@ func (suite *TaskServiceTestSuite) SetupTest() {
 		Title:              "Test Task",
 		Description:        "Test Description",
 		Priority:           models.PriorityMedium,
-		Status:             models.StatusPending,
+		Status:             models.TaskStatusPending,
 		EstimatedPomodoros: 3,
 		CompletedPomodoros: 0,
 		Tags:               []string{"work", "important"},
@@ -146,7 +146,7 @@ func (suite *TaskServiceTestSuite) TestCreate_Success() {
 		Title:              req.Title,
 		Description:        req.Description,
 		Priority:           req.Priority,
-		Status:             models.StatusPending,
+		Status:             models.TaskStatusPending,
 		EstimatedPomodoros: req.EstimatedPomodoros,
 		Tags:               req.Tags,
 		CreatedAt:          time.Now(),
@@ -244,7 +244,7 @@ func (suite *TaskServiceTestSuite) TestCreate_WithParentTask() {
 		UserID:       suite.testUserID,
 		Title:        req.Title,
 		ParentTaskID: &parentTaskID,
-		Status:       models.StatusPending,
+		Status:       models.TaskStatusPending,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
@@ -456,7 +456,7 @@ func (suite *TaskServiceTestSuite) TestUpdate_TaskNotOwned() {
 // Test Complete method
 func (suite *TaskServiceTestSuite) TestComplete_Success() {
 	completedTask := *suite.testTask
-	completedTask.Status = models.StatusCompleted
+	completedTask.Status = models.TaskStatusCompleted
 	completedTask.CompletedAt = time.Now()
 	completedTask.UpdatedAt = time.Now()
 
@@ -470,13 +470,13 @@ func (suite *TaskServiceTestSuite) TestComplete_Success() {
 	// Assert
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), result)
-	assert.Equal(suite.T(), models.StatusCompleted, result.Status)
+	assert.Equal(suite.T(), models.TaskStatusCompleted, result.Status)
 	assert.NotNil(suite.T(), result.CompletedAt)
 }
 
 func (suite *TaskServiceTestSuite) TestComplete_AlreadyCompleted() {
 	completedTask := *suite.testTask
-	completedTask.Status = models.StatusCompleted
+	completedTask.Status = models.TaskStatusCompleted
 	completedAt := time.Now().Add(-1 * time.Hour)
 	completedTask.CompletedAt = completedAt
 
@@ -535,7 +535,7 @@ func (suite *TaskServiceTestSuite) TestDelete_TaskNotOwned() {
 func (suite *TaskServiceTestSuite) TestList_Success() {
 	tasks := []*models.Task{suite.testTask}
 	filter := models.TaskFilter{
-		Status:   models.StatusPending,
+		Status:   models.TaskStatusPending,
 		Priority: models.PriorityMedium,
 		Limit:    10,
 		Offset:   0,

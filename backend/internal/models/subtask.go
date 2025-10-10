@@ -14,14 +14,14 @@ import (
 type SubtaskService struct{}
 
 // CreateSubtask creates a new subtask under a parent task
-func (s *SubtaskService) CreateSubtask(userID, parentTaskID, title, description string) *Task {
-	subtask := NewTask(userID, title, description)
+func (s *SubtaskService) CreateSubtask(userID, parentTaskID uuid.UUID, title, description string) *Task {
+	subtask := NewTask(userID, parentTaskID, title, description)
 	subtask.ParentTaskID = &parentTaskID
 	return subtask
 }
 
 // ValidateSubtaskCreation validates that a subtask can be created under the parent
-func (s *SubtaskService) ValidateSubtaskCreation(parentTask *Task, userID string) error {
+func (s *SubtaskService) ValidateSubtaskCreation(parentTask *Task, userID uuid.UUID) error {
 	// Check if user owns the parent task
 	if parentTask.UserID != userID {
 		return NewValidationError("parent_task", "cannot create subtask under task you don't own")
@@ -153,8 +153,8 @@ type SubtaskSummary struct {
 	CompletedSubtasks int       `json:"completed_subtasks"`
 	PendingSubtasks   int       `json:"pending_subtasks"`
 	DeletedSubtasks   int       `json:"deleted_subtasks"`
-	CompletionRate    float64   `json:"completion_rate"`    // percentage
-	AverageProgress   float64   `json:"average_progress"`   // 0-100
+	CompletionRate    float64   `json:"completion_rate"`  // percentage
+	AverageProgress   float64   `json:"average_progress"` // 0-100
 	LastUpdated       time.Time `json:"last_updated"`
 }
 
@@ -179,19 +179,19 @@ type SubtaskStats struct {
 
 // SubtaskTemplate represents a template for creating subtasks
 type SubtaskTemplate struct {
-	ID               string   `json:"id" db:"id"`
-	UserID           string   `json:"user_id" db:"user_id"`
-	Name             string   `json:"name" db:"name"`
-	Description      string   `json:"description" db:"description"`
+	ID               string `json:"id" db:"id"`
+	UserID           string `json:"user_id" db:"user_id"`
+	Name             string `json:"name" db:"name"`
+	Description      string `json:"description" db:"description"`
 	SubtaskTemplates []struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Priority    TaskPriority `json:"priority"`
-		EstimatedTime *int `json:"estimated_time,omitempty"`
+		Title         string       `json:"title"`
+		Description   string       `json:"description"`
+		Priority      TaskPriority `json:"priority"`
+		EstimatedTime *int         `json:"estimated_time,omitempty"`
 	} `json:"subtask_templates" db:"subtask_templates"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
-	UsageCount int      `json:"usage_count" db:"usage_count"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+	UsageCount int       `json:"usage_count" db:"usage_count"`
 }
 
 // NewSubtaskTemplate creates a new subtask template
@@ -209,7 +209,7 @@ func NewSubtaskTemplate(userID, name, description string) *SubtaskTemplate {
 }
 
 // ApplyTemplate applies a subtask template to create subtasks under a parent task
-func (s *SubtaskService) ApplyTemplate(template *SubtaskTemplate, parentTaskID, userID string) ([]Task, error) {
+func (s *SubtaskService) ApplyTemplate(template *SubtaskTemplate, parentTaskID, userID uuid.UUID) ([]Task, error) {
 	var subtasks []Task
 
 	for _, subtaskTemplate := range template.SubtaskTemplates {
@@ -241,36 +241,36 @@ type SubtaskFilter struct {
 
 // SubtaskProgress represents progress tracking for subtasks
 type SubtaskProgress struct {
-	SubtaskID     string    `json:"subtask_id"`
-	ParentTaskID  string    `json:"parent_task_id"`
-	Progress      float64   `json:"progress"`
+	SubtaskID     string     `json:"subtask_id"`
+	ParentTaskID  string     `json:"parent_task_id"`
+	Progress      float64    `json:"progress"`
 	StartedAt     *time.Time `json:"started_at,omitempty"`
 	CompletedAt   *time.Time `json:"completed_at,omitempty"`
-	EstimatedTime *int      `json:"estimated_time,omitempty"` // in minutes
-	ActualTime    *int      `json:"actual_time,omitempty"`    // in minutes
-	Blockers      []string  `json:"blockers,omitempty"`       // list of blocking issues
-	Notes         string    `json:"notes,omitempty"`
-	LastUpdated   time.Time `json:"last_updated"`
+	EstimatedTime *int       `json:"estimated_time,omitempty"` // in minutes
+	ActualTime    *int       `json:"actual_time,omitempty"`    // in minutes
+	Blockers      []string   `json:"blockers,omitempty"`       // list of blocking issues
+	Notes         string     `json:"notes,omitempty"`
+	LastUpdated   time.Time  `json:"last_updated"`
 }
 
 // SubtaskDependency represents dependencies between subtasks
 type SubtaskDependency struct {
-	ID               string              `json:"id" db:"id"`
-	DependentTaskID  string              `json:"dependent_task_id" db:"dependent_task_id"`   // subtask that depends
-	DependsOnTaskID  string              `json:"depends_on_task_id" db:"depends_on_task_id"` // subtask being depended on
-	DependencyType   SubtaskDependencyType `json:"dependency_type" db:"dependency_type"`
-	CreatedAt        time.Time           `json:"created_at" db:"created_at"`
-	CreatedBy        string              `json:"created_by" db:"created_by"`
+	ID              string                `json:"id" db:"id"`
+	DependentTaskID string                `json:"dependent_task_id" db:"dependent_task_id"`   // subtask that depends
+	DependsOnTaskID string                `json:"depends_on_task_id" db:"depends_on_task_id"` // subtask being depended on
+	DependencyType  SubtaskDependencyType `json:"dependency_type" db:"dependency_type"`
+	CreatedAt       time.Time             `json:"created_at" db:"created_at"`
+	CreatedBy       string                `json:"created_by" db:"created_by"`
 }
 
 // SubtaskDependencyType represents the type of dependency between subtasks
 type SubtaskDependencyType string
 
 const (
-	DependencyFinishToStart SubtaskDependencyType = "finish_to_start" // Must finish before dependent can start
-	DependencyStartToStart  SubtaskDependencyType = "start_to_start"  // Must start before dependent can start
+	DependencyFinishToStart  SubtaskDependencyType = "finish_to_start"  // Must finish before dependent can start
+	DependencyStartToStart   SubtaskDependencyType = "start_to_start"   // Must start before dependent can start
 	DependencyFinishToFinish SubtaskDependencyType = "finish_to_finish" // Must finish before dependent can finish
-	DependencyStartToFinish SubtaskDependencyType = "start_to_finish"  // Must start before dependent can finish
+	DependencyStartToFinish  SubtaskDependencyType = "start_to_finish"  // Must start before dependent can finish
 )
 
 // ValidateDependency validates that a dependency can be created

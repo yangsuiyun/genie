@@ -10,35 +10,35 @@ import (
 
 // Task represents a task in the system
 type Task struct {
-	ID             uuid.UUID           `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID         uuid.UUID           `json:"user_id" gorm:"type:uuid;not null;index"`
-	ProjectID      uuid.UUID           `json:"project_id" gorm:"type:uuid;not null;index"` // Required field
-	Title          string              `json:"title" gorm:"type:varchar(200);not null"`
-	Description    string              `json:"description" gorm:"type:text"`
-	DueDate        *time.Time          `json:"due_date,omitempty"`
-	IsCompleted    bool                `json:"is_completed" gorm:"not null;default:false"`
-	CompletedAt    *time.Time          `json:"completed_at,omitempty"`
-	Priority       TaskPriority        `json:"priority" gorm:"type:varchar(20);not null;default:'medium'"`
-	Tags           []string            `json:"tags" gorm:"type:text[]"`
-	ParentTaskID   *uuid.UUID          `json:"parent_task_id,omitempty" gorm:"type:uuid;index"`
-	EstimatedTime  *int                `json:"estimated_time,omitempty"` // in minutes
-	ActualTime     *int                `json:"actual_time,omitempty"`    // in minutes
-	Progress       float64             `json:"progress" gorm:"not null;default:0"`  // 0-100%
-	RecurrenceRule *RecurrenceRule     `json:"recurrence_rule,omitempty" gorm:"type:jsonb"`
-	CreatedAt      time.Time           `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt      time.Time           `json:"updated_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
-	SyncVersion    int64               `json:"sync_version" gorm:"not null;default:1"`
-	IsDeleted      bool                `json:"is_deleted" gorm:"not null;default:false"`
-	DeletedAt      *time.Time          `json:"deleted_at,omitempty"`
+	ID             uuid.UUID       `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID         uuid.UUID       `json:"user_id" gorm:"type:uuid;not null;index"`
+	ProjectID      uuid.UUID       `json:"project_id" gorm:"type:uuid;not null;index"` // Required field
+	Title          string          `json:"title" gorm:"type:varchar(200);not null"`
+	Description    string          `json:"description" gorm:"type:text"`
+	DueDate        *time.Time      `json:"due_date,omitempty"`
+	IsCompleted    bool            `json:"is_completed" gorm:"not null;default:false"`
+	CompletedAt    *time.Time      `json:"completed_at,omitempty"`
+	Priority       TaskPriority    `json:"priority" gorm:"type:varchar(20);not null;default:'medium'"`
+	Tags           []string        `json:"tags" gorm:"type:text[]"`
+	ParentTaskID   *uuid.UUID      `json:"parent_task_id,omitempty" gorm:"type:uuid;index"`
+	EstimatedTime  *int            `json:"estimated_time,omitempty"`           // in minutes
+	ActualTime     *int            `json:"actual_time,omitempty"`              // in minutes
+	Progress       float64         `json:"progress" gorm:"not null;default:0"` // 0-100%
+	RecurrenceRule *RecurrenceRule `json:"recurrence_rule,omitempty" gorm:"type:jsonb"`
+	CreatedAt      time.Time       `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt      time.Time       `json:"updated_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	SyncVersion    int64           `json:"sync_version" gorm:"not null;default:1"`
+	IsDeleted      bool            `json:"is_deleted" gorm:"not null;default:false"`
+	DeletedAt      *time.Time      `json:"deleted_at,omitempty"`
 
 	// Relationships
-	User         User              `json:"-" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	Project      Project           `json:"project,omitempty" gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
-	ParentTask   *Task             `json:"parent_task,omitempty" gorm:"foreignKey:ParentTaskID;constraint:OnDelete:CASCADE"`
-	Subtasks     []Task            `json:"subtasks,omitempty" gorm:"foreignKey:ParentTaskID"`
-	Notes        []Note            `json:"notes,omitempty" gorm:"foreignKey:TaskID"`
-	Reminders    []Reminder        `json:"reminders,omitempty" gorm:"foreignKey:TaskID"`
-	Sessions     []PomodoroSession `json:"sessions,omitempty" gorm:"foreignKey:TaskID"`
+	User       User              `json:"-" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	Project    Project           `json:"project,omitempty" gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
+	ParentTask *Task             `json:"parent_task,omitempty" gorm:"foreignKey:ParentTaskID;constraint:OnDelete:CASCADE"`
+	Subtasks   []Task            `json:"subtasks,omitempty" gorm:"foreignKey:ParentTaskID"`
+	Notes      []Note            `json:"notes,omitempty" gorm:"foreignKey:TaskID"`
+	Reminders  []Reminder        `json:"reminders,omitempty" gorm:"foreignKey:TaskID"`
+	Sessions   []PomodoroSession `json:"sessions,omitempty" gorm:"foreignKey:TaskID"`
 
 	// Computed fields (not stored in DB)
 	SubtaskCount      int `json:"subtask_count" gorm:"-"`
@@ -47,26 +47,26 @@ type Task struct {
 
 // TaskCreateRequest represents the request to create a new task
 type TaskCreateRequest struct {
-	ProjectID     uuid.UUID `json:"project_id" binding:"required"`
-	Title         string    `json:"title" binding:"required,min=1,max=200"`
-	Description   string    `json:"description" binding:"max=2000"`
-	DueDate       *time.Time `json:"due_date,omitempty"`
+	ProjectID     uuid.UUID     `json:"project_id" binding:"required"`
+	Title         string        `json:"title" binding:"required,min=1,max=200"`
+	Description   string        `json:"description" binding:"max=2000"`
+	DueDate       *time.Time    `json:"due_date,omitempty"`
 	Priority      *TaskPriority `json:"priority,omitempty"`
-	Tags          []string  `json:"tags,omitempty"`
-	ParentTaskID  *uuid.UUID `json:"parent_task_id,omitempty"`
-	EstimatedTime *int      `json:"estimated_time,omitempty" binding:"omitempty,min=1,max=1440"`
+	Tags          []string      `json:"tags,omitempty"`
+	ParentTaskID  *uuid.UUID    `json:"parent_task_id,omitempty"`
+	EstimatedTime *int          `json:"estimated_time,omitempty" binding:"omitempty,min=1,max=1440"`
 }
 
 // TaskUpdateRequest represents the request to update a task
 type TaskUpdateRequest struct {
-	Title         *string     `json:"title" binding:"omitempty,min=1,max=200"`
-	Description   *string     `json:"description" binding:"omitempty,max=2000"`
-	DueDate       *time.Time  `json:"due_date,omitempty"`
+	Title         *string       `json:"title" binding:"omitempty,min=1,max=200"`
+	Description   *string       `json:"description" binding:"omitempty,max=2000"`
+	DueDate       *time.Time    `json:"due_date,omitempty"`
 	Priority      *TaskPriority `json:"priority,omitempty"`
-	Tags          []string    `json:"tags,omitempty"`
-	IsCompleted   *bool       `json:"is_completed,omitempty"`
-	Progress      *float64    `json:"progress,omitempty" binding:"omitempty,min=0,max=100"`
-	EstimatedTime *int        `json:"estimated_time,omitempty" binding:"omitempty,min=1,max=1440"`
+	Tags          []string      `json:"tags,omitempty"`
+	IsCompleted   *bool         `json:"is_completed,omitempty"`
+	Progress      *float64      `json:"progress,omitempty" binding:"omitempty,min=0,max=100"`
+	EstimatedTime *int          `json:"estimated_time,omitempty" binding:"omitempty,min=1,max=1440"`
 }
 
 // BeforeCreate sets the ID if not provided
@@ -96,11 +96,11 @@ const (
 type TaskStatus string
 
 const (
-	StatusNotStarted TaskStatus = "not_started"
-	StatusInProgress TaskStatus = "in_progress"
-	StatusCompleted  TaskStatus = "completed"
-	StatusCancelled  TaskStatus = "cancelled"
-	StatusOnHold     TaskStatus = "on_hold"
+	TaskStatusNotStarted TaskStatus = "not_started"
+	TaskStatusInProgress TaskStatus = "in_progress"
+	TaskStatusCompleted  TaskStatus = "completed"
+	TaskStatusCancelled  TaskStatus = "cancelled"
+	TaskStatusOnHold     TaskStatus = "on_hold"
 )
 
 // NewTask creates a new task
@@ -297,15 +297,15 @@ func (t *Task) DaysUntilDue() *int {
 // GetStatus returns the current status of the task
 func (t *Task) GetStatus() TaskStatus {
 	if t.IsCompleted {
-		return StatusCompleted
+		return TaskStatusCompleted
 	}
 	if t.IsDeleted {
-		return StatusCancelled
+		return TaskStatusCancelled
 	}
 	if t.Progress > 0 {
-		return StatusInProgress
+		return TaskStatusInProgress
 	}
-	return StatusNotStarted
+	return TaskStatusNotStarted
 }
 
 // IsSubtask returns true if this task is a subtask
@@ -384,50 +384,50 @@ func (t *Task) UnmarshalRecurrenceJSON(data []byte) error {
 
 // TaskFilter represents filters for task queries
 type TaskFilter struct {
-	UserID       string        `json:"user_id"`
-	IsCompleted  *bool         `json:"is_completed,omitempty"`
-	Priority     *TaskPriority `json:"priority,omitempty"`
-	Tags         []string      `json:"tags,omitempty"`
-	ParentTaskID *string       `json:"parent_task_id,omitempty"`
-	ProjectID    *string       `json:"project_id,omitempty"`
-	DueBefore    *time.Time    `json:"due_before,omitempty"`
-	DueAfter     *time.Time    `json:"due_after,omitempty"`
-	CreatedAfter *time.Time    `json:"created_after,omitempty"`
-	CreatedBefore *time.Time   `json:"created_before,omitempty"`
-	SearchQuery  string        `json:"search_query,omitempty"`
-	IsDeleted    bool          `json:"is_deleted"`
-	Limit        int           `json:"limit"`
-	Offset       int           `json:"offset"`
-	SortBy       string        `json:"sort_by"`
-	SortOrder    string        `json:"sort_order"`
+	UserID        string        `json:"user_id"`
+	IsCompleted   *bool         `json:"is_completed,omitempty"`
+	Priority      *TaskPriority `json:"priority,omitempty"`
+	Tags          []string      `json:"tags,omitempty"`
+	ParentTaskID  *string       `json:"parent_task_id,omitempty"`
+	ProjectID     *string       `json:"project_id,omitempty"`
+	DueBefore     *time.Time    `json:"due_before,omitempty"`
+	DueAfter      *time.Time    `json:"due_after,omitempty"`
+	CreatedAfter  *time.Time    `json:"created_after,omitempty"`
+	CreatedBefore *time.Time    `json:"created_before,omitempty"`
+	SearchQuery   string        `json:"search_query,omitempty"`
+	IsDeleted     bool          `json:"is_deleted"`
+	Limit         int           `json:"limit"`
+	Offset        int           `json:"offset"`
+	SortBy        string        `json:"sort_by"`
+	SortOrder     string        `json:"sort_order"`
 }
 
 // TaskSummary represents a summary of tasks for a user
 type TaskSummary struct {
-	UserID             string    `json:"user_id"`
-	TotalTasks         int       `json:"total_tasks"`
-	CompletedTasks     int       `json:"completed_tasks"`
-	PendingTasks       int       `json:"pending_tasks"`
-	OverdueTasks       int       `json:"overdue_tasks"`
-	TasksDueToday      int       `json:"tasks_due_today"`
-	TasksDueThisWeek   int       `json:"tasks_due_this_week"`
-	HighPriorityTasks  int       `json:"high_priority_tasks"`
-	UrgentTasks        int       `json:"urgent_tasks"`
-	AverageCompletion  float64   `json:"average_completion_time"` // in days
-	CompletionRate     float64   `json:"completion_rate"`         // percentage
-	LastUpdated        time.Time `json:"last_updated"`
+	UserID            string    `json:"user_id"`
+	TotalTasks        int       `json:"total_tasks"`
+	CompletedTasks    int       `json:"completed_tasks"`
+	PendingTasks      int       `json:"pending_tasks"`
+	OverdueTasks      int       `json:"overdue_tasks"`
+	TasksDueToday     int       `json:"tasks_due_today"`
+	TasksDueThisWeek  int       `json:"tasks_due_this_week"`
+	HighPriorityTasks int       `json:"high_priority_tasks"`
+	UrgentTasks       int       `json:"urgent_tasks"`
+	AverageCompletion float64   `json:"average_completion_time"` // in days
+	CompletionRate    float64   `json:"completion_rate"`         // percentage
+	LastUpdated       time.Time `json:"last_updated"`
 }
 
 // TaskProductivity represents productivity metrics for a specific task
 type TaskProductivity struct {
-	TaskID               string    `json:"task_id"`
-	TaskTitle            string    `json:"task_title"`
-	TotalPomodoros       int       `json:"total_pomodoros"`
-	CompletedPomodoros   int       `json:"completed_pomodoros"`
-	TotalWorkTime        int       `json:"total_work_time"`        // in seconds
-	AverageSessionLength float64   `json:"average_session_length"` // in seconds
-	InterruptionRate     float64   `json:"interruption_rate"`      // percentage
-	FocusScore           float64   `json:"focus_score"`            // 0-100
+	TaskID               string     `json:"task_id"`
+	TaskTitle            string     `json:"task_title"`
+	TotalPomodoros       int        `json:"total_pomodoros"`
+	CompletedPomodoros   int        `json:"completed_pomodoros"`
+	TotalWorkTime        int        `json:"total_work_time"`        // in seconds
+	AverageSessionLength float64    `json:"average_session_length"` // in seconds
+	InterruptionRate     float64    `json:"interruption_rate"`      // percentage
+	FocusScore           float64    `json:"focus_score"`            // 0-100
 	CompletionDate       *time.Time `json:"completion_date,omitempty"`
-	EstimatedVsActual    *float64  `json:"estimated_vs_actual,omitempty"` // ratio
+	EstimatedVsActual    *float64   `json:"estimated_vs_actual,omitempty"` // ratio
 }
