@@ -73,12 +73,144 @@ pomodoro-genie/
 │   │   ├── models/        # 数据模型
 │   │   ├── handlers/      # HTTP处理器
 │   │   ├── services/      # 业务逻辑
-│   │   └── repositories/  # 数据访问层
-│   └── migrations/        # 数据库迁移
+│   │   ├── repositories/  # 数据访问层
+│   │   ├── middleware/    # 中间件
+│   │   └── validators/    # 数据验证
+│   ├── migrations/        # 数据库迁移
+│   └── docs/             # API文档 (Swagger)
 │
 ├── start-all.sh            # 一键启动脚本
 └── README.md               # 项目文档
 ```
+
+## 🔗 核心设计
+
+### 数据模型关系
+
+项目采用三层架构设计，核心数据模型之间的关系如下：
+
+```
+Project (项目)
+    ↓ 1:N (一对多)
+Task (任务)
+    ↓ 1:N (一对多)
+PomodoroSession (番茄钟会话)
+```
+
+#### 1. Project → Task (一对多)
+- 每个任务必须属于一个项目 (`Task.projectId`)
+- 一个项目可以包含多个任务
+- 删除项目时，任务自动移动到 "Inbox" 项目
+- 默认项目 "Inbox" 不可删除
+
+```dart
+class Task {
+  final String projectId;  // 外键：关联到 Project
+  // ...
+}
+```
+
+#### 2. Task → PomodoroSession (一对多)
+- **工作番茄钟**：必须关联到具体任务 (`taskId` 必填)
+- **休息番茄钟**：不关联任务 (`taskId` 可为 null)
+- 完成工作番茄钟后自动增加任务的 `completedPomodoros` 计数
+
+```dart
+class PomodoroSession {
+  final String? taskId;     // 外键：关联到 Task (可选)
+  final TimerType type;     // work, shortBreak, longBreak
+  // ...
+}
+
+class Task {
+  final int plannedPomodoros;    // 计划的番茄钟数量
+  final int completedPomodoros;  // 已完成的番茄钟数量
+  // ...
+}
+```
+
+#### 3. 进度追踪
+任务进度通过番茄钟计数实时追踪：
+- 显示格式：`🍅 2/5` (已完成/计划数量)
+- 进度条：`completedPomodoros / plannedPomodoros * 100%`
+
+### 架构设计
+
+#### 前端架构 (Flutter + Riverpod)
+```
+用户交互 → UI 组件 → Riverpod Provider → DataService → SharedPreferences
+```
+
+**核心状态管理**：
+- `ProjectNotifier` - 项目管理
+- `TaskNotifier` - 任务管理  
+- `TimerNotifier` - 计时器管理
+- `SessionNotifier` - 会话历史
+
+#### 后端架构 (可选)
+```
+Flutter App → REST API → Handlers → Services → Repositories → PostgreSQL
+              ↑
+          JWT 认证 + 中间件
+```
+
+**分层设计**：
+- **Handlers** - HTTP 处理层
+- **Services** - 业务逻辑层
+- **Repositories** - 数据访问层
+- **Models** - 数据模型层
+
+### 数据模型定义
+
+#### Project (项目)
+```dart
+class Project {
+  final String id;           // 唯一标识符
+  final String name;         // 项目名称
+  final String icon;         // 项目图标 (emoji)
+  final String color;        // 项目颜色
+  final DateTime createdAt;  // 创建时间
+}
+```
+
+#### Task (任务)
+```dart
+class Task {
+  final String id;                // 唯一标识符
+  final String title;             // 任务标题
+  final String description;       // 任务描述
+  final bool isCompleted;         // 完成状态
+  final TaskPriority priority;    // 优先级
+  final String projectId;         // 所属项目ID (外键)
+  final int plannedPomodoros;     // 计划番茄钟数量
+  final int completedPomodoros;   // 已完成番茄钟数量
+  final DateTime? dueDate;        // 截止日期
+}
+```
+
+#### PomodoroSession (番茄钟会话)
+```dart
+class PomodoroSession {
+  final String id;              // 唯一标识符
+  final String? taskId;         // 关联任务ID (外键，可选)
+  final TimerType type;         // 计时类型 (work/shortBreak/longBreak)
+  final int duration;           // 计时时长 (秒)
+  final DateTime startTime;     // 开始时间
+  final DateTime? endTime;      // 结束时间
+  final SessionStatus status;   // 会话状态
+}
+```
+
+### 关系约束规则
+
+**强制约束**：
+- ✅ 每个 Task 必须属于一个 Project
+- ✅ 工作类型的 PomodoroSession 必须关联 Task
+- ✅ Project "Inbox" 不能被删除
+
+**级联规则**：
+- 🔄 删除 Project → 任务移动到 Inbox (软级联)
+- 🔄 删除 Task → PomodoroSession 的 `task_id` 设为 NULL (保留历史)
 
 ## 💡 使用说明
 
