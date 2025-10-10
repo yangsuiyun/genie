@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/pomodoro-team/pomodoro-app/backend/tests/manual"
+	"pomodoro-backend/tests/manual"
 )
 
 func main() {
