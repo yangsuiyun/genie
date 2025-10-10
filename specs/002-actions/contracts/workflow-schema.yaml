@@ -1,0 +1,69 @@
+# GitHub Actions Workflow Schema Contract
+# Defines the structure and validation rules for reliable workflows
+
+workflow_template:
+  name: "Required workflow name"
+
+  on:
+    push:
+      branches: [ "master", "main" ]
+    pull_request:
+      branches: [ "master", "main" ]
+    workflow_dispatch: {}
+
+  concurrency:
+    group: "${{ github.workflow }}-${{ github.ref }}"
+    cancel-in-progress: true
+
+  jobs:
+    build:
+      runs-on: "ubuntu-latest | macos-latest | windows-latest"
+      timeout-minutes: 60
+
+      steps:
+        - name: "Descriptive step name"
+          id: "unique_step_id"
+          uses: "action@version"
+          with:
+            required_param: "value"
+          timeout-minutes: 10
+          continue-on-error: false
+
+        - name: "Validate environment"
+          run: |
+            # Pre-flight checks required
+            echo "Validating environment..."
+
+        - name: "Main build step"
+          run: |
+            # Core build logic
+            echo "Building..."
+          timeout-minutes: 30
+
+        - name: "Handle failures"
+          if: failure()
+          run: |
+            # Cleanup and error reporting
+            echo "Build failed, generating diagnostics..."
+
+        - name: "Upload artifacts"
+          if: always()
+          uses: actions/upload-artifact@v4
+          with:
+            name: "descriptive-artifact-name-${{ github.sha }}"
+            path: "build/output/"
+            retention-days: 30
+
+required_features:
+  - timeout_minutes: "All steps and jobs must have timeouts"
+  - error_handling: "failure() conditions must be handled"
+  - artifact_upload: "Build outputs must be preserved"
+  - concurrency_control: "Prevent concurrent runs on same ref"
+  - descriptive_names: "All steps must have clear names"
+
+validation_rules:
+  - "No hardcoded secrets in workflow files"
+  - "All external actions must be pinned to specific versions"
+  - "Timeout values must be reasonable (<60min job, <10min step)"
+  - "continue-on-error only for non-critical steps"
+  - "Artifact names must include commit SHA for uniqueness"

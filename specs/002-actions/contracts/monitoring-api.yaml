@@ -1,0 +1,174 @@
+openapi: 3.0.3
+info:
+  title: GitHub Actions Monitoring API
+  description: Contract for monitoring workflow reliability and performance
+  version: 1.0.0
+
+paths:
+  /workflows/{workflow_name}/status:
+    get:
+      summary: Get current workflow status
+      parameters:
+        - name: workflow_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Workflow status information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowStatus'
+
+  /workflows/{workflow_name}/metrics:
+    get:
+      summary: Get workflow performance metrics
+      parameters:
+        - name: workflow_name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 7
+      responses:
+        '200':
+          description: Performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceMetrics'
+
+  /workflows/{workflow_name}/errors:
+    get:
+      summary: Get recent workflow errors
+      parameters:
+        - name: workflow_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Error reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ErrorReport'
+
+components:
+  schemas:
+    WorkflowStatus:
+      type: object
+      required:
+        - name
+        - status
+        - last_run
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [success, failure, in_progress, cancelled]
+        last_run:
+          $ref: '#/components/schemas/WorkflowRun'
+        success_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+
+    WorkflowRun:
+      type: object
+      required:
+        - id
+        - status
+        - started_at
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, success, failure, cancelled]
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: integer
+          minimum: 0
+        branch:
+          type: string
+        commit_sha:
+          type: string
+
+    PerformanceMetrics:
+      type: object
+      required:
+        - workflow_name
+        - total_runs
+        - success_rate
+      properties:
+        workflow_name:
+          type: string
+        total_runs:
+          type: integer
+          minimum: 0
+        successful_runs:
+          type: integer
+          minimum: 0
+        failed_runs:
+          type: integer
+          minimum: 0
+        success_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        avg_duration_seconds:
+          type: number
+          format: float
+          minimum: 0
+        p95_duration_seconds:
+          type: number
+          format: float
+          minimum: 0
+
+    ErrorReport:
+      type: object
+      required:
+        - id
+        - step_name
+        - error_type
+        - error_message
+      properties:
+        id:
+          type: string
+        step_name:
+          type: string
+        error_type:
+          type: string
+          enum: [network, build, dependency, timeout, configuration]
+        error_message:
+          type: string
+        error_details:
+          type: string
+        suggested_resolution:
+          type: string
+        retry_count:
+          type: integer
+          minimum: 0
+        is_transient:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time

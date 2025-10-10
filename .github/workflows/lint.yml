@@ -1,0 +1,61 @@
+name: 🔍 Workflow Linting
+
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/**'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-workflows:
+    name: 🔍 Lint GitHub Actions Workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup validation tools
+        run: |
+          # Install yamllint
+          pip install yamllint
+
+          # Install actionlint
+          curl -sSL https://github.com/rhymond/actionlint/releases/latest/download/actionlint_1.6.26_linux_amd64.tar.gz | tar xz
+          sudo mv actionlint /usr/local/bin/
+
+      - name: 🔍 Lint YAML files
+        run: |
+          echo "Linting YAML files..."
+          yamllint .github/workflows/
+
+      - name: 🔍 Lint GitHub Actions workflows
+        run: |
+          echo "Linting GitHub Actions workflows..."
+          actionlint
+
+      - name: 🔍 Validate shell scripts
+        run: |
+          echo "Validating shell scripts..."
+          find scripts/ -name "*.sh" -type f | while read -r script; do
+            echo "Checking $script"
+            bash -n "$script"
+          done
+
+      - name: 📊 Linting Summary
+        run: |
+          echo "## 🔍 Workflow Linting Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **YAML Linting**: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Actions Linting**: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Shell Script Validation**: Passed" >> $GITHUB_STEP_SUMMARY
