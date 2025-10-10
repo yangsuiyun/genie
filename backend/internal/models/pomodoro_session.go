@@ -53,6 +53,16 @@ const (
 	SessionTypeLongBreak  PomodoroSessionType = "long_break"
 )
 
+// IsValid checks if the session type is valid
+func (pst PomodoroSessionType) IsValid() bool {
+	switch pst {
+	case SessionTypeWork, SessionTypeShortBreak, SessionTypeLongBreak:
+		return true
+	default:
+		return false
+	}
+}
+
 // PomodoroStatus represents the current status of a Pomodoro session
 type PomodoroStatus string
 

@@ -31,14 +31,14 @@ type ReportService struct {
 
 // ReportRequest represents a request for generating a report
 type ReportRequest struct {
-	UserID      uuid.UUID        `json:"user_id"`
-	ReportType  ReportType       `json:"report_type" validate:"required,oneof=daily weekly monthly quarterly yearly custom"`
-	StartDate   *time.Time       `json:"start_date,omitempty"`
-	EndDate     *time.Time       `json:"end_date,omitempty"`
-	IncludeTasks bool            `json:"include_tasks"`
-	IncludeTrends bool           `json:"include_trends"`
-	Format      ReportFormat     `json:"format" validate:"oneof=json csv pdf xlsx"`
-	Timezone    string           `json:"timezone,omitempty"`
+	UserID        uuid.UUID    `json:"user_id"`
+	ReportType    ReportType   `json:"report_type" validate:"required,oneof=daily weekly monthly quarterly yearly custom"`
+	StartDate     *time.Time   `json:"start_date,omitempty"`
+	EndDate       *time.Time   `json:"end_date,omitempty"`
+	IncludeTasks  bool         `json:"include_tasks"`
+	IncludeTrends bool         `json:"include_trends"`
+	Format        ReportFormat `json:"format" validate:"oneof=json csv pdf xlsx"`
+	Timezone      string       `json:"timezone,omitempty"`
 }
 
 // ReportType represents different types of reports
@@ -65,54 +65,54 @@ const (
 
 // ProductivityReport represents a comprehensive productivity report
 type ProductivityReport struct {
-	UserID               uuid.UUID                `json:"user_id"`
-	ReportType           ReportType               `json:"report_type"`
-	StartDate            time.Time                `json:"start_date"`
-	EndDate              time.Time                `json:"end_date"`
-	GeneratedAt          time.Time                `json:"generated_at"`
+	UserID      uuid.UUID  `json:"user_id"`
+	ReportType  ReportType `json:"report_type"`
+	StartDate   time.Time  `json:"start_date"`
+	EndDate     time.Time  `json:"end_date"`
+	GeneratedAt time.Time  `json:"generated_at"`
 
 	// Session Statistics
-	TotalSessions        int                      `json:"total_sessions"`
-	CompletedSessions    int                      `json:"completed_sessions"`
-	InterruptedSessions  int                      `json:"interrupted_sessions"`
-	TotalFocusTime       int                      `json:"total_focus_time"`       // seconds
-	TotalBreakTime       int                      `json:"total_break_time"`       // seconds
-	AverageSessionLength float64                  `json:"average_session_length"` // seconds
-	CompletionRate       float64                  `json:"completion_rate"`        // percentage
-	InterruptionRate     float64                  `json:"interruption_rate"`      // percentage
+	TotalSessions        int     `json:"total_sessions"`
+	CompletedSessions    int     `json:"completed_sessions"`
+	InterruptedSessions  int     `json:"interrupted_sessions"`
+	TotalFocusTime       int     `json:"total_focus_time"`       // seconds
+	TotalBreakTime       int     `json:"total_break_time"`       // seconds
+	AverageSessionLength float64 `json:"average_session_length"` // seconds
+	CompletionRate       float64 `json:"completion_rate"`        // percentage
+	InterruptionRate     float64 `json:"interruption_rate"`      // percentage
 
 	// Task Statistics
-	TasksCreated         int                      `json:"tasks_created"`
-	TasksCompleted       int                      `json:"tasks_completed"`
-	TasksOverdue         int                      `json:"tasks_overdue"`
-	TaskCompletionRate   float64                  `json:"task_completion_rate"`   // percentage
-	AverageTaskDuration  float64                  `json:"average_task_duration"`  // days
+	TasksCreated        int     `json:"tasks_created"`
+	TasksCompleted      int     `json:"tasks_completed"`
+	TasksOverdue        int     `json:"tasks_overdue"`
+	TaskCompletionRate  float64 `json:"task_completion_rate"`  // percentage
+	AverageTaskDuration float64 `json:"average_task_duration"` // days
 
 	// Productivity Metrics
-	ProductivityScore    float64                  `json:"productivity_score"`     // 0-100
-	FocusScore           float64                  `json:"focus_score"`            // 0-100
-	EfficiencyScore      float64                  `json:"efficiency_score"`       // 0-100
-	GoalAchievementRate  float64                  `json:"goal_achievement_rate"`  // percentage
+	ProductivityScore   float64 `json:"productivity_score"`    // 0-100
+	FocusScore          float64 `json:"focus_score"`           // 0-100
+	EfficiencyScore     float64 `json:"efficiency_score"`      // 0-100
+	GoalAchievementRate float64 `json:"goal_achievement_rate"` // percentage
 
 	// Time Distribution
-	WorkSessionTime      int                      `json:"work_session_time"`      // seconds
-	ShortBreakTime       int                      `json:"short_break_time"`       // seconds
-	LongBreakTime        int                      `json:"long_break_time"`        // seconds
+	WorkSessionTime int `json:"work_session_time"` // seconds
+	ShortBreakTime  int `json:"short_break_time"`  // seconds
+	LongBreakTime   int `json:"long_break_time"`   // seconds
 
 	// Patterns and Trends
-	PeakProductivityHours []int                   `json:"peak_productivity_hours"` // hours of day
-	ProductivityTrends   []*ProductivityDataPoint `json:"productivity_trends,omitempty"`
-	TaskBreakdown        []*TaskProductivityData  `json:"task_breakdown,omitempty"`
-	FocusPatterns        *FocusPatternData        `json:"focus_patterns,omitempty"`
+	PeakProductivityHours []int                    `json:"peak_productivity_hours"` // hours of day
+	ProductivityTrends    []*ProductivityDataPoint `json:"productivity_trends,omitempty"`
+	TaskBreakdown         []*TaskProductivityData  `json:"task_breakdown,omitempty"`
+	FocusPatterns         *FocusPatternData        `json:"focus_patterns,omitempty"`
 
 	// Goals and Streaks
-	DailyGoalsMet        int                      `json:"daily_goals_met"`
-	WeeklyGoalsMet       int                      `json:"weekly_goals_met"`
-	CurrentStreak        int                      `json:"current_streak"`
-	LongestStreak        int                      `json:"longest_streak"`
+	DailyGoalsMet  int `json:"daily_goals_met"`
+	WeeklyGoalsMet int `json:"weekly_goals_met"`
+	CurrentStreak  int `json:"current_streak"`
+	LongestStreak  int `json:"longest_streak"`
 
 	// Comparisons
-	PreviousPeriodComparison *PeriodComparison    `json:"previous_period_comparison,omitempty"`
+	PreviousPeriodComparison *PeriodComparison `json:"previous_period_comparison,omitempty"`
 }
 
 // SessionStatsData represents session statistics from the database
@@ -128,9 +128,9 @@ type SessionStatsData struct {
 
 // TaskStatsData represents task statistics from the database
 type TaskStatsData struct {
-	TasksCreated     int     `json:"tasks_created"`
-	TasksCompleted   int     `json:"tasks_completed"`
-	TasksOverdue     int     `json:"tasks_overdue"`
+	TasksCreated      int     `json:"tasks_created"`
+	TasksCompleted    int     `json:"tasks_completed"`
+	TasksOverdue      int     `json:"tasks_overdue"`
 	AverageCompletion float64 `json:"average_completion"` // days
 }
 
@@ -146,31 +146,31 @@ type ProductivityDataPoint struct {
 
 // TaskProductivityData represents productivity data for a specific task
 type TaskProductivityData struct {
-	TaskID              uuid.UUID `json:"task_id"`
-	TaskTitle           string    `json:"task_title"`
-	SessionsCompleted   int       `json:"sessions_completed"`
-	TotalFocusTime      int       `json:"total_focus_time"`
-	AverageSessionTime  float64   `json:"average_session_time"`
-	InterruptionRate    float64   `json:"interruption_rate"`
-	CompletionDate      *time.Time `json:"completion_date,omitempty"`
-	EstimatedVsActual   *float64  `json:"estimated_vs_actual,omitempty"`
+	TaskID             uuid.UUID  `json:"task_id"`
+	TaskTitle          string     `json:"task_title"`
+	SessionsCompleted  int        `json:"sessions_completed"`
+	TotalFocusTime     int        `json:"total_focus_time"`
+	AverageSessionTime float64    `json:"average_session_time"`
+	InterruptionRate   float64    `json:"interruption_rate"`
+	CompletionDate     *time.Time `json:"completion_date,omitempty"`
+	EstimatedVsActual  *float64   `json:"estimated_vs_actual,omitempty"`
 }
 
 // FocusPatternData represents focus patterns analysis
 type FocusPatternData struct {
-	PeakHours             []int                 `json:"peak_hours"`
-	ProductivityByHour    map[int]float64       `json:"productivity_by_hour"`
-	ProductivityByDayOfWeek map[string]float64  `json:"productivity_by_day_of_week"`
-	BestFocusTimeOfDay    string               `json:"best_focus_time_of_day"`
-	AverageSessionsByHour map[int]int          `json:"average_sessions_by_hour"`
+	PeakHours               []int              `json:"peak_hours"`
+	ProductivityByHour      map[int]float64    `json:"productivity_by_hour"`
+	ProductivityByDayOfWeek map[string]float64 `json:"productivity_by_day_of_week"`
+	BestFocusTimeOfDay      string             `json:"best_focus_time_of_day"`
+	AverageSessionsByHour   map[int]int        `json:"average_sessions_by_hour"`
 }
 
 // PeriodComparison represents comparison with previous period
 type PeriodComparison struct {
-	SessionsChange         float64 `json:"sessions_change"`         // percentage
-	FocusTimeChange        float64 `json:"focus_time_change"`       // percentage
-	ProductivityChange     float64 `json:"productivity_change"`     // percentage
-	TaskCompletionChange   float64 `json:"task_completion_change"`  // percentage
+	SessionsChange         float64 `json:"sessions_change"`          // percentage
+	FocusTimeChange        float64 `json:"focus_time_change"`        // percentage
+	ProductivityChange     float64 `json:"productivity_change"`      // percentage
+	TaskCompletionChange   float64 `json:"task_completion_change"`   // percentage
 	InterruptionRateChange float64 `json:"interruption_rate_change"` // percentage
 }
 
@@ -294,7 +294,7 @@ func (s *ReportService) GetDashboardStats(userID uuid.UUID) (map[string]interfac
 	if weekday == 0 { // Sunday
 		weekday = 7
 	}
-	startOfWeek := now.AddDate(0, 0, -(weekday-1))
+	startOfWeek := now.AddDate(0, 0, -(weekday - 1))
 	startOfWeek = time.Date(startOfWeek.Year(), startOfWeek.Month(), startOfWeek.Day(), 0, 0, 0, 0, startOfWeek.Location())
 	weekStats, err := s.repo.GetUserSessionStats(userID, startOfWeek, now)
 	if err != nil {
@@ -314,13 +314,13 @@ func (s *ReportService) GetDashboardStats(userID uuid.UUID) (map[string]interfac
 	return map[string]interface{}{
 		"today": map[string]interface{}{
 			"sessions_completed": todayStats.CompletedSessions,
-			"focus_time":        todayStats.TotalWorkTime,
-			"goal_progress":     float64(todayStats.CompletedSessions) / float64(dailyGoal) * 100,
+			"focus_time":         todayStats.TotalWorkTime,
+			"goal_progress":      float64(todayStats.CompletedSessions) / float64(dailyGoal) * 100,
 		},
 		"week": map[string]interface{}{
 			"sessions_completed": weekStats.CompletedSessions,
-			"focus_time":        weekStats.TotalWorkTime,
-			"goal_progress":     float64(weekStats.CompletedSessions) / float64(weeklyGoal) * 100,
+			"focus_time":         weekStats.TotalWorkTime,
+			"goal_progress":      float64(weekStats.CompletedSessions) / float64(weeklyGoal) * 100,
 		},
 		"goals": map[string]interface{}{
 			"daily":  dailyGoal,
@@ -374,7 +374,7 @@ func (s *ReportService) calculateDateRange(req ReportRequest) (time.Time, time.T
 		if weekday == 0 { // Sunday
 			weekday = 7
 		}
-		start := now.AddDate(0, 0, -(weekday-1))
+		start := now.AddDate(0, 0, -(weekday - 1))
 		start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
 		end := start.Add(7 * 24 * time.Hour)
 		return start, end, nil
@@ -521,15 +521,15 @@ func (s *ReportService) calculatePreviousPeriodComparison(report *ProductivityRe
 // storeReport stores the generated report for caching
 func (s *ReportService) storeReport(report *ProductivityReport) {
 	reportModel := &models.Report{
-		ID:               uuid.New(),
-		UserID:           report.UserID,
-		PeriodStart:      report.StartDate,
-		PeriodEnd:        report.EndDate,
-		ReportType:       string(report.ReportType),
-		SessionsCompleted: report.CompletedSessions,
-		TasksCompleted:   report.TasksCompleted,
-		TotalFocusTime:   report.TotalFocusTime,
-		GeneratedAt:      report.GeneratedAt,
+		ID:          uuid.New().String(),
+		UserID:      report.UserID.String(),
+		StartDate:   report.StartDate,
+		EndDate:     report.EndDate,
+		ReportType:  models.ReportType(report.ReportType),
+		Title:       "Productivity Report",
+		Description: fmt.Sprintf("Report for period %s to %s", report.StartDate.Format("2006-01-02"), report.EndDate.Format("2006-01-02")),
+		GeneratedAt: report.GeneratedAt,
+		Status:      models.ReportTaskStatusCompleted,
 		// Convert metrics to JSON and store
 	}
 
@@ -544,14 +544,14 @@ func (s *ReportService) convertStoredReport(stored *models.Report) *Productivity
 	// Convert stored report back to ProductivityReport
 	// This is a simplified conversion - in practice, you'd unmarshal the metrics JSON
 	return &ProductivityReport{
-		UserID:            stored.UserID,
+		UserID:            uuid.MustParse(stored.UserID),
 		ReportType:        ReportType(stored.ReportType),
-		StartDate:         stored.PeriodStart,
-		EndDate:           stored.PeriodEnd,
+		StartDate:         stored.StartDate,
+		EndDate:           stored.EndDate,
 		GeneratedAt:       stored.GeneratedAt,
-		CompletedSessions: stored.SessionsCompleted,
-		TasksCompleted:    stored.TasksCompleted,
-		TotalFocusTime:    stored.TotalFocusTime,
+		CompletedSessions: 0, // Would need to parse from Metrics JSON
+		TasksCompleted:    0, // Would need to parse from Metrics JSON
+		TotalFocusTime:    0, // Would need to parse from Metrics JSON
 	}
 }
 

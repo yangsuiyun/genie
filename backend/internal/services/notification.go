@@ -26,25 +26,25 @@ type NotificationRepository interface {
 
 // NotificationService handles push notifications and reminders
 type NotificationService struct {
-	repo         NotificationRepository
-	fcmClient    *messaging.Client
-	scheduler    NotificationScheduler
-	userService  *UserService
+	repo        NotificationRepository
+	fcmClient   *messaging.Client
+	scheduler   NotificationScheduler
+	userService *UserService
 }
 
 // StoredNotification represents a notification stored in the database
 type StoredNotification struct {
-	ID          uuid.UUID            `json:"id"`
-	UserID      uuid.UUID            `json:"user_id"`
-	Type        NotificationType     `json:"type"`
-	Title       string               `json:"title"`
-	Body        string               `json:"body"`
-	Data        map[string]string    `json:"data"`
-	IsRead      bool                 `json:"is_read"`
-	CreatedAt   time.Time            `json:"created_at"`
-	ReadAt      *time.Time           `json:"read_at,omitempty"`
-	Platform    string               `json:"platform"` // "fcm", "apns", "web"
-	Status      NotificationStatus   `json:"status"`
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	Type      NotificationType   `json:"type"`
+	Title     string             `json:"title"`
+	Body      string             `json:"body"`
+	Data      map[string]string  `json:"data"`
+	IsRead    bool               `json:"is_read"`
+	CreatedAt time.Time          `json:"created_at"`
+	ReadAt    *time.Time         `json:"read_at,omitempty"`
+	Platform  string             `json:"platform"` // "fcm", "apns", "web"
+	Status    NotificationStatus `json:"status"`
 }
 
 // ScheduledNotification represents a notification scheduled for future delivery
@@ -65,26 +65,26 @@ type ScheduledNotification struct {
 type NotificationType string
 
 const (
-	NotificationTypeTaskReminder      NotificationType = "task_reminder"
-	NotificationTypeTaskDue           NotificationType = "task_due"
-	NotificationTypeTaskCompleted     NotificationType = "task_completed"
-	NotificationTypeSessionComplete   NotificationType = "session_complete"
-	NotificationTypeBreakReminder     NotificationType = "break_reminder"
-	NotificationTypeSessionStart      NotificationType = "session_start"
-	NotificationTypeDailyGoal         NotificationType = "daily_goal"
-	NotificationTypeWeeklyReport      NotificationType = "weekly_report"
-	NotificationTypeStreakReminder    NotificationType = "streak_reminder"
+	NotificationTypeTaskReminder    NotificationType = "task_reminder"
+	NotificationTypeTaskDue         NotificationType = "task_due"
+	NotificationTypeTaskCompleted   NotificationType = "task_completed"
+	NotificationTypeSessionComplete NotificationType = "session_complete"
+	NotificationTypeBreakReminder   NotificationType = "break_reminder"
+	NotificationTypeSessionStart    NotificationType = "session_start"
+	NotificationTypeDailyGoal       NotificationType = "daily_goal"
+	NotificationTypeWeeklyReport    NotificationType = "weekly_report"
+	NotificationTypeStreakReminder  NotificationType = "streak_reminder"
 )
 
 // NotificationStatus represents the delivery status
 type NotificationStatus string
 
 const (
-	NotificationTaskStatusPending   NotificationStatus = "pending"
-	NotificationStatusSent      NotificationStatus = "sent"
-	NotificationStatusDelivered NotificationStatus = "delivered"
-	NotificationStatusFailed    NotificationStatus = "failed"
-	NotificationStatusRead      NotificationStatus = "read"
+	NotificationTaskStatusPending NotificationStatus = "pending"
+	NotificationStatusSent        NotificationStatus = "sent"
+	NotificationStatusDelivered   NotificationStatus = "delivered"
+	NotificationStatusFailed      NotificationStatus = "failed"
+	NotificationStatusRead        NotificationStatus = "read"
 )
 
 // NotificationRequest represents a notification to be sent
@@ -229,12 +229,12 @@ func (s *NotificationService) ScheduleNotification(userID uuid.UUID, scheduledFo
 // SendTaskReminderNotification sends a task reminder notification
 func (s *NotificationService) SendTaskReminderNotification(userID uuid.UUID, task *models.Task, reminderTime time.Time) error {
 	req := NotificationRequest{
-		UserID:   userID,
-		Type:     NotificationTypeTaskReminder,
-		Title:    "Task Reminder",
-		Body:     fmt.Sprintf("Don't forget: %s", task.Title),
+		UserID: userID,
+		Type:   NotificationTypeTaskReminder,
+		Title:  "Task Reminder",
+		Body:   fmt.Sprintf("Don't forget: %s", task.Title),
 		Data: map[string]string{
-			"task_id":      task.ID.String(),
+			"task_id":       task.ID.String(),
 			"reminder_time": reminderTime.Format(time.RFC3339),
 		},
 		Priority: "normal",
@@ -246,12 +246,12 @@ func (s *NotificationService) SendTaskReminderNotification(userID uuid.UUID, tas
 // SendTaskDueNotification sends a task due notification
 func (s *NotificationService) SendTaskDueNotification(userID uuid.UUID, task *models.Task) error {
 	req := NotificationRequest{
-		UserID:   userID,
-		Type:     NotificationTypeTaskDue,
-		Title:    "Task Due",
-		Body:     fmt.Sprintf("Task is due: %s", task.Title),
+		UserID: userID,
+		Type:   NotificationTypeTaskDue,
+		Title:  "Task Due",
+		Body:   fmt.Sprintf("Task is due: %s", task.Title),
 		Data: map[string]string{
-			"task_id": task.ID.String(),
+			"task_id":  task.ID.String(),
 			"due_date": task.DueDate.Format(time.RFC3339),
 		},
 		Priority: "high",
@@ -263,10 +263,10 @@ func (s *NotificationService) SendTaskDueNotification(userID uuid.UUID, task *mo
 // SendTaskCompletionNotification sends a task completion notification
 func (s *NotificationService) SendTaskCompletionNotification(userID uuid.UUID, task *models.Task) error {
 	req := NotificationRequest{
-		UserID:   userID,
-		Type:     NotificationTypeTaskCompleted,
-		Title:    "Task Completed! 🎉",
-		Body:     fmt.Sprintf("Great job completing: %s", task.Title),
+		UserID: userID,
+		Type:   NotificationTypeTaskCompleted,
+		Title:  "Task Completed! 🎉",
+		Body:   fmt.Sprintf("Great job completing: %s", task.Title),
 		Data: map[string]string{
 			"task_id":      task.ID.String(),
 			"completed_at": task.CompletedAt.Format(time.RFC3339),
@@ -294,15 +294,15 @@ func (s *NotificationService) SendSessionCompletionNotification(userID uuid.UUID
 	}
 
 	req := NotificationRequest{
-		UserID:   userID,
-		Type:     NotificationTypeSessionComplete,
-		Title:    title,
-		Body:     body,
+		UserID: userID,
+		Type:   NotificationTypeSessionComplete,
+		Title:  title,
+		Body:   body,
 		Data: map[string]string{
 			"session_id":   session.ID.String(),
 			"task_id":      session.TaskID.String(),
 			"session_type": string(session.SessionType),
-			"completed_at": session.EndedAt.Format(time.RFC3339),
+			"completed_at": session.CompletedAt.Format(time.RFC3339),
 		},
 		Sound:    "pomodoro_complete",
 		Priority: "high",
@@ -314,10 +314,10 @@ func (s *NotificationService) SendSessionCompletionNotification(userID uuid.UUID
 // ScheduleSessionCompletion schedules a notification for when a session completes
 func (s *NotificationService) ScheduleSessionCompletion(userID, sessionID uuid.UUID, completionTime time.Time) error {
 	req := NotificationRequest{
-		UserID:   userID,
-		Type:     NotificationTypeSessionComplete,
-		Title:    "Session Complete! 🍅",
-		Body:     "Your Pomodoro session has finished.",
+		UserID: userID,
+		Type:   NotificationTypeSessionComplete,
+		Title:  "Session Complete! 🍅",
+		Body:   "Your Pomodoro session has finished.",
 		Data: map[string]string{
 			"session_id": sessionID.String(),
 		},
@@ -342,13 +342,13 @@ func (s *NotificationService) SendDailyGoalNotification(userID uuid.UUID, sessio
 	}
 
 	req := NotificationRequest{
-		UserID:   userID,
-		Type:     NotificationTypeDailyGoal,
-		Title:    title,
-		Body:     body,
+		UserID: userID,
+		Type:   NotificationTypeDailyGoal,
+		Title:  title,
+		Body:   body,
 		Data: map[string]string{
 			"sessions_completed": fmt.Sprintf("%d", sessionsCompleted),
-			"daily_goal":        fmt.Sprintf("%d", dailyGoal),
+			"daily_goal":         fmt.Sprintf("%d", dailyGoal),
 		},
 		Priority: "normal",
 	}
@@ -458,10 +458,10 @@ func (s *NotificationService) sendFCMNotification(req NotificationRequest, devic
 	message.Android = &messaging.AndroidConfig{
 		Priority: "high",
 		Notification: &messaging.AndroidNotification{
-			Sound:           req.Sound,
-			ChannelID:       string(req.Type),
-			Priority:        messaging.PriorityHigh,
-			DefaultSound:    req.Sound == "",
+			Sound:             req.Sound,
+			ChannelID:         string(req.Type),
+			Priority:          messaging.PriorityHigh,
+			DefaultSound:      req.Sound == "",
 			NotificationCount: getNotificationCount(req.UserID),
 		},
 	}
@@ -503,17 +503,17 @@ func (s *NotificationService) getUserDeviceTokens(userID uuid.UUID) ([]string, e
 
 // isNotificationEnabled checks if a notification type is enabled for the user
 func (s *NotificationService) isNotificationEnabled(user *models.User, notificationType NotificationType) bool {
-	prefs := user.Preferences.Notifications
+	prefs := user.Preferences
 
 	switch notificationType {
 	case NotificationTypeTaskReminder, NotificationTypeTaskDue:
-		return prefs.TaskReminders
+		return prefs.ReminderNotifications
 	case NotificationTypeSessionComplete:
-		return prefs.SessionCompleted
+		return prefs.NotificationsEnabled
 	case NotificationTypeBreakReminder:
-		return prefs.BreakReminders
+		return prefs.ReminderNotifications
 	default:
-		return prefs.PushEnabled
+		return prefs.NotificationsEnabled
 	}
 }
 

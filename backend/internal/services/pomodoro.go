@@ -24,40 +24,40 @@ type PomodoroRepository interface {
 
 // PomodoroService handles Pomodoro session business logic
 type PomodoroService struct {
-	repo               PomodoroRepository
-	taskService        *TaskService
+	repo                PomodoroRepository
+	taskService         TaskService
 	notificationService *NotificationService
-	userService        *UserService
+	userService         *UserService
 }
 
 // PomodoroFilter represents filters for session queries
 type PomodoroFilter struct {
-	TaskID      *uuid.UUID                 `json:"task_id,omitempty"`
+	TaskID      *uuid.UUID                  `json:"task_id,omitempty"`
 	SessionType *models.PomodoroSessionType `json:"session_type,omitempty"`
-	Status      *models.PomodoroStatus       `json:"status,omitempty"`
-	StartDate   *time.Time                 `json:"start_date,omitempty"`
-	EndDate     *time.Time                 `json:"end_date,omitempty"`
-	Limit       int                        `json:"limit"`
-	Offset      int                        `json:"offset"`
-	SortBy      string                     `json:"sort_by"`
-	SortOrder   string                     `json:"sort_order"`
+	Status      *models.PomodoroStatus      `json:"status,omitempty"`
+	StartDate   *time.Time                  `json:"start_date,omitempty"`
+	EndDate     *time.Time                  `json:"end_date,omitempty"`
+	Limit       int                         `json:"limit"`
+	Offset      int                         `json:"offset"`
+	SortBy      string                      `json:"sort_by"`
+	SortOrder   string                      `json:"sort_order"`
 }
 
 // StartSessionRequest represents a request to start a Pomodoro session
 type StartSessionRequest struct {
-	TaskID          uuid.UUID                   `json:"task_id" validate:"required"`
-	SessionType     models.PomodoroSessionType  `json:"session_type" validate:"required,oneof=work short_break long_break"`
-	PlannedDuration int                         `json:"planned_duration" validate:"required,min=60,max=7200"` // 1 min to 2 hours
-	CustomMessage   string                      `json:"custom_message,omitempty"`
+	TaskID          uuid.UUID                  `json:"task_id" validate:"required"`
+	SessionType     models.PomodoroSessionType `json:"session_type" validate:"required,oneof=work short_break long_break"`
+	PlannedDuration int                        `json:"planned_duration" validate:"required,min=60,max=7200"` // 1 min to 2 hours
+	CustomMessage   string                     `json:"custom_message,omitempty"`
 }
 
 // UpdateSessionRequest represents a request to update a session
 type UpdateSessionRequest struct {
 	Status             *models.PomodoroStatus `json:"status,omitempty" validate:"omitempty,oneof=active paused completed interrupted"`
-	ActualDuration     *int                  `json:"actual_duration,omitempty" validate:"omitempty,min=0"`
-	InterruptionCount  *int                  `json:"interruption_count,omitempty" validate:"omitempty,min=0"`
-	InterruptionReason *string               `json:"interruption_reason,omitempty"`
-	Notes              *string               `json:"notes,omitempty" validate:"omitempty,max=1000"`
+	ActualDuration     *int                   `json:"actual_duration,omitempty" validate:"omitempty,min=0"`
+	InterruptionCount  *int                   `json:"interruption_count,omitempty" validate:"omitempty,min=0"`
+	InterruptionReason *string                `json:"interruption_reason,omitempty"`
+	Notes              *string                `json:"notes,omitempty" validate:"omitempty,max=1000"`
 }
 
 // PomodoroStats represents statistics for Pomodoro sessions
@@ -83,16 +83,16 @@ type StreakData struct {
 
 // SessionTimerInfo represents real-time session information
 type SessionTimerInfo struct {
-	SessionID       uuid.UUID                   `json:"session_id"`
-	TaskID          uuid.UUID                   `json:"task_id"`
-	SessionType     models.PomodoroSessionType  `json:"session_type"`
-	Status          models.PomodoroStatus        `json:"status"`
-	PlannedDuration int                         `json:"planned_duration"`
-	ElapsedTime     int                         `json:"elapsed_time"`
-	RemainingTime   int                         `json:"remaining_time"`
-	StartedAt       time.Time                   `json:"started_at"`
-	PausedAt        *time.Time                  `json:"paused_at,omitempty"`
-	EstimatedEndAt  time.Time                   `json:"estimated_end_at"`
+	SessionID       uuid.UUID                  `json:"session_id"`
+	TaskID          uuid.UUID                  `json:"task_id"`
+	SessionType     models.PomodoroSessionType `json:"session_type"`
+	Status          models.PomodoroStatus      `json:"status"`
+	PlannedDuration int                        `json:"planned_duration"`
+	ElapsedTime     int                        `json:"elapsed_time"`
+	RemainingTime   int                        `json:"remaining_time"`
+	StartedAt       time.Time                  `json:"started_at"`
+	PausedAt        *time.Time                 `json:"paused_at,omitempty"`
+	EstimatedEndAt  time.Time                  `json:"estimated_end_at"`
 }
 
 // NewPomodoroService creates a new Pomodoro service
@@ -103,7 +103,7 @@ func NewPomodoroService(repo PomodoroRepository) *PomodoroService {
 }
 
 // SetDependencies sets dependent services
-func (s *PomodoroService) SetDependencies(taskService *TaskService, notificationService *NotificationService, userService *UserService) {
+func (s *PomodoroService) SetDependencies(taskService TaskService, notificationService *NotificationService, userService *UserService) {
 	s.taskService = taskService
 	s.notificationService = notificationService
 	s.userService = userService
@@ -113,7 +113,7 @@ func (s *PomodoroService) SetDependencies(taskService *TaskService, notification
 func (s *PomodoroService) StartSession(userID uuid.UUID, req StartSessionRequest) (*models.PomodoroSession, error) {
 	// Validate task exists and belongs to user
 	if s.taskService != nil {
-		task, err := s.taskService.GetByID(userID, req.TaskID)
+		task, err := s.taskService.GetTask(req.TaskID, userID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid task: %w", err)
 		}
@@ -146,7 +146,7 @@ func (s *PomodoroService) StartSession(userID uuid.UUID, req StartSessionRequest
 	session := &models.PomodoroSession{
 		ID:              uuid.New(),
 		UserID:          userID,
-		TaskID:          req.TaskID,
+		TaskID:          &req.TaskID,
 		SessionType:     req.SessionType,
 		Status:          models.PomodoroStatusActive,
 		PlannedDuration: req.PlannedDuration,
@@ -209,7 +209,7 @@ func (s *PomodoroService) UpdateSession(userID, sessionID uuid.UUID, req UpdateS
 	// Apply updates based on status change
 	if req.Status != nil {
 		switch *req.Status {
-		case models.SessionTaskStatusCompleted:
+		case models.PomodoroStatusCompleted:
 			err = s.completeSession(session, req)
 			if err != nil {
 				return nil, err
@@ -231,7 +231,7 @@ func (s *PomodoroService) UpdateSession(userID, sessionID uuid.UUID, req UpdateS
 			session.Status = models.PomodoroStatusActive
 			session.PausedAt = nil
 
-		case models.PomodoroStatusInterrupted:
+		case models.PomodoroStatusCancelled:
 			err = s.interruptSession(session, req)
 			if err != nil {
 				return nil, err
@@ -293,13 +293,16 @@ func (s *PomodoroService) GetSessionTimer(userID, sessionID uuid.UUID) (*Session
 	if session.Status == models.PomodoroStatusActive {
 		elapsedTime = now.Sub(session.StartedAt)
 		// Subtract any paused time if there was a pause
-		if session.PausedDuration != nil {
-			elapsedTime -= *session.PausedDuration
+		if session.PausedAt != nil && session.ResumedAt != nil {
+			pauseDuration := session.ResumedAt.Sub(*session.PausedAt)
+			elapsedTime -= pauseDuration
 		}
 	} else if session.Status == models.PomodoroStatusPaused && session.PausedAt != nil {
 		elapsedTime = session.PausedAt.Sub(session.StartedAt)
-		if session.PausedDuration != nil {
-			elapsedTime -= *session.PausedDuration
+		// Subtract any previous paused time
+		if session.PausedAt != nil && session.ResumedAt != nil {
+			pauseDuration := session.ResumedAt.Sub(*session.PausedAt)
+			elapsedTime -= pauseDuration
 		}
 	}
 
@@ -310,13 +313,14 @@ func (s *PomodoroService) GetSessionTimer(userID, sessionID uuid.UUID) (*Session
 	}
 
 	estimatedEndAt := session.StartedAt.Add(plannedDuration)
-	if session.PausedDuration != nil {
-		estimatedEndAt = estimatedEndAt.Add(*session.PausedDuration)
+	if session.PausedAt != nil && session.ResumedAt != nil {
+		pauseDuration := session.ResumedAt.Sub(*session.PausedAt)
+		estimatedEndAt = estimatedEndAt.Add(pauseDuration)
 	}
 
 	return &SessionTimerInfo{
 		SessionID:       session.ID,
-		TaskID:          session.TaskID,
+		TaskID:          *session.TaskID,
 		SessionType:     session.SessionType,
 		Status:          session.Status,
 		PlannedDuration: session.PlannedDuration,
@@ -356,7 +360,7 @@ func (s *PomodoroService) ListSessions(userID uuid.UUID, filter PomodoroFilter) 
 func (s *PomodoroService) GetSessionsByTask(userID, taskID uuid.UUID) ([]*models.PomodoroSession, error) {
 	// Verify task ownership
 	if s.taskService != nil {
-		_, err := s.taskService.GetByID(userID, taskID)
+		_, err := s.taskService.GetTask(taskID, userID)
 		if err != nil {
 			return nil, err
 		}
@@ -397,10 +401,10 @@ func (s *PomodoroService) SuggestNextSession(userID uuid.UUID) (models.PomodoroS
 	if s.userService != nil {
 		user, err := s.userService.GetByID(userID.String())
 		if err == nil {
-			workDuration = user.Preferences.Pomodoro.WorkDuration
-			shortBreakDuration = user.Preferences.Pomodoro.ShortBreakDuration
-			longBreakDuration = user.Preferences.Pomodoro.LongBreakDuration
-			longBreakInterval = user.Preferences.Pomodoro.LongBreakInterval
+			workDuration = user.Preferences.WorkDuration
+			shortBreakDuration = user.Preferences.ShortBreakDuration
+			longBreakDuration = user.Preferences.LongBreakDuration
+			longBreakInterval = user.Preferences.SessionsUntilLongBreak
 		}
 	}
 
@@ -421,7 +425,7 @@ func (s *PomodoroService) SuggestNextSession(userID uuid.UUID) (models.PomodoroS
 	// Get recent completed work sessions to determine pattern
 	filter := PomodoroFilter{
 		SessionType: &[]models.PomodoroSessionType{models.SessionTypeWork}[0],
-		Status:      &[]models.PomodoroStatus{models.SessionTaskStatusCompleted}[0],
+		Status:      &[]models.PomodoroStatus{models.PomodoroStatusCompleted}[0],
 		Limit:       longBreakInterval,
 		SortBy:      "started_at",
 		SortOrder:   "desc",
@@ -463,8 +467,8 @@ func (s *PomodoroService) SuggestNextSession(userID uuid.UUID) (models.PomodoroS
 // completeSession handles session completion logic
 func (s *PomodoroService) completeSession(session *models.PomodoroSession, req UpdateSessionRequest) error {
 	now := time.Now()
-	session.Status = models.SessionTaskStatusCompleted
-	session.EndedAt = &now
+	session.Status = models.PomodoroStatusCompleted
+	session.CompletedAt = &now
 
 	// Set actual duration
 	if req.ActualDuration != nil {
@@ -472,22 +476,28 @@ func (s *PomodoroService) completeSession(session *models.PomodoroSession, req U
 	} else {
 		// Calculate from start time
 		elapsed := now.Sub(session.StartedAt)
-		if session.PausedDuration != nil {
-			elapsed -= *session.PausedDuration
+		if session.PausedAt != nil && session.ResumedAt != nil {
+			pauseDuration := session.ResumedAt.Sub(*session.PausedAt)
+			elapsed -= pauseDuration
 		}
 		actualDuration := int(elapsed.Seconds())
 		session.ActualDuration = &actualDuration
 	}
 
-	// Update task's actual Pomodoros count if this was a work session
-	if session.SessionType == models.SessionTypeWork && s.taskService != nil {
-		task, err := s.taskService.GetByID(session.UserID, session.TaskID)
+	// Update task's completed Pomodoros count if this was a work session
+	if session.SessionType == models.SessionTypeWork && s.taskService != nil && session.TaskID != nil {
+		task, err := s.taskService.GetTask(*session.TaskID, session.UserID)
 		if err == nil {
-			task.ActualPomodoros++
-			task.UpdateSyncVersion("pomodoro-completion")
-			_, updateErr := s.taskService.repo.Update(task)
+			// Update task progress to reflect completed pomodoro
+			newProgress := task.Progress + 25.0 // Assuming each pomodoro represents 25% progress
+			if newProgress > 100.0 {
+				newProgress = 100.0
+			}
+			_, updateErr := s.taskService.UpdateTask(task.ID, session.UserID, &models.TaskUpdateRequest{
+				Progress: &newProgress,
+			})
 			if updateErr != nil {
-				fmt.Printf("Warning: failed to update task Pomodoro count: %v\n", updateErr)
+				fmt.Printf("Warning: failed to update task progress: %v\n", updateErr)
 			}
 		}
 	}
@@ -506,13 +516,14 @@ func (s *PomodoroService) completeSession(session *models.PomodoroSession, req U
 // interruptSession handles session interruption logic
 func (s *PomodoroService) interruptSession(session *models.PomodoroSession, req UpdateSessionRequest) error {
 	now := time.Now()
-	session.Status = models.PomodoroStatusInterrupted
-	session.EndedAt = &now
+	session.Status = models.PomodoroStatusCancelled
+	session.CancelledAt = &now
 
 	// Calculate actual duration up to interruption
 	elapsed := now.Sub(session.StartedAt)
-	if session.PausedDuration != nil {
-		elapsed -= *session.PausedDuration
+	if session.PausedAt != nil && session.ResumedAt != nil {
+		pauseDuration := session.ResumedAt.Sub(*session.PausedAt)
+		elapsed -= pauseDuration
 	}
 	actualDuration := int(elapsed.Seconds())
 	session.ActualDuration = &actualDuration
@@ -530,16 +541,16 @@ func (s *PomodoroService) isValidStateTransition(from, to models.PomodoroStatus)
 	validTransitions := map[models.PomodoroStatus][]models.PomodoroStatus{
 		models.PomodoroStatusActive: {
 			models.PomodoroStatusPaused,
-			models.SessionTaskStatusCompleted,
-			models.PomodoroStatusInterrupted,
+			models.PomodoroStatusCompleted,
+			models.PomodoroStatusCancelled,
 		},
 		models.PomodoroStatusPaused: {
 			models.PomodoroStatusActive,
-			models.SessionTaskStatusCompleted,
-			models.PomodoroStatusInterrupted,
+			models.PomodoroStatusCompleted,
+			models.PomodoroStatusCancelled,
 		},
-		models.SessionTaskStatusCompleted:  {}, // Terminal state
-		models.PomodoroStatusInterrupted: {}, // Terminal state
+		models.PomodoroStatusCompleted: {}, // Terminal state
+		models.PomodoroStatusCancelled: {}, // Terminal state
 	}
 
 	allowedStates, exists := validTransitions[from]
