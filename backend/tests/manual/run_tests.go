@@ -13,12 +13,12 @@ import (
 
 func main() {
 	var (
-		baseURL     = flag.String("url", "http://localhost:3000/v1", "Backend API base URL")
-		skipSetup   = flag.Bool("skip-setup", false, "Skip test environment setup")
-		scenarios   = flag.String("scenarios", "all", "Scenarios to run (all, 1, 2, 3, 4, 5)")
-		timeout     = flag.Duration("timeout", 30*time.Minute, "Test execution timeout")
-		verbose     = flag.Bool("verbose", false, "Enable verbose output")
-		reportFile  = flag.String("report", "", "Save test report to file")
+		baseURL    = flag.String("url", "http://localhost:3000/v1", "Backend API base URL")
+		skipSetup  = flag.Bool("skip-setup", false, "Skip test environment setup")
+		scenarios  = flag.String("scenarios", "all", "Scenarios to run (all, 1, 2, 3, 4, 5)")
+		timeout    = flag.Duration("timeout", 30*time.Minute, "Test execution timeout")
+		verbose    = flag.Bool("verbose", false, "Enable verbose output")
+		reportFile = flag.String("report", "", "Save test report to file")
 	)
 	flag.Parse()
 
