@@ -2,6 +2,24 @@
 
 一个基于番茄工作法的任务与时间管理应用，支持Web、移动端和桌面平台。
 
+## 📚 文档导航
+
+### 🎯 快速入口
+- **[📖 文档索引](docs/INDEX.md)** - 完整的文档索引和快速查找
+- **[📖 文档总览](docs/overview/DOCUMENTATION.md)** - 文档导航和分类
+
+### 🏗️ 核心文档
+- **[🏗️ 架构说明](ARCHITECTURE.md)** - 技术架构和设计模式
+- **[🌐 平台指南](PLATFORM_GUIDE.md)** - 跨平台使用说明
+- **[🤖 开发配置](CLAUDE.md)** - Claude开发指南和命令速查
+
+### 📖 详细指南
+- **[💻 开发指南](docs/development/DEVELOPMENT_GUIDE.md)** - 技术栈、项目结构、开发流程
+- **[🚀 部署指南](docs/deployment/DEPLOYMENT_GUIDE.md)** - 通用部署指南
+  - [Docker部署](docs/deployment/DOCKER_DEPLOYMENT_GUIDE.md) - 容器化部署详解
+  - [macOS部署](docs/deployment/MACBOOK_DEPLOYMENT_GUIDE.md) - macOS生产环境部署
+- **[📡 API文档](docs/api/API_DOCUMENTATION.md)** - 完整的API接口文档
+
 ## ✨ 功能特性
 
 ### 🍅 番茄计时器 ✅ 完全实现
@@ -44,26 +62,25 @@
 - **Flutter应用** - 完整的移动端应用（1927行代码）
 - **独立Web版本** - 2072行自包含HTML/CSS/JS应用
 
-## 🏗️ 技术架构
+## 🚀 快速开始
 
-### 前端
-- **Flutter** - 跨平台移动应用开发
-- **Dart** - 主要编程语言
-- **Riverpod** - 状态管理
-- **Hive** - 本地数据存储
+### 一键启动（推荐）
+```bash
+# 一键启动完整的Pomodoro Genie服务
+bash start-pomodoro.sh
+```
 
-### 后端
-- **Go** - 高性能API服务
-- **Gin** - Web框架
-- **PostgreSQL** - 主数据库
-- **Redis** - 缓存服务
+这将自动启动：
+- Go API服务器（端口8081）
+- Flutter Web应用（端口3001）
+- 自动检测本机IP，支持跨设备访问
 
-### 部署
-- **Docker** - 容器化部署
-- **Nginx** - 反向代理和静态文件服务
-- **Let's Encrypt** - SSL证书
+### 访问应用
+- **本地访问**: http://localhost:3001
+- **网络访问**: http://[你的IP]:3001
+- **API接口**: http://[你的IP]:8081
 
-## 📊 项目完成度
+## 📊 项目状态
 
 ### ✅ 已完成功能 (85%)
 - **前端应用**: Flutter完整实现 + 独立Web应用
@@ -83,176 +100,55 @@
 - **移动应用构建**: Android/iOS应用构建
 - **高级功能**: 重复任务、任务标签
 
-## 🚀 快速开始
+## 🏗️ 技术栈
 
-### 一键启动（推荐）
+### 前端
+- **Flutter 3.24.3** - 跨平台移动应用开发
+- **Dart 3.5+** - 主要编程语言
+- **Riverpod** - 状态管理
+- **Hive** - 本地数据存储
 
-```bash
-# 一键启动完整的Pomodoro Genie服务
-bash start-pomodoro.sh
-```
+### 后端
+- **Go 1.21+** - 高性能API服务
+- **Gin** - Web框架
+- **PostgreSQL 15** - 主数据库
+- **Redis 7** - 缓存服务
 
-这将自动启动：
-- Go API服务器（端口8081）
-- Flutter Web应用（端口3001）
-- 自动检测本机IP，支持跨设备访问
-
-### 手动开发环境
-
-1. **启动后端服务**
-```bash
-# 启动数据库和缓存
-docker-compose up -d
-
-# 启动Go API服务
-cd backend
-go run main.go
-```
-
-2. **启动Flutter应用**
-```bash
-cd mobile
-flutter pub get
-flutter run -d web-server --web-port 3001 --web-hostname 0.0.0.0
-```
-
-### 访问应用
-
-- **本地访问**: http://localhost:3001
-- **网络访问**: http://[你的IP]:3001
-- **API接口**: http://[你的IP]:8081
-
-### 生产部署
-
-1. **配置环境变量**
-```bash
-cp .env.production .env
-# 编辑.env文件，设置数据库密码、JWT密钥等
-```
-
-2. **设置SSL证书**
-```bash
-bash ssl-setup.sh your-domain.com
-```
-
-3. **一键部署**
-```bash
-bash deploy-production.sh
-```
+### 部署
+- **Docker** - 容器化部署
+- **Nginx** - 反向代理和静态文件服务
+- **Let's Encrypt** - SSL证书
 
 ## 📁 项目结构
 
 ```
 pomodoro-genie/
+├── docs/                    # 📚 整理后的文档
+│   ├── overview/            # 文档总览
+│   ├── development/         # 开发指南
+│   ├── deployment/          # 部署指南
+│   └── api/                 # API文档
 ├── backend/                 # Go后端API
-│   ├── main.go             # API入口文件
-│   ├── go.mod              # Go依赖管理
-│   └── docs/               # API文档
-├── mobile/                 # Flutter应用
-│   ├── lib/                # Dart源代码
-│   │   ├── main.dart       # 应用入口和核心逻辑
-│   │   └── settings.dart   # 全面设置系统
-│   ├── web/                # Web部署文件
-│   ├── pubspec.yaml        # Flutter依赖
-│   └── test/               # 测试文件
-├── docker-compose.yml      # 开发环境容器配置
-├── docker-compose.production.yml  # 生产环境配置
-├── nginx.production.conf   # Nginx生产配置
-├── Dockerfile.api          # API服务镜像
-├── start-pomodoro.sh       # 一键启动脚本（推荐）
-├── stop-pomodoro.sh        # 停止服务脚本
-├── build-production.sh     # 生产构建脚本
-├── deploy-production.sh    # 部署脚本
-├── ssl-setup.sh           # SSL配置脚本
-├── PLATFORM_GUIDE.md      # 跨平台使用指南
-├── ARCHITECTURE.md        # 架构设计文档
-└── README.md              # 项目说明
+├── mobile/                  # Flutter应用
+├── docker-compose.yml       # 开发环境配置
+├── start-pomodoro.sh        # 一键启动脚本
+└── README.md                # 项目说明
 ```
 
-## 📱 应用界面
+## 🔧 开发命令
 
-### 🍅 番茄计时器页面
-- **动态圆形进度条** - 实时显示倒计时进度
-- **时间显示** - 大字体MM:SS格式显示
-- **智能按钮** - 开始/暂停/重置功能，动态状态提示
-- **主题适配** - 按钮和界面颜色随设置主题变化
-- **状态指示** - 专注中/准备工作的动态提示信息
-
-### ⚙️ 全功能设置页面
-- **时间设置** - 滚轮选择器，工作/休息时长1-60分钟可调
-- **主题选择** - 5种精美颜色主题，实时预览效果
-- **自动化控制** - 自动开始休息/番茄钟的智能切换
-- **通知管理** - 推送通知和声音提醒的独立开关
-- **高级设置** - 长休息间隔可配置（2-8个番茄钟）
-- **用户指南** - 内置番茄工作法完整教程
-- **应用信息** - 版本信息、意见反馈、重置功能
-
-### 📋 任务管理页面
-- **任务卡片** - 现代化Material Design卡片布局
-- **优先级标签** - 彩色标签标识高/中/低优先级
-- **完成状态** - 复选框交互，划线显示已完成任务
-- **详细描述** - 任务标题和详细描述双层信息
-
-### 📊 统计报告页面
-- **数据卡片** - 美观的统计卡片，图标+数值展示
-- **实时数据** - 今日完成番茄钟数、专注时间、任务完成数
-- **效率评分** - 基于表现的智能评分系统
-- **彩色图标** - 不同类型数据用不同颜色区分
-
-## 🔧 开发工具
-
-### 构建命令
 ```bash
-# 构建Flutter Web版本
-cd mobile && flutter build web --release
+# 快速启动
+bash start-pomodoro.sh
 
-# 构建Go API
-cd backend && go build -o pomodoro-api main.go
+# 停止服务
+bash stop-pomodoro.sh
 
-# 构建Docker镜像
-docker-compose -f docker-compose.production.yml build
+# 开发环境
+docker-compose up -d
+cd backend && go run main.go
+cd mobile && flutter run -d web-server --web-port 3001 --web-hostname 0.0.0.0
 ```
-
-### 测试命令
-```bash
-# Flutter测试
-cd mobile && flutter test
-
-# Go测试
-cd backend && go test ./...
-
-# E2E测试
-cd mobile/test/e2e && bash run_tests.sh
-```
-
-## 🌐 API接口
-
-基础URL: `http://localhost:8081/v1`
-
-### 主要端点
-- `GET /health` - 健康检查
-- `GET /v1/tasks/` - 获取任务列表
-- `POST /v1/tasks/` - 创建任务
-- `POST /v1/pomodoro/sessions/` - 开始番茄钟会话
-- `GET /v1/reports/analytics` - 获取分析数据
-
-完整API文档: [backend/docs/swagger.yaml](backend/docs/swagger.yaml)
-
-## 🔐 安全特性
-
-- JWT身份认证
-- HTTPS强制加密
-- CORS跨域保护
-- XSS/CSRF防护
-- API限流保护
-- 数据库查询参数化
-
-## 📊 监控指标
-
-生产环境提供以下监控端点：
-- `/health` - 应用健康状态
-- `/metrics` - Prometheus指标
-- Prometheus监控: `http://localhost:9090`
 
 ## 🤝 贡献指南
 
@@ -265,13 +161,6 @@ cd mobile/test/e2e && bash run_tests.sh
 ## 📄 许可证
 
 本项目采用MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情
-
-## 🙏 致谢
-
-- [Flutter](https://flutter.dev/) - 跨平台UI框架
-- [Go](https://golang.org/) - 高效的后端开发语言
-- [PostgreSQL](https://www.postgresql.org/) - 强大的关系型数据库
-- [Docker](https://www.docker.com/) - 容器化平台
 
 ---
 
