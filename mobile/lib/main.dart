@@ -4,6 +4,42 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// 辅助工具类
+class TimerUtils {
+  static Color getTimerTypeColor(TimerType type) {
+    switch (type) {
+      case TimerType.work:
+        return Colors.red;
+      case TimerType.shortBreak:
+        return Colors.green;
+      case TimerType.longBreak:
+        return Colors.blue;
+    }
+  }
+
+  static IconData getTimerTypeIcon(TimerType type) {
+    switch (type) {
+      case TimerType.work:
+        return Icons.work;
+      case TimerType.shortBreak:
+        return Icons.coffee;
+      case TimerType.longBreak:
+        return Icons.hotel;
+    }
+  }
+
+  static String getTimerTypeText(TimerType type) {
+    switch (type) {
+      case TimerType.work:
+        return '工作时间';
+      case TimerType.shortBreak:
+        return '短休息';
+      case TimerType.longBreak:
+        return '长休息';
+    }
+  }
+}
+
 void main() {
   runApp(const ProviderScope(child: PomodoroGenieApp()));
 }
@@ -385,7 +421,7 @@ class TaskNotifier extends StateNotifier<List<Task>> {
 
 // Timer provider
 final timerProvider = StateNotifierProvider<TimerNotifier, TimerState>((ref) {
-  return TimerNotifier();
+  return TimerNotifier(ref);
 });
 
 class TimerState {
@@ -416,18 +452,124 @@ class TimerState {
   }
 }
 
+// 设置状态管理
+class SettingsNotifier extends StateNotifier<Map<String, int>> {
+  SettingsNotifier() : super({
+    'workDuration': 25, // 工作时间（分钟）
+    'shortBreakDuration': 5, // 短休息时间（分钟）
+    'longBreakDuration': 15, // 长休息时间（分钟）
+    'longBreakInterval': 4, // 长休息间隔（工作周期数）
+  });
+
+  void updateSetting(String key, int value) {
+    state = {...state, key: value};
+  }
+
+  int get workDuration => state['workDuration']!;
+  int get shortBreakDuration => state['shortBreakDuration']!;
+  int get longBreakDuration => state['longBreakDuration']!;
+  int get longBreakInterval => state['longBreakInterval']!;
+}
+
+final settingsProvider = StateNotifierProvider<SettingsNotifier, Map<String, int>>((ref) {
+  return SettingsNotifier();
+});
+
 class TimerNotifier extends StateNotifier<TimerState> {
   Timer? _timer;
+  final Ref _ref;
 
-  TimerNotifier() : super(TimerState(seconds: 0, isRunning: false, type: TimerType.work));
+  TimerNotifier(this._ref) : super(TimerState(
+    seconds: _getInitialDuration(_ref), 
+    isRunning: false, 
+    type: TimerType.work
+  ));
+
+  static int _getInitialDuration(Ref ref) {
+    final settings = ref.read(settingsProvider);
+    return settings['workDuration']! * 60;
+  }
+
+  int _getDurationForType(TimerType type) {
+    final settings = _ref.read(settingsProvider);
+    switch (type) {
+      case TimerType.work:
+        return settings['workDuration']! * 60;
+      case TimerType.shortBreak:
+        return settings['shortBreakDuration']! * 60;
+      case TimerType.longBreak:
+        return settings['longBreakDuration']! * 60;
+    }
+  }
 
   void startTimer({String? taskId}) {
     if (state.isRunning) return;
     
     state = state.copyWith(isRunning: true, currentTaskId: taskId);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      state = state.copyWith(seconds: state.seconds + 1);
+      if (state.seconds > 0) {
+        state = state.copyWith(seconds: state.seconds - 1);
+      } else {
+        _onTimerComplete();
+      }
     });
+  }
+
+  void setCurrentTask(String? taskId) {
+    state = state.copyWith(currentTaskId: taskId);
+  }
+
+  void _checkTimerComplete() {
+    final targetDuration = _getDurationForType(state.type);
+    if (state.seconds >= targetDuration) {
+      _onTimerComplete();
+    }
+  }
+
+  Future<void> _onTimerComplete() async {
+    // 停止计时器
+    _timer?.cancel();
+    state = state.copyWith(isRunning: false);
+    
+    // 创建会话记录
+    final session = PomodoroSession(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      taskId: state.currentTaskId,
+      type: state.type,
+      duration: _getDurationForType(state.type), // 使用完整时长
+      startTime: DateTime.now().subtract(Duration(seconds: _getDurationForType(state.type))),
+      endTime: DateTime.now(),
+      status: SessionStatus.completed,
+    );
+    
+    // 保存会话（这里需要访问 ref，暂时注释）
+    // await ref.read(sessionsProvider.notifier).addSession(session);
+    
+    // 如果是工作会话，增加任务计数（这里需要访问 ref，暂时注释）
+    // if (state.type == TimerType.work && state.currentTaskId != null) {
+    //   await ref.read(tasksProvider.notifier)
+    //       .incrementPomodoroCount(state.currentTaskId!);
+    // }
+    
+    // 自动切换到下一个类型
+    _autoSwitchToNextType();
+  }
+
+  void _autoSwitchToNextType() {
+    TimerType nextType;
+    switch (state.type) {
+      case TimerType.work:
+        nextType = TimerType.shortBreak;
+        break;
+      case TimerType.shortBreak:
+        nextType = TimerType.longBreak;
+        break;
+      case TimerType.longBreak:
+        nextType = TimerType.work;
+        break;
+    }
+    
+    setTimerType(nextType);
   }
 
   void pauseTimer() {
@@ -438,27 +580,27 @@ class TimerNotifier extends StateNotifier<TimerState> {
   }
 
   void resetTimer() {
-    state = state.copyWith(seconds: 0, isRunning: false);
+    final duration = _getDurationForType(state.type);
+    state = state.copyWith(seconds: duration, isRunning: false);
     _timer?.cancel();
   }
 
   void setTimerType(TimerType type) {
     final duration = _getDurationForType(type);
-    state = state.copyWith(type: type, seconds: duration);
-  }
-
-  int _getDurationForType(TimerType type) {
-    switch (type) {
-      case TimerType.work:
-        return 25 * 60; // 25 minutes
-      case TimerType.shortBreak:
-        return 5 * 60; // 5 minutes
-      case TimerType.longBreak:
-        return 15 * 60; // 15 minutes
-    }
+    state = state.copyWith(
+      type: type, 
+      seconds: duration,
+      isRunning: false,
+    );
+    _timer?.cancel();
   }
 
   @override
+  void updateTimerFromSettings() {
+    final currentDuration = _getDurationForType(state.type);
+    state = state.copyWith(seconds: currentDuration);
+  }
+
   void dispose() {
     _timer?.cancel();
     super.dispose();
@@ -512,8 +654,9 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // 0: 任务, 1: 统计, 2: 设置
   String _selectedProjectId = 'inbox';
+  bool _isTimerVisible = false; // 控制计时器显示
   
   void switchToTimerTab() {
     setState(() {
@@ -538,148 +681,261 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         title: Text(_getAppBarTitle(currentProject.name)),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          if (_selectedIndex == 1)
+          if (_selectedIndex == 0) ...[
             IconButton(
               icon: const Icon(Icons.add),
               onPressed: () => _showAddTaskDialog(context, ref),
             ),
-          if (_selectedIndex == 0)
             IconButton(
               icon: const Icon(Icons.folder),
               onPressed: () => _showProjectSelector(context, ref),
             ),
+          ],
         ],
       ),
       body: Row(
         children: [
-          // Sidebar
+          // 侧边栏 - 项目管理
           Container(
             width: 200,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               border: Border(
                 right: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
                 ),
               ),
             ),
             child: Column(
               children: [
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'Projects',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                // 项目标题和新建按钮
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.folder_outlined, size: 20, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '项目',
+                          style: TextStyle(
+                            fontSize: 16, 
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _showAddProjectDialog(context, ref),
+                        icon: const Icon(Icons.add, size: 18),
+                        tooltip: '新建项目',
+                        style: IconButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          foregroundColor: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                // 项目列表
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: projects.length,
+                  child: ReorderableListView.builder(
+                    buildDefaultDragHandles: false,
+                    itemCount: projects.where((p) => p.id != 'inbox').length,
+                    onReorder: (oldIndex, newIndex) {
+                      final visibleProjects = projects.where((p) => p.id != 'inbox').toList();
+                      if (newIndex > oldIndex) newIndex--;
+                      final project = visibleProjects.removeAt(oldIndex);
+                      visibleProjects.insert(newIndex, project);
+                      // TODO: 保存新的顺序到数据库
+                    },
                     itemBuilder: (context, index) {
-                      final project = projects[index];
+                      final visibleProjects = projects.where((p) => p.id != 'inbox').toList();
+                      final project = visibleProjects[index];
                       final isSelected = project.id == _selectedProjectId;
                       final projectTasks = tasks.where((t) => t.projectId == project.id).length;
+                      final completedTasks = tasks.where((t) => t.projectId == project.id && t.isCompleted).length;
                       
-                      return ListTile(
-                        leading: Text(project.icon, style: const TextStyle(fontSize: 20)),
-                        title: Text(project.name),
-                        subtitle: Text('$projectTasks tasks'),
-                        selected: isSelected,
-                        trailing: project.id != 'inbox' ? PopupMenuButton<String>(
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              _showEditProjectDialog(context, ref, project);
-                            } else if (value == 'delete') {
-                              _showDeleteProjectDialog(context, ref, project);
-                            }
+                      return ReorderableDragStartListener(
+                        key: ValueKey(project.id),
+                        index: index,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: ListTile(
+                          dense: true,
+                          leading: Text(project.icon, style: const TextStyle(fontSize: 18)),
+                          title: Text(
+                            project.name,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '$completedTasks/$projectTasks',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                          trailing: project.id != 'inbox' ? PopupMenuButton<String>(
+                            icon: Icon(Icons.more_vert, size: 16),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _showEditProjectDialog(context, ref, project);
+                              } else if (value == 'delete') {
+                                _showDeleteProjectDialog(context, ref, project);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('编辑'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('删除'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ) : null,
+                          onTap: () {
+                            setState(() {
+                              _selectedProjectId = project.id;
+                              _selectedIndex = 0; // 切换到任务页面
+                            });
                           },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit),
-                                  SizedBox(width: 8),
-                                  Text('编辑'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete),
-                                  SizedBox(width: 8),
-                                  Text('删除'),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ) : null,
-                        onTap: () {
-                          setState(() {
-                            _selectedProjectId = project.id;
-                          });
-                        },
+                        ),
+                        ),
                       );
                     },
                   ),
                 ),
-                // Add Project Button
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showAddProjectDialog(context, ref),
-                      icon: const Icon(Icons.add),
-                      label: const Text('添加项目'),
-                    ),
+                // 导航按钮
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Column(
+                    children: [
+                      _buildNavButton(
+                        context,
+                        Icons.analytics,
+                        '统计',
+                        1,
+                        _selectedIndex == 1,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildNavButton(
+                        context,
+                        Icons.settings,
+                        '设置',
+                        2,
+                        _selectedIndex == 2,
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
-          // Main content
+          // 主内容区
           Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
+            child: Stack(
               children: [
-                TimerScreen(selectedProjectId: _selectedProjectId),
-                TasksScreen(
-                  selectedProjectId: _selectedProjectId,
-                  onStartPomodoro: switchToTimerTab,
+                // 主要内容
+                IndexedStack(
+                  index: _selectedIndex,
+                  children: [
+                    TasksScreen(
+                      selectedProjectId: _selectedProjectId,
+                      onStartPomodoro: () => setState(() => _isTimerVisible = true),
+                    ),
+                    StatisticsScreen(selectedProjectId: _selectedProjectId),
+                    SettingsScreen(),
+                  ],
                 ),
-                SettingsScreen(),
+                // 计时器覆盖层
+                if (_isTimerVisible)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.8),
+                      child: Center(
+                        child: Container(
+                          width: 400,
+                          height: 500,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              // 计时器标题栏
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primaryContainer,
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '番茄钟计时器',
+                                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () => setState(() => _isTimerVisible = false),
+                                      icon: const Icon(Icons.close),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // 计时器内容
+                              Expanded(
+                                child: TimerScreen(selectedProjectId: _selectedProjectId),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
         ],
       ),
-      // Bottom mini player (only show when timer is running)
-      bottomSheet: timerState.isRunning ? _buildMiniPlayer(context, ref, timerState) : null,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.timer),
-            label: '计时器',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.task),
-            label: '任务',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: '设置',
-          ),
-        ],
-      ),
+      // Bottom mini player (only show when timer is running and fullscreen timer is not visible)
+      bottomSheet: timerState.isRunning && !_isTimerVisible ? _buildMiniPlayer(context, ref, timerState, () {
+        setState(() {
+          _isTimerVisible = true;
+        });
+      }) : null,
     );
   }
 
@@ -950,9 +1206,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   String _getAppBarTitle(String projectName) {
     switch (_selectedIndex) {
       case 0:
-        return '计时器 - $projectName';
+        return projectName; // 直接显示项目名称
       case 1:
-        return '任务 - $projectName';
+        return '统计 - $projectName';
       case 2:
         return '设置';
       default:
@@ -960,7 +1216,54 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     }
   }
 
-  Widget _buildMiniPlayer(BuildContext context, WidgetRef ref, TimerState timerState) {
+  String _getTimerTypeText(TimerType type) {
+    switch (type) {
+      case TimerType.work:
+        return '工作时间';
+      case TimerType.shortBreak:
+        return '短休息';
+      case TimerType.longBreak:
+        return '长休息';
+    }
+  }
+
+  Widget _buildNavButton(BuildContext context, IconData icon, String label, int index, bool isSelected) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniPlayer(BuildContext context, WidgetRef ref, TimerState timerState, VoidCallback onMaximize) {
     final tasks = ref.watch(tasksProvider);
     final currentTask = timerState.currentTaskId != null 
         ? tasks.firstWhere((t) => t.id == timerState.currentTaskId, orElse: () => Task(
@@ -996,7 +1299,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: Colors.red,
+                color: TimerUtils.getTimerTypeColor(timerState.type),
                 borderRadius: BorderRadius.circular(28),
               ),
               child: Center(
@@ -1019,19 +1322,29 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    currentTask?.title ?? '番茄钟',
+                    currentTask?.title ?? TimerUtils.getTimerTypeText(timerState.type),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
-                    _getTimerTypeText(timerState.type),
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
+                  Row(
+                    children: [
+                      Icon(
+                        TimerUtils.getTimerTypeIcon(timerState.type),
+                        color: Colors.white70,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        TimerUtils.getTimerTypeText(timerState.type),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1055,12 +1368,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.fullscreen, color: Colors.white),
-                  onPressed: () {
-                    // Switch to timer tab
-                    setState(() {
-                      _selectedIndex = 0;
-                    });
-                  },
+                  onPressed: onMaximize,
                 ),
               ],
             ),
@@ -1074,17 +1382,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
-
-  String _getTimerTypeText(TimerType type) {
-    switch (type) {
-      case TimerType.work:
-        return '工作时间';
-      case TimerType.shortBreak:
-        return '短休息';
-      case TimerType.longBreak:
-        return '长休息';
-    }
   }
 
   static String _getPriorityText(TaskPriority priority) {
@@ -1110,46 +1407,43 @@ class TimerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final timerState = ref.watch(timerProvider);
     final timerNotifier = ref.read(timerProvider.notifier);
-    final tasks = ref.watch(tasksProvider);
-    final projectTasks = tasks.where((t) => t.projectId == selectedProjectId && !t.isCompleted).toList();
 
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Timer type selector
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildTimerTypeButton(
-                context,
-                ref,
-                TimerType.work,
-                '工作',
-                Colors.red,
-                Icons.work,
+          // 状态指示器
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: TimerUtils.getTimerTypeColor(timerState.type).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: TimerUtils.getTimerTypeColor(timerState.type),
+                width: 2,
               ),
-              const SizedBox(width: 16),
-              _buildTimerTypeButton(
-                context,
-                ref,
-                TimerType.shortBreak,
-                '短休息',
-                Colors.green,
-                Icons.coffee,
-              ),
-              const SizedBox(width: 16),
-              _buildTimerTypeButton(
-                context,
-                ref,
-                TimerType.longBreak,
-                '长休息',
-                Colors.blue,
-                Icons.hotel,
-              ),
-            ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  TimerUtils.getTimerTypeIcon(timerState.type),
+                  color: TimerUtils.getTimerTypeColor(timerState.type),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  TimerUtils.getTimerTypeText(timerState.type),
+                  style: TextStyle(
+                    color: TimerUtils.getTimerTypeColor(timerState.type),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 30),
           
           // Timer display
           Container(
@@ -1157,53 +1451,23 @@ class TimerScreen extends ConsumerWidget {
             height: 200,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Theme.of(context).colorScheme.primaryContainer,
+              color: TimerUtils.getTimerTypeColor(timerState.type).withOpacity(0.1),
+              border: Border.all(
+                color: TimerUtils.getTimerTypeColor(timerState.type),
+                width: 4,
+              ),
             ),
             child: Center(
               child: Text(
                 _formatTime(timerState.seconds),
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: TimerUtils.getTimerTypeColor(timerState.type),
                 ),
               ),
             ),
           ),
           const SizedBox(height: 40),
-          
-          // Task selector for work mode
-          if (timerState.type == TimerType.work && projectTasks.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
-              ),
-              child: Column(
-                children: [
-                  const Text('选择任务:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: timerState.currentTaskId,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                    items: projectTasks.map((task) {
-                      return DropdownMenuItem(
-                        value: task.id,
-                        child: Text(task.title),
-                      );
-                    }).toList(),
-                    onChanged: (taskId) {
-                      // Task selection will be handled when starting timer
-                    },
-                  ),
-                ],
-              ),
-            ),
-          
-          const SizedBox(height: 20),
           
           // Control buttons
           Row(
@@ -1212,11 +1476,7 @@ class TimerScreen extends ConsumerWidget {
               ElevatedButton.icon(
                 onPressed: timerState.isRunning 
                     ? timerNotifier.pauseTimer 
-                    : () => timerNotifier.startTimer(
-                        taskId: timerState.type == TimerType.work 
-                            ? timerState.currentTaskId 
-                            : null,
-                      ),
+                    : () => timerNotifier.startTimer(),
                 icon: Icon(timerState.isRunning ? Icons.pause : Icons.play_arrow),
                 label: Text(timerState.isRunning ? '暂停' : '开始'),
                 style: ElevatedButton.styleFrom(
@@ -1236,85 +1496,7 @@ class TimerScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
               ),
-              if (timerState.isRunning && timerState.type != TimerType.work) ...[
-                const SizedBox(width: 20),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // Skip break and go to work
-                    timerNotifier.setTimerType(TimerType.work);
-                    timerNotifier.startTimer(taskId: timerState.currentTaskId);
-                  },
-                  icon: const Icon(Icons.skip_next),
-                  label: const Text('跳过休息'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                ),
-              ],
-              if (timerState.isRunning) ...[
-                const SizedBox(width: 20),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // Switch to tasks tab to show mini player
-                    DefaultTabController.of(context)?.animateTo(1);
-                  },
-                  icon: const Icon(Icons.fullscreen_exit),
-                  label: const Text('缩小'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                ),
-              ],
             ],
-          ),
-          const SizedBox(height: 40),
-          
-          // Task details card (only show when timer is running with a task)
-          if (timerState.isRunning && timerState.currentTaskId != null)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
-              ),
-              child: _buildTaskDetailsCard(context, ref, timerState.currentTaskId!),
-            ),
-          
-          const SizedBox(height: 20),
-          
-          // Status card
-          Card(
-            margin: const EdgeInsets.all(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.timer,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Pomodoro 计时器',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '专注工作 ${_formatTime(timerState.seconds)}',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ],
-              ),
-            ),
           ),
         ],
       ),
@@ -1475,6 +1657,18 @@ class TimerScreen extends ConsumerWidget {
         return '紧急';
     }
   }
+
+  Color _getTimerTypeColor(TimerType type) {
+    return TimerUtils.getTimerTypeColor(type);
+  }
+
+  IconData _getTimerTypeIcon(TimerType type) {
+    return TimerUtils.getTimerTypeIcon(type);
+  }
+
+  String _getTimerTypeText(TimerType type) {
+    return TimerUtils.getTimerTypeText(type);
+  }
 }
 
 class TasksScreen extends ConsumerWidget {
@@ -1493,165 +1687,375 @@ class TasksScreen extends ConsumerWidget {
     final projectTasks = tasks.where((t) => t.projectId == selectedProjectId).toList();
     final completedTasks = projectTasks.where((task) => task.isCompleted).length;
     final totalTasks = projectTasks.length;
+    final activeTasks = projectTasks.where((task) => !task.isCompleted).toList();
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Stats
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatItem('总任务', totalTasks.toString(), Icons.task),
-                  _buildStatItem('已完成', completedTasks.toString(), Icons.check_circle),
-                  _buildStatItem('进度', totalTasks > 0 ? '${(completedTasks / totalTasks * 100).round()}%' : '0%', Icons.trending_up),
-                ],
+    return Column(
+      children: [
+        // 顶部工具栏
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          
-          // Tasks list
-          Expanded(
-            child: projectTasks.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.task_alt, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          '还没有任务',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          '点击右上角的 + 按钮添加任务',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
+          child: Row(
+            children: [
+              // 统计信息
+              Expanded(
+                child: Row(
+                  children: [
+                    _buildQuickStat(context, '$totalTasks', '任务', Colors.blue),
+                    const SizedBox(width: 16),
+                    _buildQuickStat(context, '$completedTasks', '完成', Colors.green),
+                    const SizedBox(width: 16),
+                    _buildQuickStat(
+                      context,
+                      totalTasks > 0 ? '${(completedTasks / totalTasks * 100).round()}%' : '0%', 
+                      '进度', 
+                      Colors.orange
                     ),
-                  )
-                : ListView.builder(
-                    itemCount: projectTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = projectTasks[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: Checkbox(
-                            value: task.isCompleted,
-                            onChanged: (value) {
-                              ref.read(tasksProvider.notifier).toggleTask(task.id);
-                            },
+                  ],
+                ),
+              ),
+              // 快速添加按钮
+              FloatingActionButton.small(
+                onPressed: () => _showQuickAddTaskDialog(context, ref),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                child: const Icon(Icons.add, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+        // 任务列表
+        Expanded(
+          child: activeTasks.isEmpty && projectTasks.isNotEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
+                      SizedBox(height: 16),
+                      Text(
+                        '所有任务已完成！',
+                        style: TextStyle(fontSize: 18, color: Colors.green),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '恭喜你完成了所有任务',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : activeTasks.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.task_alt, size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text(
+                            '还没有任务',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
                           ),
-                          title: Text(
-                            task.title,
-                            style: TextStyle(
-                              decoration: task.isCompleted 
-                                  ? TextDecoration.lineThrough 
-                                  : null,
+                          SizedBox(height: 8),
+                          Text(
+                            '点击 + 按钮快速添加任务',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ReorderableListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      buildDefaultDragHandles: false,
+                      itemCount: activeTasks.length,
+                      onReorder: (oldIndex, newIndex) {
+                        if (newIndex > oldIndex) newIndex--;
+                        final task = activeTasks.removeAt(oldIndex);
+                        activeTasks.insert(newIndex, task);
+                        // TODO: 保存新的顺序到数据库
+                      },
+                      itemBuilder: (context, index) {
+                        final task = activeTasks[index];
+                        return ReorderableDragStartListener(
+                          key: ValueKey(task.id),
+                          index: index,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (task.description.isNotEmpty)
-                                Text(task.description),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _getPriorityColor(task.priority),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      _getPriorityText(task.priority),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            leading: Checkbox(
+                              value: task.isCompleted,
+                              onChanged: (value) {
+                                ref.read(tasksProvider.notifier).toggleTask(task.id);
+                              },
+                            ),
+                            title: Text(
+                              task.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (task.description.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
                                   Text(
-                                    '🍅 ${task.completedPomodoros}/${task.plannedPomodoros}',
-                                    style: const TextStyle(fontSize: 12),
+                                    task.description,
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ],
-                              ),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Pomodoro button
-                              IconButton(
-                                icon: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Icon(
-                                    Icons.play_arrow,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: _getPriorityColor(task.priority),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        _getPriorityText(task.priority),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '🍅 ${task.completedPomodoros}/${task.plannedPomodoros}',
+                                        style: TextStyle(
+                                          color: Colors.red[700],
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                onPressed: () {
-                                  _startPomodoroForTask(context, ref, task);
-                                },
-                              ),
-                              // Delete button
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () {
-                                  ref.read(tasksProvider.notifier).deleteTask(task.id);
-                                },
-                              ),
-                            ],
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Pomodoro button
+                                IconButton(
+                                  icon: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Icon(
+                                      Icons.play_arrow,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    _startPomodoroForTask(context, ref, task);
+                                  },
+                                ),
+                                // More options
+                                PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert, size: 20),
+                                  onSelected: (value) {
+                                    if (value == 'edit') {
+                                      _showEditTaskDialog(context, ref, task);
+                                    } else if (value == 'delete') {
+                                      ref.read(tasksProvider.notifier).deleteTask(task.id);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit, size: 16),
+                                          SizedBox(width: 8),
+                                          Text('编辑'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete, size: 16),
+                                          SizedBox(width: 8),
+                                          Text('删除'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
+                        );
+                      },
+                    ),
+        ),
+      ],
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon) {
+  Widget _buildQuickStat(BuildContext context, String value, String label, Color color) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.deepPurple),
-        const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 20,
+          style: TextStyle(
+            fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: color,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: Colors.grey,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
       ],
+    );
+  }
+
+  void _showQuickAddTaskDialog(BuildContext context, WidgetRef ref) {
+    final titleController = TextEditingController();
+    TaskPriority selectedPriority = TaskPriority.medium;
+    int plannedPomodoros = 4;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('快速添加任务'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: '任务标题',
+                  border: OutlineInputBorder(),
+                  hintText: '输入任务名称...',
+                ),
+                autofocus: true,
+                onSubmitted: (value) {
+                  if (value.isNotEmpty) {
+                    ref.read(tasksProvider.notifier).addTask(
+                      value,
+                      '',
+                      selectedPriority,
+                      selectedProjectId,
+                      plannedPomodoros,
+                      null,
+                    );
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<TaskPriority>(
+                      value: selectedPriority,
+                      decoration: const InputDecoration(
+                        labelText: '优先级',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: TaskPriority.values.map((priority) {
+                        return DropdownMenuItem(
+                          value: priority,
+                          child: Text(_getPriorityText(priority)),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedPriority = value!;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: TextEditingController(text: plannedPomodoros.toString()),
+                      decoration: const InputDecoration(
+                        labelText: '番茄钟',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        plannedPomodoros = int.tryParse(value) ?? 4;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (titleController.text.isNotEmpty) {
+                  ref.read(tasksProvider.notifier).addTask(
+                    titleController.text,
+                    '',
+                    selectedPriority,
+                    selectedProjectId,
+                    plannedPomodoros,
+                    null,
+                  );
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('添加'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1681,6 +2085,131 @@ class TasksScreen extends ConsumerWidget {
     }
   }
 
+  void _showEditTaskDialog(BuildContext context, WidgetRef ref, Task task) {
+    final titleController = TextEditingController(text: task.title);
+    final descriptionController = TextEditingController(text: task.description);
+    TaskPriority selectedPriority = task.priority;
+    int plannedPomodoros = task.plannedPomodoros;
+    DateTime? dueDate = task.dueDate;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('编辑任务'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: '任务标题',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: '任务描述',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<TaskPriority>(
+                  value: selectedPriority,
+                  decoration: const InputDecoration(
+                    labelText: '优先级',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: TaskPriority.values.map((priority) {
+                    return DropdownMenuItem(
+                      value: priority,
+                      child: Text(_getPriorityText(priority)),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedPriority = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: TextEditingController(text: plannedPomodoros.toString()),
+                  decoration: const InputDecoration(
+                    labelText: '计划番茄钟数量',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    plannedPomodoros = int.tryParse(value) ?? 4;
+                  },
+                ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: dueDate ?? DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        dueDate = date;
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today),
+                        const SizedBox(width: 8),
+                        Text(dueDate != null 
+                          ? '截止日期: ${dueDate!.toLocal().toString().split(' ')[0]}'
+                          : '选择截止日期（可选）'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (titleController.text.isNotEmpty) {
+                  final updatedTask = task.copyWith(
+                    title: titleController.text,
+                    description: descriptionController.text,
+                    priority: selectedPriority,
+                    plannedPomodoros: plannedPomodoros,
+                    dueDate: dueDate,
+                  );
+                  ref.read(tasksProvider.notifier).updateTask(updatedTask);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _startPomodoroForTask(BuildContext context, WidgetRef ref, Task task) {
     // Start timer for the task
     ref.read(timerProvider.notifier).startTimer(taskId: task.id);
@@ -1698,92 +2227,488 @@ class TasksScreen extends ConsumerWidget {
   }
 }
 
-class SettingsScreen extends StatelessWidget {
+class StatisticsScreen extends ConsumerWidget {
+  final String selectedProjectId;
+  
+  const StatisticsScreen({super.key, required this.selectedProjectId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasks = ref.watch(tasksProvider);
+    final sessions = ref.watch(sessionsProvider);
+    final projectTasks = tasks.where((t) => t.projectId == selectedProjectId).toList();
+    final completedTasks = projectTasks.where((task) => task.isCompleted).length;
+    final totalTasks = projectTasks.length;
+    final totalPomodoros = projectTasks.fold(0, (sum, task) => sum + task.completedPomodoros);
+    final totalWorkTime = sessions.where((s) => s.type == TimerType.work).fold(0, (sum, s) => sum + s.duration);
+    final completionRate = totalTasks > 0 ? (completedTasks / totalTasks * 100).round() : 0;
+    final avgEfficiency = totalTasks > 0 ? (totalPomodoros / totalTasks) : 0.0;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1),
+            Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.1),
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 标题区域
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.analytics,
+                      size: 28,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '统计概览',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          '项目进度与效率分析',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // 统计卡片网格
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.4,
+                children: [
+                  _buildStatCard(
+                    context,
+                    '总任务数',
+                    '$totalTasks',
+                    Icons.task_alt,
+                    Colors.blue,
+                    '个任务',
+                  ),
+                  _buildStatCard(
+                    context,
+                    '已完成',
+                    '$completedTasks',
+                    Icons.check_circle,
+                    Colors.green,
+                    '个任务',
+                  ),
+                  _buildStatCard(
+                    context,
+                    '完成率',
+                    '$completionRate%',
+                    Icons.trending_up,
+                    Colors.orange,
+                    '完成度',
+                  ),
+                  _buildStatCard(
+                    context,
+                    '番茄钟',
+                    '$totalPomodoros',
+                    Icons.timer,
+                    Colors.red,
+                    '个番茄',
+                  ),
+                  _buildStatCard(
+                    context,
+                    '专注时间',
+                    '${(totalWorkTime / 60).round()}',
+                    Icons.schedule,
+                    Colors.purple,
+                    '分钟',
+                  ),
+                  _buildStatCard(
+                    context,
+                    '平均效率',
+                    avgEfficiency.toStringAsFixed(1),
+                    Icons.speed,
+                    Colors.teal,
+                    '番茄/任务',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon, Color color, String unit) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 20, color: color),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              unit,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsProvider);
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1),
+            Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.1),
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 标题区域
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.settings,
+                      size: 28,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '设置',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          '个性化你的番茄钟体验',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // 番茄钟设置
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildSettingsCard(
+                      context,
+                      '番茄钟时间设置',
+                      Icons.timer,
+                      [
+                        _buildTimeSetting(
+                          context,
+                          ref,
+                          '工作时间',
+                          'workDuration',
+                          settings['workDuration']!,
+                          Icons.work,
+                          Colors.blue,
+                        ),
+                        _buildTimeSetting(
+                          context,
+                          ref,
+                          '短休息时间',
+                          'shortBreakDuration',
+                          settings['shortBreakDuration']!,
+                          Icons.coffee,
+                          Colors.green,
+                        ),
+                        _buildTimeSetting(
+                          context,
+                          ref,
+                          '长休息时间',
+                          'longBreakDuration',
+                          settings['longBreakDuration']!,
+                          Icons.hotel,
+                          Colors.orange,
+                        ),
+                        _buildIntervalSetting(
+                          context,
+                          ref,
+                          '长休息间隔',
+                          'longBreakInterval',
+                          settings['longBreakInterval']!,
+                          Icons.repeat,
+                          Colors.purple,
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // 应用信息
+                    _buildSettingsCard(
+                      context,
+                      '应用信息',
+                      Icons.info,
+                      [
+                        ListTile(
+                          leading: Icon(Icons.apps, color: Theme.of(context).colorScheme.primary),
+                          title: const Text('Pomodoro Genie'),
+                          subtitle: const Text('版本 2.0.0'),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.code, color: Theme.of(context).colorScheme.secondary),
+                          title: const Text('开发信息'),
+                          subtitle: const Text('Flutter + Riverpod + SharedPreferences'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsCard(BuildContext context, String title, IconData icon, List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeSetting(BuildContext context, WidgetRef ref, String title, String key, int value, IconData icon, Color color) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+      title: Text(title),
+      subtitle: Text('${value}分钟'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove),
+            onPressed: value > 1 ? () {
+              ref.read(settingsProvider.notifier).updateSetting(key, value - 1);
+              ref.read(timerProvider.notifier).updateTimerFromSettings();
+            } : null,
+          ),
           Text(
-            '设置',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            '$value',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 24),
-          
-          // App info
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const Icon(Icons.info, size: 48, color: Colors.blue),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Pomodoro Genie',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('版本 2.0.0'),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '功能特点：\n'
-                    '• 项目管理系统\n'
-                    '• 任务与番茄钟关联\n'
-                    '• 数据持久化存储\n'
-                    '• 优先级管理\n'
-                    '• 进度跟踪\n'
-                    '• 响应式设计',
-                    style: TextStyle(height: 1.5),
-                  ),
-                ],
-              ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: value < 60 ? () {
+              ref.read(settingsProvider.notifier).updateSetting(key, value + 1);
+              ref.read(timerProvider.notifier).updateTimerFromSettings();
+            } : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntervalSetting(BuildContext context, WidgetRef ref, String title, String key, int value, IconData icon, Color color) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+      title: Text(title),
+      subtitle: Text('每${value}个工作周期'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove),
+            onPressed: value > 2 ? () {
+              ref.read(settingsProvider.notifier).updateSetting(key, value - 1);
+            } : null,
+          ),
+          Text(
+            '$value',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
           ),
-          
-          const SizedBox(height: 24),
-          
-          // Development info
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.code, color: Colors.green),
-                      const SizedBox(width: 8),
-                      Text(
-                        '开发信息',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Flutter 版本: 3.35.6'),
-                  const Text('Dart 版本: 3.9.2'),
-                  const Text('状态管理: Riverpod 2.6.1'),
-                  const Text('UI 框架: Material 3'),
-                  const Text('数据存储: SharedPreferences'),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '这是一个功能完整的 Pomodoro 应用，支持项目管理和数据持久化。'
-                    '所有数据都会自动保存到本地存储中。',
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                  ),
-                ],
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: value < 10 ? () {
+              ref.read(settingsProvider.notifier).updateSetting(key, value + 1);
+            } : null,
           ),
         ],
       ),

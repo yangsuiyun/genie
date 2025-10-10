@@ -106,15 +106,12 @@ main() {
     
     # 检查环境
     check_flutter
-    check_go
     
     # 检查端口
     check_port 3001
-    check_port 8081
     
     # 启动服务
     start_frontend
-    start_backend
     
     # 等待服务启动
     log_info "等待服务启动..."
@@ -127,17 +124,10 @@ main() {
         log_warn "⚠️  前端服务可能未正常启动"
     fi
     
-    if curl -s http://localhost:8081/health > /dev/null; then
-        log_info "✅ 后端服务运行正常: http://localhost:8081"
-    else
-        log_warn "⚠️  后端服务可能未正常启动"
-    fi
-    
-    log_info "🎉 所有服务已启动！"
+    log_info "🎉 前端服务已启动！"
     log_info "前端: http://localhost:3001"
-    log_info "后端: http://localhost:8081"
     log_info ""
-    log_info "按 Ctrl+C 停止所有服务"
+    log_info "按 Ctrl+C 停止服务"
     
     # 等待用户中断
     wait
