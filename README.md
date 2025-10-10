@@ -328,11 +328,90 @@ flutter pub get              # 安装依赖
 flutter run -d chrome        # 在Chrome中运行
 flutter build web --release  # 构建生产版本
 
+# macOS应用构建
+cd mobile
+flutter config --enable-macos-desktop  # 启用macOS支持（首次）
+flutter create --platforms=macos .     # 创建macOS平台文件（首次）
+flutter build macos --release          # 构建macOS应用
+
 # Go后端开发
 cd backend
 go mod download              # 下载依赖
 go run cmd/main.go          # 运行开发服务器
 go build -o app cmd/main.go # 构建可执行文件
+```
+
+### macOS DMG 安装包构建
+
+#### 1. 安装依赖工具
+```bash
+# 安装 CocoaPods（macOS构建必需）
+brew install cocoapods
+
+# 安装 create-dmg（创建DMG安装包）
+brew install create-dmg
+```
+
+#### 2. 构建应用
+```bash
+cd mobile
+
+# 清理之前的构建
+flutter clean
+
+# 构建 macOS Release 版本
+flutter build macos --release
+```
+
+#### 3. 创建 DMG 安装包
+```bash
+# 创建输出目录
+mkdir -p build/macos/dmg
+
+# 生成 DMG 文件
+create-dmg \
+  --volname "Pomodoro Genie" \
+  --volicon "build/macos/Build/Products/Release/pomodoro_genie.app/Contents/Resources/AppIcon.icns" \
+  --window-pos 200 120 \
+  --window-size 600 400 \
+  --icon-size 100 \
+  --icon "pomodoro_genie.app" 175 120 \
+  --hide-extension "pomodoro_genie.app" \
+  --app-drop-link 425 120 \
+  "build/macos/dmg/PomodoroGenie-1.0.0.dmg" \
+  "build/macos/Build/Products/Release/pomodoro_genie.app"
+```
+
+#### 4. 构建结果
+- **应用程序**: `build/macos/Build/Products/Release/pomodoro_genie.app`
+- **DMG安装包**: `build/macos/dmg/PomodoroGenie-1.0.0.dmg`
+
+#### 5. 使用说明
+```bash
+# 直接运行应用
+open build/macos/Build/Products/Release/pomodoro_genie.app
+
+# 打开DMG安装包
+open build/macos/dmg/PomodoroGenie-1.0.0.dmg
+
+# 在Finder中查看
+open build/macos/dmg/
+```
+
+#### 6. 代码签名（可选，用于正式分发）
+```bash
+# 签名应用（需要 Apple Developer 账号）
+codesign --force --deep --sign "Developer ID Application: Your Name" \
+  build/macos/Build/Products/Release/pomodoro_genie.app
+
+# 验证签名
+codesign --verify --verbose build/macos/Build/Products/Release/pomodoro_genie.app
+
+# 公证应用（需要 Apple Developer 账号）
+xcrun notarytool submit build/macos/dmg/PomodoroGenie-1.0.0.dmg \
+  --apple-id your-email@example.com \
+  --team-id YOUR_TEAM_ID \
+  --wait
 ```
 
 ### 代码格式化
