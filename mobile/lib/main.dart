@@ -2242,7 +2242,6 @@ class StatisticsScreen extends ConsumerWidget {
     final totalPomodoros = projectTasks.fold(0, (sum, task) => sum + task.completedPomodoros);
     final totalWorkTime = sessions.where((s) => s.type == TimerType.work).fold(0, (sum, s) => sum + s.duration);
     final completionRate = totalTasks > 0 ? (completedTasks / totalTasks * 100).round() : 0;
-    final avgEfficiency = totalTasks > 0 ? (totalPomodoros / totalTasks) : 0.0;
 
     return Container(
       decoration: BoxDecoration(
@@ -2250,93 +2249,58 @@ class StatisticsScreen extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1),
-            Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.1),
+            Theme.of(context).colorScheme.primaryContainer.withOpacity(0.05),
+            Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.05),
           ],
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 标题区域
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
+            // 精简标题
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.analytics,
-                      size: 28,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                  Icon(
+                    Icons.analytics,
+                    size: 24,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '统计概览',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        Text(
-                          '项目进度与效率分析',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(width: 8),
+                  Text(
+                    '统计概览',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
             
-            // 统计卡片网格
+            // 核心统计卡片 - 3列布局
             Expanded(
               child: GridView.count(
-                crossAxisCount: 2,
+                crossAxisCount: 3,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 1.4,
+                childAspectRatio: 1.2,
                 children: [
                   _buildStatCard(
                     context,
-                    '总任务数',
+                    '任务',
                     '$totalTasks',
                     Icons.task_alt,
                     Colors.blue,
-                    '个任务',
                   ),
                   _buildStatCard(
                     context,
-                    '已完成',
+                    '完成',
                     '$completedTasks',
                     Icons.check_circle,
                     Colors.green,
-                    '个任务',
                   ),
                   _buildStatCard(
                     context,
@@ -2344,7 +2308,6 @@ class StatisticsScreen extends ConsumerWidget {
                     '$completionRate%',
                     Icons.trending_up,
                     Colors.orange,
-                    '完成度',
                   ),
                   _buildStatCard(
                     context,
@@ -2352,7 +2315,6 @@ class StatisticsScreen extends ConsumerWidget {
                     '$totalPomodoros',
                     Icons.timer,
                     Colors.red,
-                    '个番茄',
                   ),
                   _buildStatCard(
                     context,
@@ -2360,15 +2322,13 @@ class StatisticsScreen extends ConsumerWidget {
                     '${(totalWorkTime / 60).round()}',
                     Icons.schedule,
                     Colors.purple,
-                    '分钟',
                   ),
                   _buildStatCard(
                     context,
-                    '平均效率',
-                    avgEfficiency.toStringAsFixed(1),
+                    '效率',
+                    totalTasks > 0 ? '${(totalPomodoros / totalTasks).toStringAsFixed(1)}' : '0.0',
                     Icons.speed,
                     Colors.teal,
-                    '番茄/任务',
                   ),
                 ],
               ),
@@ -2379,53 +2339,46 @@ class StatisticsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon, Color color, String unit) {
+  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon, Color color) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 6,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
-              child: Icon(icon, size: 20, color: color),
+              child: Icon(icon, size: 16, color: color),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               value,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 2),
             Text(
-              unit,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
               title,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               ),
               textAlign: TextAlign.center,
             ),
