@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'services/api_service.dart';
 
 // 辅助工具类
 class TimerUtils {
@@ -279,59 +280,111 @@ class ProjectNotifier extends StateNotifier<List<Project>> {
   }
 
   Future<void> _loadProjects() async {
-    final projects = await DataService.loadProjects();
-    if (projects.isEmpty) {
-      // Initialize with default projects
-      final defaultProjects = [
-        Project(
-          id: 'inbox',
-          name: 'Inbox',
-          icon: '📥',
-          color: '#6c757d',
-          createdAt: DateTime.now(),
-        ),
-        Project(
-          id: 'work',
-          name: 'Work',
-          icon: '💼',
-          color: '#007bff',
-          createdAt: DateTime.now(),
-        ),
-        Project(
-          id: 'personal',
-          name: 'Personal',
-          icon: '🏠',
-          color: '#28a745',
-          createdAt: DateTime.now(),
-        ),
-        Project(
-          id: 'study',
-          name: 'Study',
-          icon: '📚',
-          color: '#ffc107',
-          createdAt: DateTime.now(),
-        ),
-      ];
-      state = defaultProjects;
-      await DataService.saveProjects(defaultProjects);
-    } else {
-      state = projects;
+    try {
+      // 1. 先加载本地缓存（快速显示UI）
+      final cachedProjects = await DataService.loadProjects();
+      if (cachedProjects.isNotEmpty) {
+        state = cachedProjects;
+      }
+      
+      // 2. 从服务器获取最新数据
+      final serverData = await apiService.getProjects();
+      final serverProjects = serverData
+          .map((json) => Project.fromJson(json))
+          .toList();
+      
+      // 3. 更新状态和缓存
+      state = serverProjects;
+      await DataService.saveProjects(serverProjects);
+      
+    } catch (e) {
+      print('加载项目失败: $e');
+      
+      // 如果服务器请求失败但有缓存，继续使用缓存
+      if (state.isEmpty) {
+        // Initialize with default projects
+        final defaultProjects = [
+          Project(
+            id: 'inbox',
+            name: 'Inbox',
+            icon: '📥',
+            color: '#6c757d',
+            createdAt: DateTime.now(),
+          ),
+          Project(
+            id: 'work',
+            name: 'Work',
+            icon: '💼',
+            color: '#007bff',
+            createdAt: DateTime.now(),
+          ),
+          Project(
+            id: 'personal',
+            name: 'Personal',
+            icon: '🏠',
+            color: '#28a745',
+            createdAt: DateTime.now(),
+          ),
+          Project(
+            id: 'study',
+            name: 'Study',
+            icon: '📚',
+            color: '#ffc107',
+            createdAt: DateTime.now(),
+          ),
+        ];
+        state = defaultProjects;
+        await DataService.saveProjects(defaultProjects);
+      }
     }
   }
 
   Future<void> addProject(String name) async {
-    final project = Project(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    // 1. 生成临时ID
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    
+    // 2. 创建临时项目对象
+    final tempProject = Project(
+      id: tempId,
       name: name,
       icon: '📁', // Default icon
       color: '#6c757d', // Default color
       createdAt: DateTime.now(),
     );
-    state = [...state, project];
+    
+    // 3. 乐观更新：立即更新UI
+    state = [...state, tempProject];
     await DataService.saveProjects(state);
+    
+    try {
+      // 4. 调用后端API
+      final response = await apiService.createProject(tempProject.toJson());
+      final savedProject = Project.fromJson(response);
+      
+      // 5. 用服务器返回的真实ID替换临时ID
+      state = state.map((p) => p.id == tempId ? savedProject : p).toList();
+      await DataService.saveProjects(state);
+      
+    } catch (e) {
+      print('创建项目失败: $e');
+      
+      if (e is NetworkException) {
+        // 网络错误：保持本地更改，标记为待同步
+        print('离线模式：项目已保存到本地，将在网络恢复后同步');
+      } else {
+        // 其他错误：回滚更改
+        state = state.where((p) => p.id != tempId).toList();
+        await DataService.saveProjects(state);
+        rethrow; // 让UI层处理错误显示
+      }
+    }
   }
 
   Future<void> updateProject(String id, String name) async {
+    // 1. 保存旧状态（用于回滚）
+    final oldState = state;
+    
+    // 2. 乐观更新
     state = state.map((project) {
       if (project.id == id) {
         return Project(
@@ -345,11 +398,57 @@ class ProjectNotifier extends StateNotifier<List<Project>> {
       return project;
     }).toList();
     await DataService.saveProjects(state);
+    
+    try {
+      // 3. 调用后端API
+      final updatedProject = state.firstWhere((p) => p.id == id);
+      final response = await apiService.updateProject(id, updatedProject.toJson());
+      final serverProject = Project.fromJson(response);
+      
+      // 4. 用服务器返回的数据更新
+      state = state.map((p) => p.id == id ? serverProject : p).toList();
+      await DataService.saveProjects(state);
+      
+    } catch (e) {
+      print('更新项目失败: $e');
+      
+      if (e is NetworkException) {
+        // 网络错误：保持本地更改
+        print('离线模式：更改已保存到本地');
+      } else {
+        // 其他错误：回滚
+        state = oldState;
+        await DataService.saveProjects(state);
+        rethrow;
+      }
+    }
   }
 
   Future<void> deleteProject(String id) async {
+    // 1. 保存旧状态
+    final oldState = state;
+    
+    // 2. 乐观删除
     state = state.where((project) => project.id != id).toList();
     await DataService.saveProjects(state);
+    
+    try {
+      // 3. 调用后端API
+      await apiService.deleteProject(id);
+      
+    } catch (e) {
+      print('删除项目失败: $e');
+      
+      if (e is NetworkException) {
+        // 网络错误：保持删除状态，标记为待同步
+        print('离线模式：删除将在网络恢复后同步');
+      } else {
+        // 其他错误：恢复项目
+        state = oldState;
+        await DataService.saveProjects(state);
+        rethrow;
+      }
+    }
   }
 }
 
@@ -364,13 +463,32 @@ class TaskNotifier extends StateNotifier<List<Task>> {
   }
 
   Future<void> _loadTasks() async {
-    final tasks = await DataService.loadTasks();
-    state = tasks;
+    try {
+      // 1. 加载缓存
+      final cachedTasks = await DataService.loadTasks();
+      if (cachedTasks.isNotEmpty) {
+        state = cachedTasks;
+      }
+      
+      // 2. 从服务器获取
+      final serverData = await apiService.getTasks();
+      final serverTasks = serverData.map((json) => Task.fromJson(json)).toList();
+      
+      // 3. 更新状态
+      state = serverTasks;
+      await DataService.saveTasks(serverTasks);
+      
+    } catch (e) {
+      print('加载任务失败: $e');
+      // 失败时使用缓存
+    }
   }
 
   Future<void> addTask(String title, String description, TaskPriority priority, String projectId, int plannedPomodoros, DateTime? dueDate) async {
-    final task = Task(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    
+    final tempTask = Task(
+      id: tempId,
       title: title,
       description: description,
       createdAt: DateTime.now(),
@@ -379,11 +497,36 @@ class TaskNotifier extends StateNotifier<List<Task>> {
       plannedPomodoros: plannedPomodoros,
       dueDate: dueDate,
     );
-    state = [...state, task];
+    
+    // 乐观更新
+    state = [...state, tempTask];
     await DataService.saveTasks(state);
+    
+    try {
+      // 调用API
+      final response = await apiService.createTask(tempTask.toJson());
+      final savedTask = Task.fromJson(response);
+      
+      // 更新为真实ID
+      state = state.map((t) => t.id == tempId ? savedTask : t).toList();
+      await DataService.saveTasks(state);
+      
+    } catch (e) {
+      print('创建任务失败: $e');
+      
+      if (e is! NetworkException) {
+        // 非网络错误：回滚
+        state = state.where((t) => t.id != tempId).toList();
+        await DataService.saveTasks(state);
+        rethrow;
+      }
+    }
   }
 
   Future<void> toggleTask(String id) async {
+    final oldState = state;
+    
+    // 乐观更新
     state = state.map((task) {
       if (task.id == id) {
         return task.copyWith(isCompleted: !task.isCompleted);
@@ -391,14 +534,50 @@ class TaskNotifier extends StateNotifier<List<Task>> {
       return task;
     }).toList();
     await DataService.saveTasks(state);
+    
+    try {
+      // 调用API
+      final updatedTask = state.firstWhere((t) => t.id == id);
+      await apiService.updateTask(id, updatedTask.toJson());
+      
+    } catch (e) {
+      print('更新任务状态失败: $e');
+      
+      if (e is! NetworkException) {
+        // 回滚
+        state = oldState;
+        await DataService.saveTasks(state);
+        rethrow;
+      }
+    }
   }
 
   Future<void> deleteTask(String id) async {
+    final oldState = state;
+    
+    // 乐观删除
     state = state.where((task) => task.id != id).toList();
     await DataService.saveTasks(state);
+    
+    try {
+      // 调用API
+      await apiService.deleteTask(id);
+      
+    } catch (e) {
+      print('删除任务失败: $e');
+      
+      if (e is! NetworkException) {
+        state = oldState;
+        await DataService.saveTasks(state);
+        rethrow;
+      }
+    }
   }
 
   Future<void> updateTask(Task updatedTask) async {
+    final oldState = state;
+    
+    // 乐观更新
     state = state.map((task) {
       if (task.id == updatedTask.id) {
         return updatedTask;
@@ -406,9 +585,34 @@ class TaskNotifier extends StateNotifier<List<Task>> {
       return task;
     }).toList();
     await DataService.saveTasks(state);
+    
+    try {
+      // 调用API
+      final response = await apiService.updateTask(
+        updatedTask.id,
+        updatedTask.toJson(),
+      );
+      final serverTask = Task.fromJson(response);
+      
+      // 用服务器数据更新
+      state = state.map((t) => t.id == serverTask.id ? serverTask : t).toList();
+      await DataService.saveTasks(state);
+      
+    } catch (e) {
+      print('更新任务失败: $e');
+      
+      if (e is! NetworkException) {
+        state = oldState;
+        await DataService.saveTasks(state);
+        rethrow;
+      }
+    }
   }
 
   Future<void> incrementPomodoroCount(String taskId) async {
+    final oldState = state;
+    
+    // 乐观更新
     state = state.map((task) {
       if (task.id == taskId) {
         return task.copyWith(completedPomodoros: task.completedPomodoros + 1);
@@ -416,6 +620,20 @@ class TaskNotifier extends StateNotifier<List<Task>> {
       return task;
     }).toList();
     await DataService.saveTasks(state);
+    
+    try {
+      // 调用API
+      final updatedTask = state.firstWhere((t) => t.id == taskId);
+      await apiService.updateTask(taskId, updatedTask.toJson());
+      
+    } catch (e) {
+      print('更新番茄钟计数失败: $e');
+      
+      if (e is! NetworkException) {
+        state = oldState;
+        await DataService.saveTasks(state);
+      }
+    }
   }
 }
 
