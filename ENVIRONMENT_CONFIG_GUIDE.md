@@ -1,161 +1,287 @@
-# 🔧 Pomodoro Genie 环境配置说明
+# ⚙️ 环境配置指南
 
-## 📋 环境文件整理完成
+> 后端服务环境变量配置说明
 
-### ✅ 保留的环境文件
+## 📋 配置文件
 
-- **`backend/env.example`** - 环境配置示例文件（已简化）
+**位置**: `backend/.env`  
+**模板**: `backend/env.example`
 
-### 🗑️ 删除的环境文件
-
-- ~~`env.production.template`~~ - 复杂的生产环境模板（已删除）
-
-## 🎯 简化后的环境配置
-
-### 核心环境变量
-
-#### 服务器配置
 ```bash
-PORT=8081                    # 后端服务端口
-GIN_MODE=debug              # Gin框架模式 (debug/release)
+# 复制模板创建配置文件
+cd backend
+cp env.example .env
 ```
 
-#### 数据库配置
+## 🔧 配置项说明
+
+### 服务器配置
+
 ```bash
-DB_HOST=localhost           # 数据库主机地址
-DB_PORT=5432               # 数据库端口
-DB_USER=postgres           # 数据库用户名
-DB_PASSWORD=postgres       # 数据库密码
-DB_NAME=pomodoro_genie     # 数据库名称
-DB_SSLMODE=disable         # SSL连接模式
+# HTTP服务端口
+PORT=8081
+
+# 运行模式：debug/release
+GIN_MODE=release
 ```
 
-#### 数据库连接池配置
+**说明:**
+- `PORT`: 后端API监听端口，默认8081
+- `GIN_MODE`: 
+  - `debug`: 开发模式，详细日志
+  - `release`: 生产模式，精简日志
+
+### 数据库配置
+
 ```bash
-DB_MAX_OPEN_CONNS=25       # 最大打开连接数
-DB_MAX_IDLE_CONNS=5        # 最大空闲连接数
-DB_MAX_LIFETIME_MINUTES=5  # 连接最大生存时间
-DB_MAX_IDLE_TIME_MINUTES=1 # 连接最大空闲时间
+# PostgreSQL连接信息
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=pomodoro_genie
+DB_SSLMODE=disable
 ```
 
-#### 日志配置
-```bash
-DB_LOG_LEVEL=info          # 数据库日志级别
-```
+**说明:**
+- `DB_HOST`: 数据库主机地址
+  - 本地: `localhost`
+  - Docker: `pomodoro-postgres` (服务名)
+  - 远程: IP地址或域名
+- `DB_PORT`: PostgreSQL端口，默认5432
+- `DB_SSLMODE`: SSL模式
+  - `disable`: 禁用SSL (开发环境)
+  - `require`: 要求SSL (生产环境)
 
-#### JWT认证配置（可选）
+### JWT认证配置
+
 ```bash
-JWT_SECRET=your-secret-key-here-change-in-production
+# JWT密钥和有效期
+JWT_SECRET=your-secret-key-change-in-production
 JWT_EXPIRE_HOURS=24
 ```
 
-#### CORS配置
+**说明:**
+- `JWT_SECRET`: JWT签名密钥
+  - ⚠️ 生产环境必须更换
+  - 建议使用64位以上随机字符串
+- `JWT_EXPIRE_HOURS`: Token有效期（小时）
+
+### CORS配置
+
 ```bash
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:8080,http://localhost:5173
+# 允许的前端域名
+CORS_ALLOWED_ORIGINS=http://localhost:3001,http://localhost:3000
 ```
 
-## 🚀 使用方法
+**说明:**
+- 多个域名用逗号分隔
+- 开发环境常用端口：3000, 3001
+- 生产环境使用实际域名
 
-### 1. 复制环境配置
+### 日志配置
+
 ```bash
-# 进入后端目录
-cd backend
-
-# 复制环境配置示例
-cp env.example .env
-
-# 编辑环境配置
-nano .env
+# 数据库日志级别
+DB_LOG_LEVEL=info
 ```
 
-### 2. 修改配置值
-根据您的实际环境修改以下值：
-- `DB_PASSWORD` - 数据库密码
-- `JWT_SECRET` - JWT密钥（生产环境必须修改）
-- `CORS_ALLOWED_ORIGINS` - 允许的跨域来源
+**可选值:**
+- `silent`: 静默，无日志
+- `error`: 仅错误
+- `warn`: 警告和错误
+- `info`: 信息、警告和错误（推荐）
 
-### 3. 启动服务
+## 📝 配置示例
+
+### 本地开发环境
+
 ```bash
-# 使用统一启动脚本
-./start.sh
+PORT=8081
+GIN_MODE=debug
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=pomodoro_genie
+DB_SSLMODE=disable
+DB_LOG_LEVEL=info
+JWT_SECRET=dev-secret-key-123
+JWT_EXPIRE_HOURS=24
+CORS_ALLOWED_ORIGINS=http://localhost:3001
+```
 
-# 或手动启动后端
+### Docker Compose环境
+
+```bash
+PORT=8081
+GIN_MODE=release
+DB_HOST=postgres
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=pomodoro_genie
+DB_SSLMODE=disable
+DB_LOG_LEVEL=info
+JWT_SECRET=docker-secret-key-456
+JWT_EXPIRE_HOURS=24
+CORS_ALLOWED_ORIGINS=http://localhost:3001
+```
+
+### 生产环境
+
+```bash
+PORT=8081
+GIN_MODE=release
+DB_HOST=your-db-host.com
+DB_PORT=5432
+DB_USER=prod_user
+DB_PASSWORD=strong-password-here
+DB_NAME=pomodoro_genie
+DB_SSLMODE=require
+DB_LOG_LEVEL=warn
+JWT_SECRET=production-secret-key-change-this-123456789
+JWT_EXPIRE_HOURS=168
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+```
+
+## 🐳 Docker环境变量
+
+在 `docker-compose.yml` 中配置：
+
+```yaml
+services:
+  backend:
+    environment:
+      PORT: 8081
+      GIN_MODE: release
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: pomodoro_genie
+      DB_SSLMODE: disable
+      JWT_SECRET: ${JWT_SECRET:-default-secret}
+      JWT_EXPIRE_HOURS: 24
+      CORS_ALLOWED_ORIGINS: http://localhost:3001
+```
+
+## ☸️ Kubernetes配置
+
+使用Secret存储敏感信息：
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pomodoro-backend-secret
+type: Opaque
+stringData:
+  DB_PASSWORD: your-db-password
+  JWT_SECRET: your-jwt-secret
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pomodoro-backend-config
+data:
+  PORT: "8081"
+  GIN_MODE: "release"
+  DB_HOST: "pomodoro-postgres"
+  DB_PORT: "5432"
+  DB_USER: "postgres"
+  DB_NAME: "pomodoro_genie"
+```
+
+## 🔒 安全建议
+
+### 1. JWT密钥
+
+```bash
+# ✅ 推荐：使用随机生成的强密钥
+JWT_SECRET=$(openssl rand -base64 64)
+
+# ❌ 避免：简单密码
+JWT_SECRET=123456
+```
+
+### 2. 数据库密码
+
+```bash
+# ✅ 推荐：强密码
+DB_PASSWORD=Xy9$mK2#pL4@wN8
+
+# ❌ 避免：弱密码
+DB_PASSWORD=password
+```
+
+### 3. 生产环境
+
+- ✅ 启用SSL：`DB_SSLMODE=require`
+- ✅ 限制CORS：只允许实际域名
+- ✅ 使用环境变量而非硬编码
+- ✅ 定期更换密钥
+
+## 🧪 验证配置
+
+### 检查配置文件
+
+```bash
+# 查看当前配置（隐藏密码）
+cat backend/.env | grep -v PASSWORD | grep -v SECRET
+```
+
+### 测试数据库连接
+
+```bash
+# 使用psql测试
+PGPASSWORD=$DB_PASSWORD psql \
+  -h $DB_HOST \
+  -p $DB_PORT \
+  -U $DB_USER \
+  -d $DB_NAME \
+  -c "SELECT 1;"
+```
+
+### 验证后端启动
+
+```bash
+# 启动后端
 cd backend
 go run cmd/main.go
+
+# 健康检查
+curl http://localhost:8081/health
 ```
 
-## 🔧 环境变量说明
+## 🐛 常见问题
 
-### 必需配置
-- **数据库连接**: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
-- **服务端口**: `PORT`
+### Q: 数据库连接失败？
+**A:** 检查：
+1. PostgreSQL是否运行
+2. `DB_HOST`和`DB_PORT`是否正确
+3. 用户名密码是否匹配
+4. 数据库是否存在
 
-### 可选配置
-- **JWT认证**: `JWT_SECRET`, `JWT_EXPIRE_HOURS`
-- **CORS设置**: `CORS_ALLOWED_ORIGINS`
-- **日志级别**: `DB_LOG_LEVEL`
-- **连接池**: `DB_MAX_OPEN_CONNS`, `DB_MAX_IDLE_CONNS`
+### Q: CORS错误？
+**A:** 确保：
+1. `CORS_ALLOWED_ORIGINS`包含前端地址
+2. 地址格式正确（包含协议和端口）
+3. 多个地址用逗号分隔
 
-### 开发环境默认值
-- 端口: 8081
-- 数据库: localhost:5432/pomodoro_genie
-- 模式: debug
-- SSL: disable
+### Q: JWT验证失败？
+**A:** 检查：
+1. `JWT_SECRET`是否一致
+2. Token是否过期
+3. `JWT_EXPIRE_HOURS`配置
 
-## 🛠️ 故障排除
+## 📚 相关文档
 
-### 常见问题
-
-1. **数据库连接失败**
-   ```bash
-   # 检查PostgreSQL是否运行
-   brew services start postgresql
-   
-   # 创建数据库
-   createdb pomodoro_genie
-   ```
-
-2. **端口被占用**
-   ```bash
-   # 检查端口占用
-   lsof -i :8081
-   
-   # 修改端口
-   export PORT=8082
-   ```
-
-3. **JWT密钥问题**
-   ```bash
-   # 生成随机密钥
-   openssl rand -base64 32
-   ```
-
-## 📊 简化效果
-
-### 配置复杂度
-- **之前**: 90+ 个环境变量
-- **现在**: 15 个核心环境变量
-- **简化**: 83%
-
-### 维护成本
-- **之前**: 复杂的生产环境配置
-- **现在**: 简单的开发环境配置
-- **提升**: 大幅降低维护成本
-
-### 启动速度
-- **之前**: 需要配置大量环境变量
-- **现在**: 使用默认值快速启动
-- **提升**: 显著提升开发效率
-
-## 🎯 最佳实践
-
-1. **开发环境**: 使用默认配置，快速启动
-2. **测试环境**: 复制env.example，修改必要配置
-3. **生产环境**: 设置强密码和安全的JWT密钥
-4. **版本控制**: 不要提交.env文件到git
+- [系统设计文档](DESIGN.md)
+- [API集成指南](API_INTEGRATION_GUIDE.md)
+- [K8s部署指南](K8S_DEPLOYMENT_GUIDE.md)
 
 ---
 
-**环境配置简化完成！** 🎉
-
-现在您有了一个简洁、实用的环境配置，只包含项目实际需要的变量。
+最后更新：2025-10-11

@@ -1,324 +1,393 @@
-# 🍅 Pomodoro Genie Kubernetes部署指南
+# ☸️ Kubernetes部署指南
+
+> Pomodoro Genie在Kubernetes上的部署方案
 
 ## 📋 概述
 
-本指南详细说明如何将Pomodoro Genie应用部署到Kubernetes集群中，包括Docker镜像构建、K8s配置和部署流程。
+本指南介绍如何将Pomodoro Genie部署到Kubernetes集群。
 
-## 🏗️ 架构概览
+## 🎯 架构设计
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend       │    │   PostgreSQL    │
-│   (Flutter Web) │────│   (Go API)      │────│   Database      │
-│   Port: 80      │    │   Port: 8081    │    │   Port: 5432    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │   Ingress       │
-                    │   Controller    │
-                    └─────────────────┘
+        Internet
+            ↓
+    ┌──────────────┐
+    │   Ingress    │ ← 入口控制器
+    └───────┬──────┘
+            ↓
+    ┌──────────────┐
+    │   Service    │ ← 负载均衡
+    └───────┬──────┘
+            ↓
+┌───────────┴───────────┐
+│                       │
+Deployment          Deployment
+Frontend (Nginx)    Backend (Go)
+│                       │
+└───────────┬───────────┘
+            ↓
+    ┌──────────────┐
+    │  StatefulSet │ ← PostgreSQL
+    │   + PVC      │
+    └──────────────┘
 ```
 
-## 🐳 Docker镜像构建
+## 📦 资源清单
 
-### 1. 构建脚本
+项目包含以下K8s配置文件：
 
-使用提供的构建脚本：
+```
+k8s/
+├── secrets.yaml              # 敏感信息（密码、密钥）
+├── postgres-deployment.yaml  # PostgreSQL数据库
+├── backend-deployment.yaml   # Go后端服务
+├── frontend-deployment.yaml  # Nginx前端服务
+└── ingress.yaml             # Ingress路由规则
+```
+
+## 🚀 快速部署
+
+### 前置条件
+
+- Kubernetes集群（v1.24+）
+- kubectl已配置
+- Ingress控制器已安装
+
+### 一键部署
 
 ```bash
-# 构建所有镜像
-./build-docker.sh
-
-# 构建并清理旧镜像
-./build-docker.sh --cleanup
-```
-
-### 2. 手动构建
-
-#### 后端镜像
-```bash
-cd backend
-docker build -t pomodoro-genie/backend:latest .
-```
-
-#### 前端镜像
-```bash
-cd mobile
-docker build -t pomodoro-genie/frontend:latest .
-```
-
-### 3. 镜像验证
-
-```bash
-# 查看构建的镜像
-docker images | grep pomodoro-genie
-
-# 测试镜像运行
-docker run -d -p 8081:8081 pomodoro-genie/backend:latest
-docker run -d -p 3001:80 pomodoro-genie/frontend:latest
-```
-
-## ☸️ Kubernetes部署
-
-### 1. 环境要求
-
-- Kubernetes集群 (v1.20+)
-- kubectl命令行工具
-- Docker镜像仓库访问权限
-- Ingress Controller (推荐nginx-ingress)
-
-### 2. 配置文件说明
-
-#### 命名空间和密钥 (`k8s/secrets.yaml`)
-- 创建`pomodoro-genie`命名空间
-- PostgreSQL数据库凭据
-- JWT密钥配置
-
-#### PostgreSQL部署 (`k8s/postgres-deployment.yaml`)
-- 数据库服务部署
-- 持久化存储配置
-- 健康检查配置
-
-#### 后端部署 (`k8s/backend-deployment.yaml`)
-- Go API服务部署
-- 环境变量配置
-- 资源限制和健康检查
-
-#### 前端部署 (`k8s/frontend-deployment.yaml`)
-- Flutter Web应用部署
-- Nginx静态文件服务
-- 资源限制配置
-
-#### Ingress配置 (`k8s/ingress.yaml`)
-- 外部访问路由
-- CORS配置
-- SSL重定向设置
-
-### 3. 部署步骤
-
-#### 使用部署脚本（推荐）
-```bash
-# 完整部署
+# 部署所有资源
 ./deploy-k8s.sh
 
-# 查看部署状态
-./deploy-k8s.sh --status
-
-# 清理部署
-./deploy-k8s.sh --cleanup
+# 或手动部署
+kubectl apply -f k8s/
 ```
 
-#### 手动部署
-```bash
-# 1. 创建命名空间和密钥
-kubectl apply -f k8s/secrets.yaml
-
-# 2. 部署PostgreSQL
-kubectl apply -f k8s/postgres-deployment.yaml
-
-# 3. 等待数据库启动
-kubectl wait --for=condition=ready pod -l app=postgres -n pomodoro-genie --timeout=300s
-
-# 4. 部署后端服务
-kubectl apply -f k8s/backend-deployment.yaml
-
-# 5. 部署前端服务
-kubectl apply -f k8s/frontend-deployment.yaml
-
-# 6. 配置Ingress
-kubectl apply -f k8s/ingress.yaml
-```
-
-## 🔧 本地开发验证
-
-### 使用Docker Compose
+### 查看部署状态
 
 ```bash
-# 启动完整环境
-docker-compose up -d
+# 查看所有Pod
+kubectl get pods
 
-# 查看服务状态
-docker-compose ps
+# 查看服务
+kubectl get services
 
-# 查看日志
-docker-compose logs -f backend
-docker-compose logs -f frontend
-
-# 停止服务
-docker-compose down
+# 查看Ingress
+kubectl get ingress
 ```
 
-### 访问地址
+## 🔧 配置说明
 
-- **前端**: http://localhost:3001
-- **后端API**: http://localhost:8081
-- **数据库**: localhost:5432
+### 1. Secrets (敏感信息)
 
-## 🌐 生产环境配置
-
-### 1. 镜像仓库
-
-将镜像推送到镜像仓库：
-
-```bash
-# 标记镜像
-docker tag pomodoro-genie/backend:latest your-registry/pomodoro-genie/backend:latest
-docker tag pomodoro-genie/frontend:latest your-registry/pomodoro-genie/frontend:latest
-
-# 推送镜像
-docker push your-registry/pomodoro-genie/backend:latest
-docker push your-registry/pomodoro-genie/frontend:latest
-```
-
-### 2. 更新K8s配置
-
-修改部署文件中的镜像地址：
+`k8s/secrets.yaml`:
 
 ```yaml
-# backend-deployment.yaml
-image: your-registry/pomodoro-genie/backend:latest
-
-# frontend-deployment.yaml  
-image: your-registry/pomodoro-genie/frontend:latest
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pomodoro-secrets
+type: Opaque
+stringData:
+  db-password: "your-db-password"      # 数据库密码
+  jwt-secret: "your-jwt-secret"        # JWT密钥
 ```
 
-### 3. 环境变量配置
+**⚠️ 重要：**
+- 生产环境必须修改默认密码
+- 使用base64编码或stringData
+- 不要提交到Git
 
-更新`k8s/secrets.yaml`中的生产环境配置：
+### 2. PostgreSQL
+
+`k8s/postgres-deployment.yaml`:
 
 ```yaml
-data:
-  username: <base64-encoded-username>
-  password: <base64-encoded-password>
-  jwt-secret: <base64-encoded-jwt-secret>
+# StatefulSet确保数据持久化
+kind: StatefulSet
+spec:
+  replicas: 1
+  volumeClaimTemplates:
+    - spec:
+        resources:
+          requests:
+            storage: 20Gi  # 存储大小
 ```
 
-### 4. Ingress域名配置
+**特点：**
+- StatefulSet保证稳定的网络标识
+- PVC自动创建和绑定
+- 数据持久化存储
 
-更新`k8s/ingress.yaml`中的域名：
+### 3. 后端服务
+
+`k8s/backend-deployment.yaml`:
+
+```yaml
+kind: Deployment
+spec:
+  replicas: 2  # 副本数
+  resources:
+    limits:
+      cpu: "1"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+```
+
+**配置说明：**
+- 2个副本提供高可用
+- 资源限制防止过度使用
+- 健康检查确保服务可用
+
+### 4. 前端服务
+
+`k8s/frontend-deployment.yaml`:
+
+```yaml
+kind: Deployment
+spec:
+  replicas: 2  # 副本数
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+```
+
+**特点：**
+- Nginx服务静态文件
+- 2个副本负载均衡
+- 自动重启故障Pod
+
+### 5. Ingress
+
+`k8s/ingress.yaml`:
 
 ```yaml
 spec:
   rules:
-  - host: your-domain.com  # 修改为实际域名
+    - host: pomodoro.example.com
+      http:
+        paths:
+          - path: /api
+            backend:
+              service:
+                name: pomodoro-backend
+          - path: /
+            backend:
+              service:
+                name: pomodoro-frontend
 ```
 
-## 📊 监控和维护
+**说明：**
+- `/api/*` 路由到后端
+- `/` 路由到前端
+- 支持多域名配置
 
-### 1. 查看部署状态
+## 🔄 更新部署
+
+### 更新镜像
 
 ```bash
-# Pods状态
-kubectl get pods -n pomodoro-genie
+# 更新后端
+kubectl set image deployment/pomodoro-backend \
+  backend=your-registry/pomodoro-backend:v2
 
-# Services状态
-kubectl get services -n pomodoro-genie
-
-# Ingress状态
-kubectl get ingress -n pomodoro-genie
-
-# PVC状态
-kubectl get pvc -n pomodoro-genie
+# 更新前端
+kubectl set image deployment/pomodoro-frontend \
+  frontend=your-registry/pomodoro-frontend:v2
 ```
 
-### 2. 查看日志
+### 滚动更新
 
 ```bash
-# 后端日志
-kubectl logs -n pomodoro-genie -l app=pomodoro-backend
+# 查看更新状态
+kubectl rollout status deployment/pomodoro-backend
 
-# 前端日志
-kubectl logs -n pomodoro-genie -l app=pomodoro-frontend
+# 回滚到上一版本
+kubectl rollout undo deployment/pomodoro-backend
 
-# 数据库日志
-kubectl logs -n pomodoro-genie -l app=postgres
+# 查看历史
+kubectl rollout history deployment/pomodoro-backend
 ```
 
-### 3. 端口转发访问
+## 📊 监控和日志
+
+### 查看日志
 
 ```bash
-# 前端访问
-kubectl port-forward -n pomodoro-genie service/pomodoro-frontend-service 3001:80
+# 查看后端日志
+kubectl logs -f deployment/pomodoro-backend
 
-# 后端API访问
-kubectl port-forward -n pomodoro-genie service/pomodoro-backend-service 8081:8081
+# 查看前端日志
+kubectl logs -f deployment/pomodoro-frontend
+
+# 查看PostgreSQL日志
+kubectl logs -f statefulset/pomodoro-postgres
 ```
 
-## 🔍 故障排除
+### 进入容器
 
-### 1. 常见问题
+```bash
+# 进入后端容器
+kubectl exec -it deployment/pomodoro-backend -- sh
 
-#### Pod启动失败
+# 进入数据库
+kubectl exec -it statefulset/pomodoro-postgres -- psql -U postgres
+```
+
+## 🔍 故障排查
+
+### Pod无法启动
+
 ```bash
 # 查看Pod详情
-kubectl describe pod <pod-name> -n pomodoro-genie
+kubectl describe pod <pod-name>
 
-# 查看Pod日志
-kubectl logs <pod-name> -n pomodoro-genie
+# 查看事件
+kubectl get events --sort-by='.lastTimestamp'
 ```
 
-#### 数据库连接问题
+### 服务不可达
+
 ```bash
-# 检查数据库服务
-kubectl get svc postgres-service -n pomodoro-genie
+# 测试Service
+kubectl run -it --rm debug --image=alpine --restart=Never -- sh
+# 在容器内
+wget -O- http://pomodoro-backend:8081/health
+```
+
+### 数据库连接问题
+
+```bash
+# 检查Secret
+kubectl get secret pomodoro-secrets -o yaml
 
 # 测试数据库连接
-kubectl exec -it <postgres-pod> -n pomodoro-genie -- psql -U postgres -d pomodoro_genie
+kubectl run -it --rm psql --image=postgres:15 --restart=Never -- \
+  psql -h pomodoro-postgres -U postgres
 ```
 
-#### Ingress访问问题
+## 📈 扩缩容
+
+### 手动扩容
+
 ```bash
-# 检查Ingress Controller
-kubectl get pods -n ingress-nginx
+# 扩容后端到3个副本
+kubectl scale deployment/pomodoro-backend --replicas=3
 
-# 检查Ingress配置
-kubectl describe ingress pomodoro-genie-ingress -n pomodoro-genie
+# 扩容前端到5个副本
+kubectl scale deployment/pomodoro-frontend --replicas=5
 ```
 
-### 2. 网络问题解决
+### 自动扩容（HPA）
 
-如果遇到Docker镜像拉取超时，可以：
-
-1. **使用国内镜像源**：
-```bash
-# 配置Docker镜像加速器
-# 在Docker Desktop设置中添加镜像源
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pomodoro-backend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pomodoro-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
 ```
 
-2. **使用代理**：
-```bash
-# 设置Docker代理
-export HTTP_PROXY=http://proxy:port
-export HTTPS_PROXY=http://proxy:port
+## 🔒 安全加固
+
+### 1. 网络策略
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pomodoro-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: pomodoro-backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: pomodoro-frontend
+      ports:
+        - protocol: TCP
+          port: 8081
 ```
 
-3. **离线构建**：
-```bash
-# 在有网络的环境构建镜像，然后导出
-docker save pomodoro-genie/backend:latest | gzip > backend.tar.gz
-docker save pomodoro-genie/frontend:latest | gzip > frontend.tar.gz
+### 2. RBAC
 
-# 在目标环境导入
-docker load < backend.tar.gz
-docker load < frontend.tar.gz
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pomodoro-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pomodoro-role
+rules:
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["get", "list"]
 ```
 
-## 📚 相关文件
+### 3. Pod安全策略
 
-- `build-docker.sh` - Docker镜像构建脚本
-- `deploy-k8s.sh` - Kubernetes部署脚本
-- `docker-compose.yml` - 本地开发环境
-- `k8s/` - Kubernetes配置文件目录
-- `mobile/Dockerfile` - 前端Dockerfile
-- `backend/Dockerfile` - 后端Dockerfile
-- `docker/nginx.conf` - Nginx配置文件
+```yaml
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  readOnlyRootFilesystem: true
+```
 
-## 🎯 下一步
+## 📚 最佳实践
 
-1. **CI/CD集成**: 配置GitHub Actions或GitLab CI自动构建和部署
-2. **监控告警**: 集成Prometheus和Grafana监控
-3. **日志聚合**: 使用ELK或Fluentd收集日志
-4. **备份策略**: 配置数据库定期备份
-5. **安全加固**: 启用RBAC、网络策略等安全功能
+1. **使用命名空间隔离环境**
+   ```bash
+   kubectl create namespace pomodoro-prod
+   kubectl apply -f k8s/ -n pomodoro-prod
+   ```
+
+2. **配置资源限制**
+   - 防止单个Pod耗尽资源
+   - 确保QoS为Guaranteed
+
+3. **启用健康检查**
+   - Liveness Probe：检测Pod是否健康
+   - Readiness Probe：检测Pod是否就绪
+
+4. **使用持久化存储**
+   - StatefulSet + PVC
+   - 定期备份数据
+
+5. **配置监控告警**
+   - Prometheus采集指标
+   - Grafana可视化
+   - AlertManager告警
+
+## 🔗 相关资源
+
+- [Kubernetes官方文档](https://kubernetes.io/docs/)
+- [系统设计文档](DESIGN.md)
+- [环境配置指南](ENVIRONMENT_CONFIG_GUIDE.md)
+
+---
+
+最后更新：2025-10-11

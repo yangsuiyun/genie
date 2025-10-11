@@ -1,105 +1,173 @@
 # 🔌 API集成指南
 
-## 当前问题
+> 快速集成指南 - 将后端API集成到Flutter前端
 
-现在的代码只使用 `SharedPreferences` 保存数据到本地，**完全没有调用后端API**，导致：
-- ❌ 数据只在当前设备存在
-- ❌ 多设备间无法同步
-- ❌ 数据在不同会话间不一致
-- ❌ 无法实现协作功能
+## 📋 概述
 
-## 解决方案概览
+本项目已完成API集成，前端所有数据操作都会同步到后端。本文档记录集成方法供参考。
 
-### 第一步：添加依赖
+## ✅ 当前状态
 
-在 `mobile/pubspec.yaml` 中添加：
+### 已集成的功能
 
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-  flutter_riverpod: ^2.4.0
-  shared_preferences: ^2.2.0
-  http: ^1.1.0  # ← 添加这个依赖
+- ✅ 项目CRUD - 创建、读取、更新、删除
+- ✅ 任务CRUD - 创建、读取、更新、删除
+- ✅ 任务状态切换 - 完成/取消
+- ✅ 番茄钟计数 - 自动更新
+- ✅ 启动时数据加载 - 从服务器同步
+- ✅ 乐观更新策略 - 立即响应，后台同步
+- ✅ 错误处理 - 网络错误与业务错误区分
+
+## 🏗️ 架构设计
+
+```
+┌─────────────────┐
+│   UI Layer      │  Widget显示和用户交互
+│   (Widgets)     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ State Layer     │  Riverpod状态管理
+│ (Providers)     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐     ┌──────────────┐
+│ Service Layer   │────▶│ API Service  │  HTTP请求
+│ (DataService)   │     │ (Backend)    │
+└────────┬────────┘     └──────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Cache Layer     │  本地缓存
+│(SharedPrefs)    │
+└─────────────────┘
 ```
 
-运行：
-```bash
-cd mobile
-flutter pub get
-```
+## 📝 代码实现
 
-### 第二步：使用提供的文件
+### 1. API Service
 
-我已经创建了以下文件：
-
-1. **`mobile/lib/services/api_service.dart`** - API服务类
-2. **`mobile/lib/providers/project_provider_with_api.dart`** - 带API集成的Provider示例
-
-### 第三步：修改现有代码
-
-#### 方案A：快速集成（推荐）
-
-直接修改 `mobile/lib/main.dart` 中的 `ProjectNotifier` 和 `TaskNotifier`：
+`mobile/lib/services/api_service.dart`
 
 ```dart
-// 在 main.dart 顶部添加导入
-import 'services/api_service.dart';
-
-// 修改 ProjectNotifier 的 addProject 方法
-class ProjectNotifier extends StateNotifier<List<Project>> {
-  // ... 其他代码保持不变 ...
+class ApiService {
+  static const String baseUrl = 'http://localhost:8081/api';
   
-  Future<void> addProject(String name) async {
-    // 1. 生成临时ID
-    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
-    
-    // 2. 创建项目对象
-    final project = Project(
-      id: tempId,
-      name: name,
-      icon: '📁',
-      color: '#6c757d',
-      createdAt: DateTime.now(),
-    );
-    
-    // 3. 立即更新UI（乐观更新）
-    state = [...state, project];
-    await DataService.saveProjects(state);
-    
-    try {
-      // 4. 调用后端API ← 新增这部分
-      final response = await apiService.createProject(project.toJson());
-      final savedProject = Project.fromJson(response);
-      
-      // 5. 用服务器返回的真实ID更新
-      state = state.map((p) => p.id == tempId ? savedProject : p).toList();
-      await DataService.saveProjects(state);
-      
-    } catch (e) {
-      print('创建项目失败: $e');
-      if (e is! NetworkException) {
-        // 非网络错误：回滚更改
-        state = state.where((p) => p.id != tempId).toList();
-        await DataService.saveProjects(state);
-      }
-      // 网络错误：保持本地更改，等待后续同步
-    }
-  }
+  // 项目API
+  Future<List<Map<String, dynamic>>> getProjects();
+  Future<Map<String, dynamic>> createProject(Map<String, dynamic> project);
+  Future<Map<String, dynamic>> updateProject(String id, Map<String, dynamic> project);
+  Future<void> deleteProject(String id);
   
-  // 类似地修改 updateProject 和 deleteProject
+  // 任务API
+  Future<List<Map<String, dynamic>>> getTasks({String? projectId});
+  Future<Map<String, dynamic>> createTask(Map<String, dynamic> task);
+  Future<Map<String, dynamic>> updateTask(String id, Map<String, dynamic> task);
+  Future<void> deleteTask(String id);
 }
 ```
 
-#### 方案B：完全替换（更好的架构）
+### 2. 乐观更新模式
 
-1. 将 `project_provider_with_api.dart` 中的代码复制到 `main.dart`
-2. 替换现有的 `ProjectNotifier` 和 `TaskNotifier`
-3. 确保导入了 `api_service.dart`
+所有数据操作遵循统一模式：
 
-### 第四步：配置API基础URL
+```dart
+Future<void> addEntity(...params) async {
+  // 1. 生成临时ID
+  final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+  final entity = Entity(id: tempId, ...);
+  
+  // 2. 乐观更新：立即更新UI
+  state = [...state, entity];
+  await saveToCache(state);
+  
+  try {
+    // 3. 调用后端API
+    final response = await apiService.create(entity.toJson());
+    final saved = Entity.fromJson(response);
+    
+    // 4. 用服务器返回的真实ID更新
+    state = state.map((e) => e.id == tempId ? saved : e).toList();
+    await saveToCache(state);
+    
+  } catch (e) {
+    // 5. 错误处理
+    if (e is NetworkException) {
+      // 网络错误：保留本地更改，标记待同步
+      print('离线模式：将在网络恢复后同步');
+    } else {
+      // 业务错误：回滚本地状态
+      state = state.where((e) => e.id != tempId).toList();
+      await saveToCache(state);
+      rethrow; // 让UI显示错误
+    }
+  }
+}
+```
 
-根据你的环境修改 `api_service.dart` 中的 `baseUrl`：
+### 3. 启动时加载
+
+```dart
+Future<void> _loadData() async {
+  try {
+    // 1. 先显示缓存（快速）
+    final cached = await DataService.load();
+    if (cached.isNotEmpty) {
+      state = cached;
+    }
+    
+    // 2. 从服务器获取最新（准确）
+    final serverData = await apiService.getAll();
+    final entities = serverData.map((json) => Entity.fromJson(json)).toList();
+    
+    // 3. 更新状态和缓存
+    state = entities;
+    await DataService.save(entities);
+    
+  } catch (e) {
+    // 失败时继续使用缓存
+    print('加载失败: $e');
+  }
+}
+```
+
+## 🔄 数据流示例
+
+### 创建任务流程
+
+```
+1. 用户点击"创建任务"
+   ↓
+2. UI立即显示新任务（临时ID）
+   ↓
+3. 调用 POST /api/tasks
+   ↓
+4. 成功：用真实ID替换临时ID
+   ↓
+5. 失败：回滚或保留（根据错误类型）
+```
+
+### 更新任务流程
+
+```
+1. 用户修改任务状态
+   ↓
+2. UI立即显示新状态
+   ↓
+3. 调用 PUT /api/tasks/:id
+   ↓
+4. 成功：保持当前状态
+   ↓
+5. 失败：恢复旧状态，提示用户
+```
+
+## 🛠️ 关键配置
+
+### API基础URL
+
+在 `api_service.dart` 中配置：
 
 ```dart
 // 本地开发
@@ -109,317 +177,87 @@ static const String baseUrl = 'http://localhost:8081/api';
 // static const String baseUrl = 'http://pomodoro-backend:8081/api';
 
 // 生产环境
-// static const String baseUrl = 'https://your-domain.com/api';
+// static const String baseUrl = 'https://api.yourdomain.com/api';
 ```
 
-### 第五步：测试集成
+### 依赖配置
 
-#### 测试清单
+`pubspec.yaml`:
 
-- [ ] 启动后端服务：`docker-compose up -d`
-- [ ] 验证后端运行：`curl http://localhost:8081/health`
-- [ ] 启动前端：`cd mobile && flutter run`
-- [ ] 测试创建项目
-- [ ] 测试创建任务
-- [ ] 测试更新任务
-- [ ] 测试删除操作
-- [ ] 检查后端日志：`docker logs pomodoro-backend`
-
-#### 测试创建项目
-
-```bash
-# 在前端创建项目后，检查后端数据
-curl http://localhost:8081/api/projects
+```yaml
+dependencies:
+  http: ^1.1.0
+  flutter_riverpod: ^2.6.1
+  shared_preferences: ^2.2.2
 ```
 
-应该能看到刚创建的项目。
-
-#### 测试创建任务
-
-```bash
-# 在前端创建任务后，检查后端数据
-curl http://localhost:8081/api/tasks
-```
-
-## 关键修改点总结
-
-### 需要修改的方法（按优先级）
-
-#### 高优先级 ⭐⭐⭐（必须立即修改）
-
-1. **ProjectNotifier**
-   - `addProject()` - 添加 API 调用
-   - `updateProject()` - 添加 API 调用
-   - `deleteProject()` - 添加 API 调用
-   - `_loadProjects()` - 从服务器加载数据
-
-2. **TaskNotifier**
-   - `addTask()` - 添加 API 调用
-   - `updateTask()` - 添加 API 调用
-   - `deleteTask()` - 添加 API 调用
-   - `toggleTask()` - 添加 API 调用
-   - `_loadTasks()` - 从服务器加载数据
-
-#### 中优先级 ⭐⭐（重要）
-
-3. **TimerNotifier**
-   - 番茄钟开始时调用 `apiService.startPomodoroSession()`
-   - 番茄钟完成时调用 `apiService.completePomodoroSession()`
-   - 更新任务的番茄钟计数
-
-#### 低优先级 ⭐（可选）
-
-4. **统计和报表**
-   - 从服务器获取统计数据
-   - 实现数据同步
-
-## 代码修改模板
-
-### 创建操作模板
-
-```dart
-Future<void> createEntity(...params) async {
-  final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
-  final entity = Entity(id: tempId, ...);
-  
-  // 乐观更新
-  state = [...state, entity];
-  await saveToCache(state);
-  
-  try {
-    // API调用
-    final response = await apiService.create(entity.toJson());
-    final saved = Entity.fromJson(response);
-    
-    // 更新真实ID
-    state = state.map((e) => e.id == tempId ? saved : e).toList();
-    await saveToCache(state);
-    
-  } catch (e) {
-    if (e is! NetworkException) {
-      // 非网络错误：回滚
-      state = state.where((e) => e.id != tempId).toList();
-      await saveToCache(state);
-      rethrow;
-    }
-    // 网络错误：保持本地更改
-  }
-}
-```
-
-### 更新操作模板
-
-```dart
-Future<void> updateEntity(String id, ...params) async {
-  final oldState = state;
-  
-  // 乐观更新
-  state = state.map((e) {
-    if (e.id == id) {
-      return e.copyWith(...params);
-    }
-    return e;
-  }).toList();
-  await saveToCache(state);
-  
-  try {
-    // API调用
-    final updated = state.firstWhere((e) => e.id == id);
-    await apiService.update(id, updated.toJson());
-    
-  } catch (e) {
-    if (e is! NetworkException) {
-      // 回滚
-      state = oldState;
-      await saveToCache(state);
-      rethrow;
-    }
-  }
-}
-```
-
-### 删除操作模板
-
-```dart
-Future<void> deleteEntity(String id) async {
-  final oldState = state;
-  
-  // 乐观删除
-  state = state.where((e) => e.id != id).toList();
-  await saveToCache(state);
-  
-  try {
-    // API调用
-    await apiService.delete(id);
-    
-  } catch (e) {
-    if (e is! NetworkException) {
-      // 恢复
-      state = oldState;
-      await saveToCache(state);
-      rethrow;
-    }
-  }
-}
-```
-
-### 加载操作模板
-
-```dart
-Future<void> _loadEntities() async {
-  try {
-    // 1. 先显示缓存
-    final cached = await loadFromCache();
-    if (cached.isNotEmpty) {
-      state = cached;
-    }
-    
-    // 2. 从服务器获取最新
-    final response = await apiService.getAll();
-    final entities = response.map((json) => Entity.fromJson(json)).toList();
-    
-    // 3. 更新状态和缓存
-    state = entities;
-    await saveToCache(entities);
-    
-  } catch (e) {
-    // 失败时使用缓存
-    print('加载失败: $e');
-  }
-}
-```
-
-## 错误处理指南
-
-### UI层错误显示
-
-在调用 Provider 方法时捕获错误：
-
-```dart
-try {
-  await ref.read(projectsProvider.notifier).addProject(name);
-  // 成功提示
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('项目创建成功')),
-  );
-} catch (e) {
-  // 错误提示
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text('创建失败: ${e.toString()}'),
-      backgroundColor: Colors.red,
-    ),
-  );
-}
-```
-
-### 网络状态监听
-
-可以添加网络状态监听来优化用户体验：
-
-```dart
-import 'package:connectivity_plus/connectivity_plus.dart';
-
-final connectivityProvider = StreamProvider<ConnectivityResult>((ref) {
-  return Connectivity().onConnectivityChanged;
-});
-
-// 在UI中显示网络状态
-Consumer(
-  builder: (context, ref, child) {
-    final connectivity = ref.watch(connectivityProvider);
-    return connectivity.when(
-      data: (result) => result == ConnectivityResult.none
-          ? const Banner(
-              message: '离线模式',
-              location: BannerLocation.topEnd,
-            )
-          : const SizedBox.shrink(),
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  },
-)
-```
-
-## 测试数据同步
+## 🧪 测试验证
 
 ### 测试脚本
 
-创建 `test_sync.sh`:
-
 ```bash
-#!/bin/bash
-
-echo "测试项目创建..."
-curl -X POST http://localhost:8081/api/projects \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "测试项目",
-    "icon": "📁",
-    "color": "#6c757d"
-  }'
-
-echo -e "\n\n获取所有项目..."
-curl http://localhost:8081/api/projects
-
-echo -e "\n\n测试任务创建..."
-curl -X POST http://localhost:8081/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "测试任务",
-    "description": "这是一个测试任务",
-    "project_id": "inbox",
-    "priority": "medium"
-  }'
-
-echo -e "\n\n获取所有任务..."
-curl http://localhost:8081/api/tasks
+# 运行API集成测试
+./test-api-integration.sh
 ```
 
-运行：
+### 手动测试
+
 ```bash
-chmod +x test_sync.sh
-./test_sync.sh
+# 1. 启动后端
+docker-compose up -d
+
+# 2. 验证API
+curl http://localhost:8081/health
+
+# 3. 启动前端
+cd mobile && flutter run
+
+# 4. 查看后端日志
+docker logs -f pomodoro-backend
 ```
 
-## 下一步优化
+## 📊 集成清单
 
-完成基础集成后，可以考虑：
+| 功能 | Provider | API端点 | 状态 |
+|------|----------|---------|------|
+| 项目列表 | ProjectNotifier._loadProjects | GET /api/projects | ✅ |
+| 创建项目 | ProjectNotifier.addProject | POST /api/projects | ✅ |
+| 更新项目 | ProjectNotifier.updateProject | PUT /api/projects/:id | ✅ |
+| 删除项目 | ProjectNotifier.deleteProject | DELETE /api/projects/:id | ✅ |
+| 任务列表 | TaskNotifier._loadTasks | GET /api/tasks | ✅ |
+| 创建任务 | TaskNotifier.addTask | POST /api/tasks | ✅ |
+| 更新任务 | TaskNotifier.updateTask | PUT /api/tasks/:id | ✅ |
+| 切换任务 | TaskNotifier.toggleTask | PUT /api/tasks/:id | ✅ |
+| 删除任务 | TaskNotifier.deleteTask | DELETE /api/tasks/:id | ✅ |
+| 番茄钟计数 | TaskNotifier.incrementPomodoroCount | PUT /api/tasks/:id | ✅ |
 
-1. **离线队列** - 实现离线操作队列，网络恢复后自动同步
-2. **冲突解决** - 处理多设备间的数据冲突
-3. **增量同步** - 只同步变更的数据
-4. **实时同步** - 使用WebSocket实现实时数据同步
-5. **数据加密** - 敏感数据加密存储和传输
-
-## 常见问题
+## 🐛 常见问题
 
 ### Q: API调用失败怎么办？
-A: 使用乐观更新策略，失败时根据错误类型决定是回滚还是保留本地更改。
+**A:** 检查：
+1. 后端服务是否运行：`docker-compose ps`
+2. 健康检查：`curl http://localhost:8081/health`
+3. 网络连接是否正常
+4. API URL配置是否正确
 
-### Q: 如何处理临时ID？
-A: 创建时使用 `temp_timestamp` 格式，收到服务器响应后替换为真实ID。
+### Q: 数据不同步？
+**A:** 原因可能是：
+1. 网络错误被忽略（检查控制台日志）
+2. API响应格式不匹配
+3. 临时ID未被替换
 
-### Q: 网络错误时如何处理？
-A: 保留本地更改，标记为待同步，网络恢复后自动上传。
+### Q: 如何调试API调用？
+**A:** 
+1. 查看Flutter控制台日志
+2. 查看后端日志：`docker logs -f pomodoro-backend`
+3. 使用网络抓包工具
 
-### Q: 如何避免数据重复？
-A: 使用幂等性设计，服务器端根据客户端ID去重。
+## 📚 相关文档
 
-## 总结
+- [数据持久化策略](DATA_PERSISTENCE_STRATEGY.md)
+- [系统设计文档](DESIGN.md)
+- [环境配置指南](ENVIRONMENT_CONFIG_GUIDE.md)
 
-**关键要点：**
-1. ✅ 所有数据操作都要调用后端API
-2. ✅ 使用乐观更新提升用户体验
-3. ✅ 本地缓存作为备份，不是主要数据源
-4. ✅ 区分网络错误和业务错误
-5. ✅ 启动时从服务器加载最新数据
+---
 
-**立即行动：**
-1. 添加 `http` 依赖
-2. 复制 `api_service.dart` 到项目
-3. 修改 `ProjectNotifier.addProject()` 添加API调用
-4. 测试验证
-5. 逐步修改其他方法
-
+最后更新：2025-10-11
