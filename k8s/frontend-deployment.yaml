@@ -1,0 +1,62 @@
+# 🍅 Pomodoro Genie Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pomodoro-frontend
+  namespace: pomodoro-genie
+  labels:
+    app: pomodoro-frontend
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pomodoro-frontend
+  template:
+    metadata:
+      labels:
+        app: pomodoro-frontend
+        version: v1
+    spec:
+      containers:
+      - name: frontend
+        image: pomodoro-genie/frontend:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      restartPolicy: Always
+---
+# 🍅 Pomodoro Genie Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: pomodoro-frontend-service
+  namespace: pomodoro-genie
+  labels:
+    app: pomodoro-frontend
+spec:
+  selector:
+    app: pomodoro-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  type: ClusterIP

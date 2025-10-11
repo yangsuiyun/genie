@@ -233,7 +233,6 @@ func (s *SyncService) processIncomingTask(userID uuid.UUID, incomingTask *models
 	if err != nil {
 		if models.IsNotFoundError(err) {
 			// New task, create it
-			incomingTask.LastModifiedDevice = deviceID
 			_, err = s.taskRepo.Create(incomingTask)
 			return nil, err
 		}
@@ -263,11 +262,10 @@ func (s *SyncService) processIncomingTask(userID uuid.UUID, incomingTask *models
 			resolvedTask = existingTask
 		}
 
-		resolvedTask.SyncVersion = max(existingTask.SyncVersion, incomingTask.SyncVersion) + 1
-		resolvedTask.LastModifiedDevice = deviceID
+		resolvedTask.SyncVersion = max(int(existingTask.SyncVersion), int(incomingTask.SyncVersion)) + 1
 		resolvedTask.UpdatedAt = time.Now()
 
-		_, err = s.taskRepo.Update(resolvedTask)
+		err = s.taskRepo.Update(resolvedTask)
 		if err != nil {
 			return conflict, err
 		}
@@ -279,8 +277,7 @@ func (s *SyncService) processIncomingTask(userID uuid.UUID, incomingTask *models
 
 	// No conflict, update task
 	incomingTask.SyncVersion++
-	incomingTask.LastModifiedDevice = deviceID
-	_, err = s.taskRepo.Update(incomingTask)
+	err = s.taskRepo.Update(incomingTask)
 	return nil, err
 }
 
@@ -328,7 +325,7 @@ func (s *SyncService) processDeletedItem(userID uuid.UUID, deletedItem SyncDelet
 		if task.UserID != userID {
 			return fmt.Errorf("cannot delete task belonging to another user")
 		}
-		return s.taskRepo.SoftDelete(deletedItem.ID)
+		return s.taskRepo.Delete(deletedItem.ID)
 
 	case "session":
 		// Similar for sessions

@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,18 +14,18 @@ import (
 
 // RealtimeConfig holds real-time subscription configuration
 type RealtimeConfig struct {
-	SupabaseURL    string
-	SupabaseKey    string
-	JWTSecret      string
-	HeartbeatInterval time.Duration
-	ReconnectDelay    time.Duration
+	SupabaseURL          string
+	SupabaseKey          string
+	JWTSecret            string
+	HeartbeatInterval    time.Duration
+	ReconnectDelay       time.Duration
 	MaxReconnectAttempts int
 	ChannelBufferSize    int
 }
 
 // RealtimeManager manages Supabase real-time subscriptions
 type RealtimeManager struct {
-	config       *RealtimeConfig
+	config         *RealtimeConfig
 	supabaseClient *supabase.Client
 	subscriptions  map[string]*Subscription
 	eventHandlers  map[string][]EventHandler
@@ -36,15 +35,15 @@ type RealtimeManager struct {
 
 // Subscription represents a real-time subscription
 type Subscription struct {
-	ID       string
-	Topic    string
-	Event    string
-	Schema   string
-	Table    string
-	Filter   string
-	UserID   uuid.UUID
-	Channel  chan RealtimeEvent
-	IsActive bool
+	ID        string
+	Topic     string
+	Event     string
+	Schema    string
+	Table     string
+	Filter    string
+	UserID    uuid.UUID
+	Channel   chan RealtimeEvent
+	IsActive  bool
 	CreatedAt time.Time
 }
 
@@ -63,8 +62,8 @@ type RealtimeEvent struct {
 
 // Column represents a database column in real-time events
 type Column struct {
-	Name  string `json:"name"`
-	Type  string `json:"type"`
+	Name  string      `json:"name"`
+	Type  string      `json:"type"`
 	Value interface{} `json:"value"`
 }
 
@@ -377,9 +376,9 @@ func (rm *RealtimeManager) GetStats() map[string]interface{} {
 		"connected":              rm.isConnected,
 		"total_subscriptions":    totalSubs,
 		"active_subscriptions":   activeSubs,
-		"unique_users":          len(userCounts),
-		"heartbeat_interval":    rm.config.HeartbeatInterval.String(),
-		"channel_buffer_size":   rm.config.ChannelBufferSize,
+		"unique_users":           len(userCounts),
+		"heartbeat_interval":     rm.config.HeartbeatInterval.String(),
+		"channel_buffer_size":    rm.config.ChannelBufferSize,
 		"max_reconnect_attempts": rm.config.MaxReconnectAttempts,
 	}
 }
@@ -538,7 +537,7 @@ func RealtimeMiddleware(table string, eventType string) func(http.Handler) http.
 			if rm := GetRealtimeManager(); rm != nil {
 				// You would extract actual data from the request/response context
 				rm.SimulateEvent(table, eventType, uuid.Nil, map[string]interface{}{
-					"message": fmt.Sprintf("%s operation on %s", eventType, table),
+					"message":   fmt.Sprintf("%s operation on %s", eventType, table),
 					"timestamp": time.Now(),
 				})
 			}

@@ -1,0 +1,92 @@
+# 🍅 Pomodoro Genie Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pomodoro-backend
+  namespace: pomodoro-genie
+  labels:
+    app: pomodoro-backend
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pomodoro-backend
+  template:
+    metadata:
+      labels:
+        app: pomodoro-backend
+        version: v1
+    spec:
+      containers:
+      - name: backend
+        image: pomodoro-genie/backend:latest
+        ports:
+        - containerPort: 8081
+        env:
+        - name: PORT
+          value: "8081"
+        - name: GIN_MODE
+          value: "release"
+        - name: DB_HOST
+          value: "postgres-service"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: DB_NAME
+          value: "pomodoro_genie"
+        - name: DB_SSLMODE
+          value: "disable"
+        - name: DB_LOG_LEVEL
+          value: "info"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: jwt-secret
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      restartPolicy: Always
+---
+# 🍅 Pomodoro Genie Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: pomodoro-backend-service
+  namespace: pomodoro-genie
+  labels:
+    app: pomodoro-backend
+spec:
+  selector:
+    app: pomodoro-backend
+  ports:
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+  type: ClusterIP

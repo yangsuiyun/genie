@@ -12,7 +12,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
-	"gorm.io/driver/postgres"
+	postgresDriver "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -88,7 +88,7 @@ func ConnectDatabase() (*Database, error) {
 	}
 
 	// Connect to database
-	db, err := gorm.Open(postgres.Open(dsn), gormConfig)
+	db, err := gorm.Open(postgresDriver.Open(dsn), gormConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -243,12 +243,12 @@ func (d *Database) Health() map[string]interface{} {
 	health := map[string]interface{}{
 		"status":           "healthy",
 		"open_connections": stats.OpenConnections,
-		"in_use":          stats.InUse,
-		"idle":            stats.Idle,
-		"max_open_conns":  stats.MaxOpenConnections,
-		"max_idle_conns":  d.Config.MaxIdleConns,
-		"max_lifetime":    d.Config.MaxLifetime.String(),
-		"max_idle_time":   d.Config.MaxIdleTime.String(),
+		"in_use":           stats.InUse,
+		"idle":             stats.Idle,
+		"max_open_conns":   stats.MaxOpenConnections,
+		"max_idle_conns":   d.Config.MaxIdleConns,
+		"max_lifetime":     d.Config.MaxLifetime.String(),
+		"max_idle_time":    d.Config.MaxIdleTime.String(),
 	}
 
 	// Test connection
@@ -262,10 +262,10 @@ func (d *Database) Health() map[string]interface{} {
 
 // SupabaseConfig holds Supabase-specific configuration
 type SupabaseConfig struct {
-	URL       string
-	AnonKey   string
+	URL        string
+	AnonKey    string
 	ServiceKey string
-	JWTSecret string
+	JWTSecret  string
 	ProjectRef string
 }
 

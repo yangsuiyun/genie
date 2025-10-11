@@ -1,0 +1,81 @@
+# 🍅 Pomodoro Genie Docker Compose - 简化版本
+# 使用本地构建的服务
+
+version: '3.8'
+
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: pomodoro-postgres
+    environment:
+      POSTGRES_DB: pomodoro_genie
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pomodoro-network
+
+  # 后端API服务 - 使用本地构建
+  backend:
+    image: alpine:latest
+    container_name: pomodoro-backend
+    working_dir: /app
+    command: >
+      sh -c "
+        apk add --no-cache ca-certificates tzdata wget &&
+        cp /host/main ./main &&
+        chmod +x ./main &&
+        ./main
+      "
+    environment:
+      PORT: 8081
+      GIN_MODE: release
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: pomodoro_genie
+      DB_SSLMODE: disable
+      DB_LOG_LEVEL: info
+      JWT_SECRET: pomodoro-genie-jwt-secret
+      JWT_EXPIRE_HOURS: 24
+      CORS_ALLOWED_ORIGINS: http://localhost:3001
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./backend/main-linux:/host/main:ro
+    depends_on:
+      - postgres
+    networks:
+      - pomodoro-network
+
+  # 前端Web服务 - 使用本地构建
+  frontend:
+    image: alpine:latest
+    container_name: pomodoro-frontend
+    working_dir: /app
+    command: >
+      sh -c "
+        apk add --no-cache python3 &&
+        cp -r /host/web/* . &&
+        python3 -m http.server 80
+      "
+    ports:
+      - "3001:80"
+    volumes:
+      - ./mobile/build/web:/host/web:ro
+    depends_on:
+      - backend
+    networks:
+      - pomodoro-network
+
+volumes:
+  postgres_data:
+
+networks:
+  pomodoro-network:
+    driver: bridge
