@@ -124,7 +124,7 @@ build_backend() {
     
     # 构建应用
     log_info "编译后端应用..."
-    go build -o main cmd/main_simple.go
+    go build -o main cmd/main.go
     
     if [ $? -eq 0 ]; then
         log_success "后端构建成功"
