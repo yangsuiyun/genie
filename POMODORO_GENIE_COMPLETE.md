@@ -828,12 +828,19 @@ DB_MAX_IDLE_TIME_MINUTES=1
 
 # 日志配置
 DB_LOG_LEVEL=info
+
+# JWT配置（可选）
+JWT_SECRET=your-secret-key-here-change-in-production
+JWT_EXPIRE_HOURS=24
+
+# CORS配置
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:8080,http://localhost:5173
 ```
 
 ## 📖 相关文档
 
 - **[后端文档](backend/README.md)** - 后端服务详细文档
-- **[数据库简化方案](DATABASE_SIMPLIFICATION_PLAN.md)** - 数据库架构简化说明
+- **[环境配置指南](ENVIRONMENT_CONFIG_GUIDE.md)** - 环境变量配置说明
 
 ---
 
