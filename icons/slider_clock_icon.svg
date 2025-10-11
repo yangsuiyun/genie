@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景渐变 -->
+  <defs>
+    <radialGradient id="bgGradient" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" style="stop-color:#F5F5F5;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#E0E0E0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#BDBDBD;stop-opacity:1" />
+    </radialGradient>
+    <linearGradient id="trackGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#424242;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#333333;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圆形 -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGradient)" stroke="#424242" stroke-width="8"/>
+  
+  <!-- 滑块轨道 -->
+  <line x1="120" y1="256" x2="392" y2="256" stroke="url(#trackGradient)" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- 轨道端点 -->
+  <circle cx="120" cy="256" r="12" fill="#333333"/>
+  <circle cx="392" cy="256" r="12" fill="#333333"/>
+  
+  <!-- 中心时钟滑块 -->
+  <circle cx="256" cy="256" r="50" fill="#FFFFFF" stroke="#333333" stroke-width="4"/>
+  
+  <!-- 时钟表盘 -->
+  <circle cx="256" cy="256" r="40" fill="none" stroke="#333333" stroke-width="3"/>
+  
+  <!-- 时钟指针 -->
+  <line x1="256" y1="256" x2="256" y2="220" stroke="#FF9800" stroke-width="6" stroke-linecap="round"/>
+  <line x1="256" y1="256" x2="280" y2="256" stroke="#FF9800" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- 时钟中心点 -->
+  <circle cx="256" cy="256" r="6" fill="#333333"/>
+  
+  <!-- 12点标记 -->
+  <rect x="254" y="200" width="4" height="12" fill="#333333"/>
+  
+  <!-- 调节指示箭头 -->
+  <path d="M 180 200 L 160 180 L 180 160" fill="none" stroke="#FF9800" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 332 200 L 352 180 L 332 160" fill="none" stroke="#FF9800" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- 时间刻度 -->
+  <circle cx="256" cy="256" r="35" fill="none" stroke="#333333" stroke-width="2" opacity="0.5"/>
+  
+  <!-- 装饰性元素 -->
+  <circle cx="200" cy="180" r="3" fill="#FF9800" opacity="0.6"/>
+  <circle cx="312" cy="180" r="3" fill="#FF9800" opacity="0.6"/>
+  <circle cx="200" cy="332" r="3" fill="#FF9800" opacity="0.6"/>
+  <circle cx="312" cy="332" r="3" fill="#FF9800" opacity="0.6"/>
+</svg>

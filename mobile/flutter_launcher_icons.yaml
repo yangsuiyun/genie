@@ -1,0 +1,9 @@
+flutter_launcher_icons:
+  web:
+    generate: true
+    image_path: "../icons/app_icon_1024.png"
+    background_color: "#F5F5F5"
+    theme_color: "#FF9800"
+  macos:
+    generate: true
+    image_path: "../icons/app_icon_1024.png"

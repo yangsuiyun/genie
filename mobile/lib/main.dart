@@ -697,7 +697,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         children: [
           // 侧边栏 - 项目管理
           Container(
-            width: 200,
+            width: 250,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               border: Border(
@@ -708,6 +708,55 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             ),
             child: Column(
               children: [
+                // Today按钮
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedProjectId = 'today';
+                        _selectedIndex = 0; // 切换到任务页面
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _selectedProjectId == 'today' 
+                            ? Theme.of(context).colorScheme.primaryContainer 
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.today,
+                            size: 16,
+                            color: _selectedProjectId == 'today' 
+                                ? Theme.of(context).colorScheme.primary 
+                                : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Today',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: _selectedProjectId == 'today' ? FontWeight.w600 : FontWeight.normal,
+                              color: _selectedProjectId == 'today' 
+                                  ? Theme.of(context).colorScheme.primary 
+                                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // 分割线
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  height: 1,
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                ),
                 // 项目标题和新建按钮
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -1671,7 +1720,7 @@ class TimerScreen extends ConsumerWidget {
   }
 }
 
-class TasksScreen extends ConsumerWidget {
+class TasksScreen extends ConsumerStatefulWidget {
   final String selectedProjectId;
   final VoidCallback onStartPomodoro;
   
@@ -1682,12 +1731,43 @@ class TasksScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TasksScreen> createState() => _TasksScreenState();
+}
+
+class _TasksScreenState extends ConsumerState<TasksScreen> {
+  bool _showCompletedTasks = false;
+  int _completedTasksPage = 1;
+  static const int _pageSize = 10;
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final tasks = ref.watch(tasksProvider);
-    final projectTasks = tasks.where((t) => t.projectId == selectedProjectId).toList();
+    
+    // 处理Today视图
+    List<Task> projectTasks;
+    if (widget.selectedProjectId == 'today') {
+      final today = DateTime.now();
+      final todayStart = DateTime(today.year, today.month, today.day);
+      final todayEnd = DateTime(today.year, today.month, today.day, 23, 59, 59);
+      
+      projectTasks = tasks.where((task) {
+        if (task.isCompleted) return false; // 不显示已完成的任务
+        if (task.dueDate == null) return false; // 不显示没有截止日期的任务
+        
+        return task.dueDate!.isAfter(todayStart.subtract(const Duration(days: 1))) &&
+               task.dueDate!.isBefore(todayEnd.add(const Duration(days: 1)));
+      }).toList();
+    } else {
+      projectTasks = tasks.where((t) => t.projectId == widget.selectedProjectId).toList();
+    }
+    
     final completedTasks = projectTasks.where((task) => task.isCompleted).length;
     final totalTasks = projectTasks.length;
     final activeTasks = projectTasks.where((task) => !task.isCompleted).toList();
+    final allCompletedTasks = projectTasks.where((task) => task.isCompleted).toList();
+    final completedTasksList = allCompletedTasks.take(_completedTasksPage * _pageSize).toList();
+    final hasMoreCompletedTasks = allCompletedTasks.length > completedTasksList.length;
 
     return Column(
       children: [
@@ -1721,12 +1801,30 @@ class TasksScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              // 快速添加按钮
-              FloatingActionButton.small(
-                onPressed: () => _showQuickAddTaskDialog(context, ref),
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                child: const Icon(Icons.add, color: Colors.white),
-              ),
+              // 已完成任务切换按钮（仅在非Today视图中显示）
+              if (widget.selectedProjectId != 'today' && completedTasksList.isNotEmpty)
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showCompletedTasks = !_showCompletedTasks;
+                      if (_showCompletedTasks) {
+                        _completedTasksPage = 1; // 重置分页
+                      }
+                    });
+                  },
+                  icon: Icon(
+                    _showCompletedTasks ? Icons.visibility_off : Icons.visibility,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  tooltip: _showCompletedTasks ? '隐藏已完成任务' : '显示已完成任务',
+                ),
+              // 快速添加按钮（仅在非Today视图中显示）
+              if (widget.selectedProjectId != 'today')
+                FloatingActionButton.small(
+                  onPressed: () => _showQuickAddTaskDialog(context, ref),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  child: const Icon(Icons.add, color: Colors.white),
+                ),
             ],
           ),
         ),
@@ -1752,144 +1850,359 @@ class TasksScreen extends ConsumerWidget {
                   ),
                 )
               : activeTasks.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.task_alt, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text(
-                            '还没有任务',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          Icon(
+                            widget.selectedProjectId == 'today' ? Icons.today : Icons.task_alt, 
+                            size: 64, 
+                            color: Colors.grey
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 16),
                           Text(
-                            '点击 + 按钮快速添加任务',
-                            style: TextStyle(color: Colors.grey),
+                            widget.selectedProjectId == 'today' ? '今天没有任务' : '还没有任务',
+                            style: const TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.selectedProjectId == 'today' 
+                                ? '所有任务都已完成或没有截止日期' 
+                                : '点击 + 按钮快速添加任务',
+                            style: const TextStyle(color: Colors.grey),
                           ),
                         ],
                       ),
                     )
-                  : ReorderableListView.builder(
+                  : ListView(
                       padding: const EdgeInsets.all(16),
-                      buildDefaultDragHandles: false,
-                      itemCount: activeTasks.length,
-                      onReorder: (oldIndex, newIndex) {
-                        if (newIndex > oldIndex) newIndex--;
-                        final task = activeTasks.removeAt(oldIndex);
-                        activeTasks.insert(newIndex, task);
-                        // TODO: 保存新的顺序到数据库
-                      },
-                      itemBuilder: (context, index) {
-                        final task = activeTasks[index];
-                        return ReorderableDragStartListener(
-                          key: ValueKey(task.id),
-                          index: index,
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            leading: Checkbox(
-                              value: task.isCompleted,
-                              onChanged: (value) {
-                                ref.read(tasksProvider.notifier).toggleTask(task.id);
-                              },
-                            ),
-                            title: Text(
-                              task.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (task.description.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    task.description,
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                                      fontSize: 14,
-                                    ),
+                      children: [
+                        // 活跃任务
+                        ...activeTasks.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final task = entry.value;
+                          return ReorderableDragStartListener(
+                            key: ValueKey(task.id),
+                            index: index,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
                                   ),
                                 ],
-                                const SizedBox(height: 8),
-                                Row(
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                leading: Checkbox(
+                                  value: task.isCompleted,
+                                  onChanged: (value) {
+                                    ref.read(tasksProvider.notifier).toggleTask(task.id);
+                                  },
+                                ),
+                                title: Text(
+                                  task.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: _getPriorityColor(task.priority),
-                                        borderRadius: BorderRadius.circular(12),
+                                    // 在Today视图中显示项目信息
+                                    if (widget.selectedProjectId == 'today') ...[
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.folder_outlined,
+                                            size: 12,
+                                            color: Theme.of(context).colorScheme.primary,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            _getProjectName(task.projectId, ref),
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      child: Text(
-                                        _getPriorityText(task.priority),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        '🍅 ${task.completedPomodoros}/${task.plannedPomodoros}',
+                                    ],
+                                    if (task.description.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        task.description,
                                         style: TextStyle(
-                                          color: Colors.red[700],
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                          fontSize: 14,
                                         ),
                                       ),
+                                    ],
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: _getPriorityColor(task.priority),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            _getPriorityText(task.priority),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            '🍅 ${task.completedPomodoros}/${task.plannedPomodoros}',
+                                            style: TextStyle(
+                                              color: Colors.red[700],
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        if (task.dueDate != null) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: _getDueDateColor(task.dueDate!).withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.calendar_today,
+                                                  size: 12,
+                                                  color: _getDueDateColor(task.dueDate!),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  _formatDueDate(task.dueDate!),
+                                                  style: TextStyle(
+                                                    color: _getDueDateColor(task.dueDate!),
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ],
                                 ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Pomodoro button
+                                    IconButton(
+                                      icon: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: const Icon(
+                                          Icons.play_arrow,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        _startPomodoroForTask(context, ref, task);
+                                      },
+                                    ),
+                                    // More options
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert, size: 20),
+                                      onSelected: (value) {
+                                        if (value == 'edit') {
+                                          _showEditTaskDialog(context, ref, task);
+                                        } else if (value == 'delete') {
+                                          ref.read(tasksProvider.notifier).deleteTask(task.id);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit, size: 16),
+                                              SizedBox(width: 8),
+                                              Text('编辑'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete, size: 16),
+                                              SizedBox(width: 8),
+                                              Text('删除'),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        
+                        // 已完成任务标题（仅在非Today视图中显示）
+                        if (widget.selectedProjectId != 'today' && _showCompletedTasks && completedTasksList.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  size: 16,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '已完成任务 (${allCompletedTasks.length})',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
                               ],
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Pomodoro button
-                                IconButton(
-                                  icon: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Icon(
-                                      Icons.play_arrow,
-                                      color: Colors.white,
-                                      size: 18,
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    _startPomodoroForTask(context, ref, task);
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        
+                        // 已完成任务（仅在非Today视图中显示）
+                        if (widget.selectedProjectId != 'today' && _showCompletedTasks)
+                          ...completedTasksList.map((task) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface.withOpacity(0.7),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                                ),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                leading: Checkbox(
+                                  value: task.isCompleted,
+                                  onChanged: (value) {
+                                    ref.read(tasksProvider.notifier).toggleTask(task.id);
                                   },
                                 ),
-                                // More options
-                                PopupMenuButton<String>(
+                                title: Text(
+                                  task.title,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 16,
+                                    decoration: TextDecoration.lineThrough,
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (task.description.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        task.description,
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                          fontSize: 14,
+                                          decoration: TextDecoration.lineThrough,
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            '🍅 ${task.completedPomodoros}/${task.plannedPomodoros}',
+                                            style: TextStyle(
+                                              color: Colors.green[700],
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        if (task.dueDate != null) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.green.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.calendar_today,
+                                                  size: 12,
+                                                  color: Colors.green[700],
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  _formatDueDate(task.dueDate!),
+                                                  style: TextStyle(
+                                                    color: Colors.green[700],
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                trailing: PopupMenuButton<String>(
                                   icon: const Icon(Icons.more_vert, size: 20),
                                   onSelected: (value) {
                                     if (value == 'edit') {
@@ -1921,12 +2234,30 @@ class TasksScreen extends ConsumerWidget {
                                     ),
                                   ],
                                 ),
-                              ],
+                              ),
+                            );
+                          }).toList(),
+                        
+                        // 加载更多按钮（仅在非Today视图中显示）
+                        if (widget.selectedProjectId != 'today' && _showCompletedTasks && hasMoreCompletedTasks) ...[
+                          const SizedBox(height: 16),
+                          Center(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _completedTasksPage++;
+                                });
+                              },
+                              icon: const Icon(Icons.expand_more),
+                              label: Text('加载更多 (还有${allCompletedTasks.length - completedTasksList.length}个)'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                foregroundColor: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
                           ),
-                        ),
-                        );
-                      },
+                        ],
+                      ],
                     ),
         ),
       ],
@@ -1983,7 +2314,7 @@ class TasksScreen extends ConsumerWidget {
                       value,
                       '',
                       selectedPriority,
-                      selectedProjectId,
+                      widget.selectedProjectId,
                       plannedPomodoros,
                       null,
                     );
@@ -2044,7 +2375,7 @@ class TasksScreen extends ConsumerWidget {
                     titleController.text,
                     '',
                     selectedPriority,
-                    selectedProjectId,
+                    widget.selectedProjectId,
                     plannedPomodoros,
                     null,
                   );
@@ -2215,7 +2546,7 @@ class TasksScreen extends ConsumerWidget {
     ref.read(timerProvider.notifier).startTimer(taskId: task.id);
     
     // Navigate to timer screen
-    onStartPomodoro();
+    widget.onStartPomodoro();
     
     // Show confirmation
     ScaffoldMessenger.of(context).showSnackBar(
@@ -2224,6 +2555,57 @@ class TasksScreen extends ConsumerWidget {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  Color _getDueDateColor(DateTime dueDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    final difference = due.difference(today).inDays;
+    
+    if (difference < 0) {
+      return Colors.red; // 已过期
+    } else if (difference == 0) {
+      return Colors.orange; // 今天到期
+    } else if (difference <= 3) {
+      return Colors.yellow[700]!; // 3天内到期
+    } else {
+      return Colors.green; // 还有时间
+    }
+  }
+
+  String _formatDueDate(DateTime dueDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    final difference = due.difference(today).inDays;
+    
+    if (difference < 0) {
+      return '已过期';
+    } else if (difference == 0) {
+      return '今天';
+    } else if (difference == 1) {
+      return '明天';
+    } else if (difference <= 7) {
+      return '${difference}天后';
+    } else {
+      return '${dueDate.month}/${dueDate.day}';
+    }
+  }
+
+  String _getProjectName(String projectId, WidgetRef ref) {
+    final projects = ref.read(projectsProvider);
+    final project = projects.firstWhere(
+      (p) => p.id == projectId,
+      orElse: () => Project(
+        id: projectId,
+        name: '未知项目',
+        icon: '📁',
+        color: '#6c757d',
+        createdAt: DateTime.now(),
+      ),
+    );
+    return project.name;
   }
 }
 

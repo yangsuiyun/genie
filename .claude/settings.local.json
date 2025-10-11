@@ -51,7 +51,9 @@
       "Bash(\"build/macos/dmg/PomodoroGenie-1.0.0.dmg\" )",
       "Bash(\"build/macos/Build/Products/Release/pomodoro_genie.app\")",
       "Bash(flutter clean:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Read(//Users/cloud/Projects/00Private/**)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []
